@@ -1,0 +1,15 @@
+agent:
+  name: "Hermes"
+  version: "0.1.0"
+  log_level: "INFO"
+  max_threads: 5
+
+ingestion:
+  update_interval_hours: 24
+  timeout_seconds: 30
+
+publisher:
+  portal_output_dir: "./portal"
+  webhooks:
+    slack_enabled: false
+    discord_enabled: false

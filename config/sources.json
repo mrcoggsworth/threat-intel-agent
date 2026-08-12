@@ -1,0 +1,20 @@
+[
+  {
+    "name": "CISA Known Exploited Vulnerabilities",
+    "type": "json",
+    "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+    "category": "vulnerabilities"
+  },
+  {
+    "name": "Krebs on Security",
+    "type": "rss",
+    "url": "https://krebsonsecurity.com/feed/",
+    "category": "news"
+  },
+  {
+    "name": "Microsoft Security Response Center",
+    "type": "rss",
+    "url": "https://msrc.microsoft.com/blog/feed",
+    "category": "vendor_advisories"
+  }
+]

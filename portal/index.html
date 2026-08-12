@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hermes // Cyber Threat Intelligence Portal</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #111827;
+            --accent-color: #00f2fe;
+            --text-color: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border-color: #1e293b;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: var(--accent-color);
+            margin: 0;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+        }
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 5px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .card h2 {
+            font-size: 1.2rem;
+            margin-top: 0;
+            color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>⚡ HERMES // Threat Intelligence Portal</h1>
+        <div class="subtitle">Autonomous CTI Monitoring, IOC Correlation & Playbook Feed</div>
+    </header>
+    <main class="grid">
+        <div class="card">
+            <h2>Latest Threat Advisories</h2>
+            <p style="color: var(--text-muted);">No advisories published yet. Run Hermes agent to populate intelligence feeds.</p>
+        </div>
+        <div class="card">
+            <h2>Active IOC Indexes</h2>
+            <p style="color: var(--text-muted);">IPs, Hashes, and Domains extracted daily will appear here.</p>
+        </div>
+        <div class="card">
+            <h2>Generated Playbooks</h2>
+            <p style="color: var(--text-muted);">Sigma, YARA, and KQL rules will be downloadable here.</p>
+        </div>
+    </main>
+</body>
+</html>
