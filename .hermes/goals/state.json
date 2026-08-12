@@ -1,0 +1,10 @@
+{
+  "active_goals": [
+    {
+      "id": "goal-001",
+      "title": "Continuous Threat Intelligence Monitoring & Automated Portal Publishing",
+      "status": "IN_PROGRESS",
+      "target_frequency": "daily"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+profile:
+  name: "default"
+  description: "Primary Hermes Threat Intelligence Agent Instance"
+  home_dir: ".hermes"
+  enabled_skills:
+    - "cti-analysis"
+    - "threat-hunting"
+  session:
+    persistence_enabled: true

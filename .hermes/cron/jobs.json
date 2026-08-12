@@ -1,0 +1,8 @@
+[
+  {
+    "id": "daily-cti-ingestion",
+    "schedule": "0 8 * * *",
+    "prompt": "Run daily Hermes threat intelligence ingestion, extract IOCs, and update portal.",
+    "enabled": true
+  }
+]

@@ -1,0 +1,5 @@
+# .cursorrules - Agent Rules for Cursor / IDE Integration
+
+- Always check `.hermes/SOUL.md` and `.hermes.md` before making architectural modifications.
+- Maintain version control compatibility across all `.hermes/` directories.
+- Python code must conform to Python 3.12+ and PEP 8 guidelines.

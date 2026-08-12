@@ -33,18 +33,18 @@
 
 ## 🗃️ Hermes State & Artifact Version Control
 
-Hermes leverages Git to maintain strict, deterministic version control across all agent artifacts, memory states, configurations, and persistent goals. This enables full auditability, profile isolation, and seamless rollback of agent knowledge over time.
+Hermes leverages Git to maintain strict, deterministic version control across all agent operational artifacts, memory states, configurations, skills, and persistent goals. This enables full auditability, profile isolation, and seamless rollback of agent knowledge over time.
 
-| Artifact Type | Description | Location / Path |
+| Artifact Type | Description | Tracked Location / Path |
 | :--- | :--- | :--- |
-| **Agent Identity** | Global personality, voice, tone, and behavioral identity | `~/.hermes/SOUL.md` |
+| **Agent Identity** | Global personality, voice, tone, and behavioral identity | `.hermes/SOUL.md` (or `~/.hermes/SOUL.md`) |
 | **Project Context** | Repository instructions and project-specific conventions | `.hermes.md`, `AGENTS.md`, `CLAUDE.md`, `.cursorrules` |
-| **Memory** | Durable knowledge learned across conversations | `~/.hermes/memories/MEMORY.md` |
-| **User Model** | Persistent information and preferences about the user | `~/.hermes/memories/USER.md` |
-| **Skills** | Reusable procedures the agent creates, installs, and improves | `~/.hermes/skills/<skill>/SKILL.md` |
-| **Profiles** | Isolated agent instances with distinct config, memory, skills, sessions, and credentials | Profile-specific Hermes home directories |
-| **Cron Jobs** | Scheduled prompts and automated workflows | `~/.hermes/cron/` |
-| **Persistent Goals** | Long-running objectives that continue across execution turns | Hermes goal state |
+| **Memory** | Durable knowledge learned across conversations | `.hermes/memories/MEMORY.md` |
+| **User Model** | Persistent information and preferences about the user | `.hermes/memories/USER.md` |
+| **Skills** | Reusable procedures the agent creates, installs, and improves | `.hermes/skills/<skill>/SKILL.md` |
+| **Profiles** | Isolated agent instances with distinct config, memory, skills, sessions, and credentials | `.hermes/profiles/<profile>/profile.yaml` |
+| **Cron Jobs** | Scheduled prompts and automated workflows | `.hermes/cron/jobs.json` |
+| **Persistent Goals** | Long-running objectives that continue across execution turns | `.hermes/goals/state.json` |
 
 ---
 
@@ -83,6 +83,20 @@ flowchart TD
 
 ```
 threat-intel-agent/
+├── .hermes/                   # Tracked Hermes Agent operational assets
+│   ├── SOUL.md                # Agent identity, voice, tone & principles
+│   ├── memories/              # Persistent memory log & user profile
+│   │   ├── MEMORY.md
+│   │   └── USER.md
+│   ├── skills/                # Procedural skill playbooks
+│   │   ├── cti-analysis/SKILL.md
+│   │   └── threat-hunting/SKILL.md
+│   ├── profiles/              # Isolated agent profile configurations
+│   │   └── default/profile.yaml
+│   ├── cron/                  # Scheduled prompts & automated tasks
+│   │   └── jobs.json
+│   └── goals/                 # Persistent goals tracking
+│       └── state.json
 ├── config/
 │   ├── settings.yaml          # Feeds, API keys, and agent configuration
 │   └── sources.json           # Curated target blogs, RSS, and CTI feeds
@@ -107,6 +121,8 @@ threat-intel-agent/
 ├── tests/                     # Unit & integration tests
 ├── .hermes.md                 # Hermes agent project instructions
 ├── AGENTS.md                  # Multi-agent collaboration rules
+├── CLAUDE.md                  # Claude agent conventions
+├── .cursorrules               # Cursor IDE agent rules
 ├── pyproject.toml             # Project configuration & dependencies (uv managed)
 ├── requirements.txt           # Python dependencies export
 ├── main.py                    # Agent orchestration entrypoint
