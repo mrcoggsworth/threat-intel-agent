@@ -1,6 +1,7 @@
 # ⚡ HERMES // Autonomous Threat Intelligence Engine
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
+[![Package Manager: uv](https://img.shields.io/badge/package--manager-uv-purple.svg)](https://github.com/astral-sh/uv)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![MITRE ATT&CK](https://img.shields.io/badge/MITRE-ATT%26CK%20v14-red.svg)](https://attack.mitre.org/)
 [![Status](https://img.shields.io/badge/Status-Active%20Development-green.svg)]()
@@ -27,6 +28,23 @@
 ### 📰 4. Web Portal Publishing & CMS Sync
 * **Automated Web Publishing:** Dynamically builds and updates a web portal hosting daily threat intelligence bulletins, interactive IOC search indexes, and playable security playbooks.
 * **Real-time Alerting:** Dispatches immediate high-priority threat digests to security teams via Webhooks (Discord, Slack, Teams, Email).
+
+---
+
+## 🗃️ Hermes State & Artifact Version Control
+
+Hermes leverages Git to maintain strict, deterministic version control across all agent artifacts, memory states, configurations, and persistent goals. This enables full auditability, profile isolation, and seamless rollback of agent knowledge over time.
+
+| Artifact Type | Description | Location / Path |
+| :--- | :--- | :--- |
+| **Agent Identity** | Global personality, voice, tone, and behavioral identity | `~/.hermes/SOUL.md` |
+| **Project Context** | Repository instructions and project-specific conventions | `.hermes.md`, `AGENTS.md`, `CLAUDE.md`, `.cursorrules` |
+| **Memory** | Durable knowledge learned across conversations | `~/.hermes/memories/MEMORY.md` |
+| **User Model** | Persistent information and preferences about the user | `~/.hermes/memories/USER.md` |
+| **Skills** | Reusable procedures the agent creates, installs, and improves | `~/.hermes/skills/<skill>/SKILL.md` |
+| **Profiles** | Isolated agent instances with distinct config, memory, skills, sessions, and credentials | Profile-specific Hermes home directories |
+| **Cron Jobs** | Scheduled prompts and automated workflows | `~/.hermes/cron/` |
+| **Persistent Goals** | Long-running objectives that continue across execution turns | Hermes goal state |
 
 ---
 
@@ -87,7 +105,10 @@ threat-intel-agent/
 │   ├── index.html
 │   └── assets/
 ├── tests/                     # Unit & integration tests
-├── requirements.txt           # Python dependencies
+├── .hermes.md                 # Hermes agent project instructions
+├── AGENTS.md                  # Multi-agent collaboration rules
+├── pyproject.toml             # Project configuration & dependencies (uv managed)
+├── requirements.txt           # Python dependencies export
 ├── main.py                    # Agent orchestration entrypoint
 ├── .gitignore                 # Environment & build exclusions
 └── README.md                  # Project documentation
@@ -98,10 +119,11 @@ threat-intel-agent/
 ## ⚡ Quick Start
 
 ### Prerequisites
-* **Python 3.10+**
+* **Python 3.12+**
+* **[`uv`](https://github.com/astral-sh/uv)** (Fast Python package and project manager)
 * **Git**
 
-### Installation
+### Installation & Environment Setup
 
 1. **Clone the repository:**
    ```bash
@@ -109,20 +131,20 @@ threat-intel-agent/
    cd threat-intel-agent
    ```
 
-2. **Set up virtual environment:**
+2. **Set up virtual environment using `uv`:**
    ```bash
-   python3 -m venv .venv
+   uv venv --python 3.12
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
 3. **Install dependencies:**
    ```bash
-   pip install -r requirements.txt
+   uv pip install -r requirements.txt
    ```
 
 4. **Run Hermes Agent:**
    ```bash
-   python main.py --run-once
+   uv run main.py --run-once
    ```
 
 ---
