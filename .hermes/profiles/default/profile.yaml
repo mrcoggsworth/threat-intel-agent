@@ -5,5 +5,9 @@ profile:
   enabled_skills:
     - "cti-analysis"
     - "threat-hunting"
+    - "ioc-parser"
+    - "sigma-rule-generator"
+    - "threat-enrichment"
+    - "yara-author"
   session:
     persistence_enabled: true
