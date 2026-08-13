@@ -1,8 +1,9 @@
 [
   {
-    "id": "daily-cti-ingestion",
+    "id": "daily-hermes-cti-briefing",
     "schedule": "0 8 * * *",
-    "prompt": "Run daily Hermes threat intelligence ingestion, extract IOCs, and update portal.",
+    "description": "Daily 24-hour Autonomous Cyber Threat Intelligence Briefing & Playbook Synthesis Job",
+    "prompt": "Execute the daily 24-hour Hermes Cyber Threat Intelligence (CTI) Briefing & Playbook Synthesis workflow.\n\n### TASK INSTRUCTIONS:\n1. **Deduplication & Session Verification**:\n   - Consult `.hermes/memories/MEMORY.md` and session memory to verify that no CVEs, zero-days, or APT campaigns reported in the last 24–48 hours are repeated.\n   - Filter exclusively for net-new, enterprise-grade threats (ignoring consumer malware and localized spam).\n\n2. **Feed Ingestion & Extraction**:\n   - Fetch news events and advisories from primary threat streams (e.g. `https://feeds.feedburner.com/TheHackersNews`, CISA KEV catalog, security vendor blogs).\n   - Execute `.hermes/skills/ioc-parser/SKILL.md` to deterministically extract and refang all IPv4/v6 addresses, MD5/SHA256 hashes, domain names, URLs, registry keys, and CVE identifiers.\n\n3. **Threat Enrichment & Risk Scoring**:\n   - Execute `.hermes/skills/threat-enrichment/SKILL.md` to perform OSINT API lookups (AbuseIPDB, VirusTotal, AlienVault OTX, CISA KEV).\n   - Attach EPSS scores, CVSS ratings, reputation scores, and threat actor/APT campaign attributions.\n\n4. **Detection Rule Synthesis**:\n   - Map threat TTPs to the MITRE ATT&CK® framework.\n   - Execute `.hermes/skills/sigma-rule-generator/SKILL.md` to output valid YAML Sigma rules, production-ready Splunk Search Processing Language (SPL) queries (with fallback generic `index=*` queries), and Elastic KQL queries.\n   - Execute `.hermes/skills/yara-author/SKILL.md` to generate syntactically valid YARA rules for memory and disk triage if file-based artifacts exist.\n\n5. **Investigation Playbook & Web Portal Update**:\n   - Execute `.hermes/skills/cti-analysis/SKILL.md` and `.hermes/skills/threat-hunting/SKILL.md` to build a 4-step Cyber Investigation Playbook (1. Scope & Target ID, 2. SIEM/EDR Hunting Methodologies, 3. Triage & Containment, 4. Forensic Validation).\n   - Structure the output into a clean daily Markdown report and update the Hermes web portal database.",
     "enabled": true
   }
 ]
