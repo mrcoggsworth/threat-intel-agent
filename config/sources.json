@@ -6,9 +6,75 @@
     "category": "vulnerabilities"
   },
   {
+    "name": "CISA Cybersecurity Advisories",
+    "type": "rss",
+    "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+    "category": "cert_advisories"
+  },
+  {
+    "name": "The DFIR Report",
+    "type": "rss",
+    "url": "https://thedfirreport.com/feed/",
+    "category": "threat_research"
+  },
+  {
+    "name": "Cisco Talos Intelligence",
+    "type": "rss",
+    "url": "https://blog.talosintelligence.com/rss/",
+    "category": "threat_research"
+  },
+  {
+    "name": "Palo Alto Unit 42",
+    "type": "rss",
+    "url": "https://unit42.paloaltonetworks.com/feed/",
+    "category": "threat_research"
+  },
+  {
+    "name": "Google Threat Analysis Group",
+    "type": "rss",
+    "url": "https://blog.google/threat-analysis-group/rss/",
+    "category": "threat_research"
+  },
+  {
+    "name": "Microsoft Threat Intelligence",
+    "type": "rss",
+    "url": "https://www.microsoft.com/en-us/security/blog/topic/threat-intelligence/feed/",
+    "category": "threat_research"
+  },
+  {
+    "name": "SentinelLabs",
+    "type": "rss",
+    "url": "https://www.sentinelone.com/labs/feed/",
+    "category": "threat_research"
+  },
+  {
+    "name": "Red Canary Threat Research",
+    "type": "rss",
+    "url": "https://redcanary.com/blog/feed/",
+    "category": "threat_research"
+  },
+  {
+    "name": "SANS ISC InfoSec Diaries",
+    "type": "rss",
+    "url": "https://isc.sans.edu/rssfeed_full.xml",
+    "category": "incident_response"
+  },
+  {
+    "name": "Trend Micro Zero Day Initiative",
+    "type": "rss",
+    "url": "https://www.zerodayinitiative.com/blog?format=rss",
+    "category": "vulnerabilities"
+  },
+  {
     "name": "Krebs on Security",
     "type": "rss",
     "url": "https://krebsonsecurity.com/feed/",
+    "category": "news"
+  },
+  {
+    "name": "BleepingComputer",
+    "type": "rss",
+    "url": "https://www.bleepingcomputer.com/feed/",
     "category": "news"
   },
   {
