@@ -146,3 +146,8 @@ variables and must never be committed.
 
 See the supplied architecture and implementation-plan documents under
 `CTI-Hermes/` for the approved later-phase contracts. License: MIT.
+
+
+## Hermes profile installation
+
+The two profile staging trees, migration plan, and portable installer are documented in [docs/HERMES_PROFILE_MIGRATION.md](docs/HERMES_PROFILE_MIGRATION.md). Run `scripts/install-hermes-profiles.sh --guided` to prepare separate analyst and maintainer homes on a local setup. The installer never copies repository secrets and does not overwrite an existing runtime home by default.

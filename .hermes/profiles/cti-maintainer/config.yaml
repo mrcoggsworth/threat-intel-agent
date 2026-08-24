@@ -1,0 +1,66 @@
+profile:
+  name: "cti-maintainer"
+  description: "Approval-gated CTI-Hermes repository and deployment maintainer"
+  # This is the repository staging copy. The human installer must set the
+  # native Hermes home to a dedicated runtime directory outside this repo.
+  home_dir: "/home/$USER/code/threat-intel-agent/.hermes/profiles/cti-maintainer"
+
+terminal:
+  cwd: "/home/$USER/code/threat-intel-agent/"
+
+model:
+  provider: "__SET_AND_PIN_PROVIDER__"
+  name: "__SET_AND_PIN_MODEL__"
+
+toolsets:
+  allow:
+    - "repository_read_write_branch"
+    - "github_issue_and_draft_pr"
+    - "test_lint_type_build_security"
+    - "private_operations_api"
+    - "docker_compose_approved_workflows"
+    - "read_only_production_logs"
+    - "one_shot_migration_deployment_with_approval"
+  deny:
+    - "git_push_main"
+    - "pull_request_merge"
+    - "unapproved_production_deployment"
+    - "disable_ci_or_security_gates"
+    - "delete_production_data"
+    - "rewrite_migration_history"
+    - "edit_cti_assessments_to_hide_errors"
+    - "read_analyst_profile_secrets"
+    - "send_production_secrets_to_chat_or_github"
+
+permissions:
+  repository: "branch_write_only"
+  default_branch: "main"
+  deployment: "approval_reference_required"
+  credentials:
+    private_operations_token_file: "/etc/hermes/cti-maintainer/admin-token"
+    forbidden_paths:
+      - "/etc/hermes/cti-analyst/"
+      - "/var/lib/hermes/cti-analyst/"
+  destructive_actions: "explicit_approval_required"
+
+skills:
+  path: ".hermes/profiles/cti-maintainer/skills"
+  enabled:
+    - "repository-orientation"
+    - "test-ci-diagnosis"
+    - "docker-compose-operations"
+    - "postgresql-migrations"
+    - "backup-restore-verification"
+    - "deployment-rollback"
+    - "fastapi-application-maintenance"
+    - "security-dependency-review"
+    - "github-issue-draft-pr"
+
+cron:
+  jobs_file: ".hermes/profiles/cti-maintainer/cron/jobs.json"
+  require_absolute_workdir: true
+  allow_job_creation: false
+
+audit:
+  path: ".hermes/profiles/cti-maintainer/audit/events.jsonl"
+  secret_redaction: "required"

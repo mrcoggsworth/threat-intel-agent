@@ -1,0 +1,71 @@
+profile:
+  name: "cti-analyst"
+  description: "Evidence-first public cyber-threat-intelligence analyst"
+  # This is the repository staging copy. The human installer must set the
+  # native Hermes home to a dedicated runtime directory outside this repo.
+  home_dir: "/home/$USER/code/threat-intel-agent/.hermes/profiles/cti-analyst"
+
+terminal:
+  cwd: "/home/$USER/code/threat-intel-agent/"
+
+model:
+  # Pin these values during installation; do not leave floating aliases in a
+  # scheduled production job.
+  provider: "__SET_AND_PIN_PROVIDER__"
+  name: "__SET_AND_PIN_MODEL__"
+
+toolsets:
+  allow:
+    - "public_web_research"
+    - "repository_read"
+    - "cti_service_analyst_api"
+    - "file_read"
+    - "approved_analyst_output"
+  deny:
+    - "docker_socket"
+    - "production_environment_files"
+    - "database_superuser"
+    - "git_push_main"
+    - "pull_request_merge"
+    - "production_deployment"
+    - "secret_rotation"
+    - "destructive_database_operations"
+    - "repository_code_mutation_in_scheduled_jobs"
+
+permissions:
+  repository: "read_only_during_scheduled_jobs"
+  service_scope: "analyst"
+  output_paths:
+    - "/home/$USER/code/threat-intel-agent/portal/analyst-output/"
+  credentials:
+    service_token_file: "/etc/hermes/cti-analyst/service-token"
+    forbidden_paths:
+      - "/etc/hermes/cti-maintainer/"
+      - "/var/lib/hermes/cti-maintainer/"
+      - "/opt/cti-hermes/env/"
+
+skills:
+  path: ".hermes/profiles/cti-analyst/skills"
+  enabled:
+    - "cti-run-review"
+    - "ioc-evidence-review"
+    - "historical-correlation"
+    - "source-reliability"
+    - "sigma-rule-generator"
+    - "yara-author"
+    - "threat-hunting"
+    - "remediation"
+    - "report-publication-validation"
+    - "feed-data-quality"
+    - "ioc-parser"
+    - "threat-enrichment"
+    - "cti-analysis"
+
+cron:
+  jobs_file: ".hermes/profiles/cti-analyst/cron/jobs.json"
+  require_absolute_workdir: true
+  allow_job_creation: false
+
+audit:
+  path: ".hermes/profiles/cti-analyst/audit/events.jsonl"
+  secret_redaction: "required"

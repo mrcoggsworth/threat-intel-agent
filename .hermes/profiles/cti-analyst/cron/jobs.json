@@ -1,0 +1,58 @@
+[
+  {
+    "id": "cti-analyst-daily-analysis",
+    "schedule": "0 3 * * *",
+    "description": "Analyze the latest completed public CTI ingestion run",
+    "prompt_file": ".hermes/profiles/cti-analyst/prompts/daily-analysis.md",
+    "workdir": "/home/$USER/code/threat-intel-agent/",
+    "model": "__SET_AND_PIN_MODEL__",
+    "provider": "__SET_AND_PIN_PROVIDER__",
+    "toolsets": ["public_web_research", "repository_read", "cti_service_analyst_api", "file_read"],
+    "preflight": "check_for_changed_run",
+    "wakeAgent": true,
+    "wakeAgentWhenPreflightEmpty": false,
+    "success_output": "SILENT"
+  },
+  {
+    "id": "cti-analyst-feed-quality",
+    "schedule": "30 3 * * *",
+    "description": "Review source and feed data quality",
+    "prompt_file": ".hermes/profiles/cti-analyst/prompts/feed-quality.md",
+    "workdir": "/home/$USER/code/threat-intel-agent/",
+    "model": "__SET_AND_PIN_MODEL__",
+    "provider": "__SET_AND_PIN_PROVIDER__",
+    "toolsets": ["repository_read", "cti_service_analyst_api", "file_read"],
+    "preflight": "check_for_changed_run",
+    "wakeAgent": true,
+    "wakeAgentWhenPreflightEmpty": false,
+    "success_output": "SILENT"
+  },
+  {
+    "id": "cti-analyst-historical-resurfacing",
+    "schedule": "0 4 * * 1",
+    "description": "Find materially changed historical public technology risk",
+    "prompt_file": ".hermes/profiles/cti-analyst/prompts/historical-resurfacing.md",
+    "workdir": "/home/$USER/code/threat-intel-agent/",
+    "model": "__SET_AND_PIN_MODEL__",
+    "provider": "__SET_AND_PIN_PROVIDER__",
+    "toolsets": ["repository_read", "cti_service_analyst_api", "file_read"],
+    "preflight": "check_for_changed_data_window",
+    "wakeAgent": true,
+    "wakeAgentWhenPreflightEmpty": false,
+    "success_output": "SILENT"
+  },
+  {
+    "id": "cti-analyst-monthly-retrospective",
+    "schedule": "0 5 1 * *",
+    "description": "Produce a stored-record monthly CTI retrospective",
+    "prompt_file": ".hermes/profiles/cti-analyst/prompts/monthly-retrospective.md",
+    "workdir": "/home/$USER/code/threat-intel-agent/",
+    "model": "__SET_AND_PIN_MODEL__",
+    "provider": "__SET_AND_PIN_PROVIDER__",
+    "toolsets": ["repository_read", "cti_service_analyst_api", "file_read"],
+    "preflight": "check_for_changed_month",
+    "wakeAgent": true,
+    "wakeAgentWhenPreflightEmpty": false,
+    "success_output": "SILENT"
+  }
+]
