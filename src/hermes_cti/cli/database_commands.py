@@ -12,6 +12,8 @@ import typer
 from pydantic import ValidationError
 
 from hermes_cti.core.settings import load_settings
+from hermes_cti.correlation import CorrelationService
+from hermes_cti.correlation.repository import CorrelationRepository
 from hermes_cti.db.migrations import run_migrations
 from hermes_cti.db.models import Vulnerability
 from hermes_cti.db.pipeline import DailyPipeline
@@ -19,7 +21,11 @@ from hermes_cti.db.repositories import PersistenceRepository, RunRepository
 from hermes_cti.db.session import Database
 from hermes_cti.enrichment import EnrichmentCache, EnrichmentService, build_providers
 from hermes_cti.ingestion.source_config import load_source_registry
-from hermes_cti.models.contracts import SourceRegistry, normalize_cve_id
+from hermes_cti.models.contracts import (
+    RelationshipProposal,
+    SourceRegistry,
+    normalize_cve_id,
+)
 
 database_app = typer.Typer(help="Operate PostgreSQL persistence and scheduling.")
 
@@ -235,3 +241,45 @@ def enrich(
         typer.echo(f"Enrichment failed: {exc}", err=True)
         raise typer.Exit(code=1) from exc
     typer.echo(json.dumps({"enriched": payload}, sort_keys=True, separators=(",", ":")))
+
+
+@database_app.command("submit-proposal")
+def submit_proposal(
+    payload_path: Path = typer.Option(  # noqa: B008
+        ..., "--payload", help="JSON file containing one model relationship proposal."
+    ),
+) -> None:
+    """Submit a guarded model proposal; it remains unpublished until reviewed."""
+    try:
+        proposal = RelationshipProposal.model_validate_json(payload_path.read_text())
+        validated = CorrelationService().submit_model_proposal(proposal)
+    except (OSError, ValueError, ValidationError) as exc:
+        typer.echo(f"Proposal rejected: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    settings = load_settings()
+    database = Database(settings)
+
+    async def execute() -> None:
+        try:
+            async with database.transaction() as session:
+                await CorrelationRepository().persist_model_proposal(session, validated)
+        finally:
+            await database.dispose()
+
+    try:
+        asyncio.run(execute())
+    except (OSError, ValueError) as exc:
+        typer.echo(f"Proposal persistence failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(
+        json.dumps(
+            {
+                "proposal_id": str(validated.proposal_id),
+                "review_state": validated.review_state.value,
+                "published": False,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    )

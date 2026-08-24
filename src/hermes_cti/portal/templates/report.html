@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ detail.summary.headline }} · Hermes CTI{% endblock %}
+{% block content %}
+<article class="report-page" aria-labelledby="report-title">
+  {% include "partials/report_header.html" %}
+  <section class="report-section"><h2>Executive summary</h2><p>{{ detail.executive_summary }}</p></section>
+  <section class="report-section"><h2>Technical analysis</h2><p>{{ detail.technical_analysis }}</p></section>
+  <section class="report-section"><h2>Evidence and sources</h2><p>{{ detail.evidence_summary }}</p>{% include "partials/evidence.html" %}</section>
+  <section class="report-section"><h2>IOCs</h2>{% include "partials/iocs.html" %}</section>
+  <section class="report-section"><h2>CVEs and affected products</h2>{% include "partials/vulnerabilities.html" %}</section>
+  <section class="report-section"><h2>ATT&amp;CK mapping</h2>{% include "partials/attack.html" %}</section>
+  <section class="report-section"><h2>Detection content</h2><p><a href="{{ detail.summary.canonical_url }}/detections">Open dedicated detections page</a></p></section>
+  <section class="report-section"><h2>Threat hunting</h2><p><a href="{{ detail.summary.canonical_url }}/hunt">Open dedicated hunt page</a></p></section>
+  <section class="report-section"><h2>Remediation</h2><p><a href="{{ detail.summary.canonical_url }}/remediation">Open dedicated remediation page</a></p></section>
+  <section class="report-section"><h2>Historical relationships</h2>{% for relation in detail.historical_relationships %}<p>{{ relation.relationship.relationship_type }} · {{ relation.relationship.justification }}</p>{% else %}<p>No published historical relationship is available.</p>{% endfor %}</section>
+  <section class="report-section"><h2>Timeline and change history</h2>{% for event in detail.timeline %}<p><time datetime="{{ event.occurred_at }}">{{ event.occurred_at }}</time> — {{ event.label }}: {{ event.description }}</p>{% else %}<p>No timeline entries are available.</p>{% endfor %}</section>
+  <section class="report-section"><h2>Confidence and caveats</h2><p>{{ detail.confidence }}</p>{% for caveat in detail.caveats %}<p>{{ caveat }}</p>{% endfor %}</section>
+</article>
+{% endblock %}

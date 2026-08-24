@@ -1,0 +1,1 @@
+{% for item in detail.evidence %}<div class="evidence"><p>{{ item.statement }}</p>{% if item.source_reference %}<a href="{{ item.source_reference.canonical_url }}" rel="nofollow noreferrer noopener" target="_blank">{{ item.source_reference.name }}</a>{% endif %}</div>{% else %}<p>No public evidence entries are available.</p>{% endfor %}

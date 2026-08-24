@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ component|title }} · {{ detail.summary.headline }}{% endblock %}
+{% block content %}
+<article class="report-page" aria-labelledby="component-title">
+  <p><a href="{{ detail.summary.canonical_url }}">← Back to canonical report</a></p>
+  <h1 id="component-title">{{ component|title }}</h1><p>{{ detail.summary.headline }}</p>
+  {% if component == "hunt" %}{% include "partials/hunt.html" %}{% elif component == "remediation" %}{% include "partials/remediation.html" %}{% else %}{% include "partials/detections.html" %}{% endif %}
+</article>
+{% endblock %}

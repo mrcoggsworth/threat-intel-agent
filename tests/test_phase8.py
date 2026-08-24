@@ -1,0 +1,214 @@
+"""Offline Phase 8 portal, public API, and private-surface tests."""
+
+from __future__ import annotations
+
+import json
+from datetime import UTC, datetime
+from uuid import uuid4
+
+from fastapi.testclient import TestClient
+from pydantic import SecretStr
+
+from hermes_cti.api.main import create_app
+from hermes_cti.core.settings import Settings
+from hermes_cti.db.models import Report, ReportVersion
+from hermes_cti.portal.contracts import (
+    PortalQuery,
+    PrivateDraftPage,
+    PublicRelatedReports,
+    PublicReportPage,
+)
+from hermes_cti.portal.repository import ReportRow
+from hermes_cti.portal.service import PortalService
+from tests.test_phase7 import _fixture
+
+
+class MemoryPortalService(PortalService):
+    """Representative fixture service; production uses the SQL repository."""
+
+    def __init__(self, *, malicious: bool = False) -> None:
+        super().__init__()
+        bundle = _fixture()
+        if malicious:
+            bundle = bundle.model_copy(
+                update={
+                    "headline": "<script>alert(1)</script>",
+                    "executive_summary": "<img src=x onerror=alert(1)>",
+                }
+            )
+        now = datetime(2026, 8, 23, 12, tzinfo=UTC)
+        self.bundle = bundle
+        self.report = Report(
+            id=bundle.report_id,
+            public_id=bundle.public_id,
+            slug=bundle.slug,
+            headline=bundle.headline,
+            report_type=bundle.report_type,
+            severity=bundle.severity.value,
+            confidence=bundle.confidence,
+            state="published",
+            first_published_at=now,
+            last_updated_at=now,
+            current_version_id=bundle.report_version_id,
+            resurfaced=bundle.resurfaced,
+        )
+        self.version = ReportVersion(
+            id=bundle.report_version_id,
+            report_id=bundle.report_id,
+            version=bundle.version,
+            executive_summary=bundle.executive_summary,
+            technical_analysis=bundle.technical_analysis,
+            evidence_summary=bundle.evidence_summary,
+            analytical_caveats=list(bundle.caveats),
+            source_coverage={},
+            generated_by=bundle.generated_by,
+            validation_status="published",
+            structured_content=json.loads(bundle.stable_json()),
+            evidence_ids=[str(item.evidence_id) for item in bundle.evidence],
+            artifact_manifest={},
+            skill_versions=[],
+            application_version=bundle.application_version,
+        )
+        self.row = ReportRow(report=self.report, version=self.version)
+        self.calls = 0
+        self.draft = Report(
+            id=uuid4(),
+            public_id="private-draft",
+            slug="private-draft",
+            headline="Private draft must stay private",
+            report_type="threat",
+            severity="high",
+            confidence=0.4,
+            state="draft",
+            last_updated_at=now,
+        )
+
+    async def list_reports(self, query: PortalQuery) -> PublicReportPage:
+        self.calls += 1
+        summary = self.summary(self.row)
+        if (
+            query.search
+            and query.search.casefold() not in summary.headline.casefold()
+            or query.severities
+            and summary.severity not in query.severities
+        ):
+            items = ()
+        else:
+            items = (summary,)
+        start = (query.page - 1) * query.page_size
+        page_items = items[start : start + query.page_size]
+        return PublicReportPage(
+            items=page_items,
+            page=query.page,
+            page_size=query.page_size,
+            total=len(items),
+            total_pages=1 if items else 0,
+            query=query,
+        )
+
+    async def get_report(self, identifier: str):  # type: ignore[no-untyped-def]
+        if identifier in {self.report.slug, self.report.public_id}:
+            return self.detail(self.row)
+        return None
+
+    async def get_section(self, identifier: str, section: str):  # type: ignore[no-untyped-def]
+        detail = await self.get_report(identifier)
+        return getattr(detail, section, None) if detail else None
+
+    async def related(self, entity_type: str, entity_id: str) -> PublicRelatedReports:
+        return PublicRelatedReports(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            reports=(self.summary(self.row),),
+        )
+
+    async def list_drafts(self, limit: int = 100) -> PrivateDraftPage:
+        return PrivateDraftPage(
+            items=(),
+            total=min(limit, 0),
+        )
+
+
+def client(service: MemoryPortalService | None = None) -> TestClient:
+    settings = Settings(admin_token=SecretStr("test-admin"), database_required=False)
+    return TestClient(
+        create_app(settings=settings, portal_service=service or MemoryPortalService())
+    )
+
+
+def test_public_contract_filters_pagination_search_and_etag() -> None:
+    service = MemoryPortalService()
+    c = client(service)
+    response = c.get("/api/v1/public/reports?q=exploitation&severity=high&page_size=1")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["items"][0]["slug"] == service.report.slug
+    assert body["query"]["severities"] == ["high"]
+    assert response.headers["cache-control"].startswith("public")
+    cached = c.get(
+        "/api/v1/public/reports?q=exploitation&severity=high&page_size=1",
+        headers={"If-None-Match": response.headers["etag"]},
+    )
+    assert cached.status_code == 304
+
+
+def test_public_detail_hunt_remediation_detection_and_canonical_pages() -> None:
+    c = client()
+    slug = "public-cve-2027-1234"
+    assert c.get(f"/api/v1/public/reports/{slug}").status_code == 200
+    assert c.get(f"/api/v1/public/reports/{slug}/hunt").status_code == 200
+    assert c.get(f"/api/v1/public/reports/{slug}/remediation").status_code == 200
+    assert c.get(f"/api/v1/public/reports/{slug}/detections").status_code == 200
+    page = c.get(f"/reports/{slug}")
+    assert page.status_code == 200
+    assert "Executive summary" in page.text
+    assert f"/reports/{slug}/hunt" in page.text
+
+
+def test_drafts_are_not_public_and_private_routes_fail_closed() -> None:
+    c = client()
+    assert c.get("/api/v1/public/reports/private-draft").status_code == 404
+    assert c.get("/api/v1/admin/drafts").status_code == 404
+    assert (
+        c.get("/api/v1/admin/drafts", headers={"X-Admin-Token": "wrong"}).status_code
+        == 404
+    )
+    assert (
+        c.get(
+            "/api/v1/ops/version", headers={"X-Admin-Token": "test-admin"}
+        ).status_code
+        == 200
+    )
+
+
+def test_modal_accessibility_htmx_and_javascript_disabled_canonical_content() -> None:
+    c = client()
+    slug = "public-cve-2027-1234"
+    modal = c.get(f"/partials/reports/{slug}/modal")
+    assert modal.status_code == 200
+    assert 'role="dialog"' in modal.text
+    assert 'aria-modal="true"' in modal.text
+    assert 'hx-get="/partials/reports/' in modal.text
+    canonical = c.get(f"/reports/{slug}")
+    assert "Threat hunting" in canonical.text
+    assert "/assets/portal.js" in canonical.text
+
+
+def test_malicious_report_content_is_escaped_and_security_headers_are_present() -> None:
+    response = client(MemoryPortalService(malicious=True)).get(
+        "/reports/public-cve-2027-1234"
+    )
+    assert response.status_code == 200
+    assert "<script>" not in response.text
+    assert "<img" not in response.text
+    assert "default-src 'self'" in response.headers["content-security-policy"]
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_query_contract_rejects_reversed_dates() -> None:
+    try:
+        PortalQuery(date_from="2026-08-24", date_to="2026-08-23")
+    except ValueError as exc:
+        assert "date_from" in str(exc)
+    else:
+        raise AssertionError("reversed date range was accepted")

@@ -1,0 +1,67 @@
+{
+  "ipv4": [
+    "104.64.211.22",
+    "38.60.244.141"
+  ],
+  "ipv6": [],
+  "md5": [],
+  "sha256": [
+    "0803521a7e9081f46f8f9f61d72371ecc1f49657f10202fffa9a33f581d8bb39",
+    "26f735cbbb1257be94e6d01656a35bf66a8ae9c34868548d69ec5cb588f9f916",
+    "4a1a1b1455c3ea91a3d9203ebff025553227302cede6077e821d303655e2c9f2",
+    "575305cdaeb1d2187ca6d5ebe32f4c3e3fb53f5ccbe1c0cc257a7f71d84e6f35",
+    "aeff39943e254c34187e4a60be3d09d49687439e709eeb4be2b1984310d8ba5c",
+    "c4b4647795567ab15528edd1ab1bf37fb50e21b442e59a653051061973e87c02",
+    "cd147efe37003399e174951927e5fe727a4481756b116f0204a14a64cc62b059",
+    "daeac66441b88ba22806f6617058a2dbf1ea0ddcc6c94f291542ea853ac6f9d3"
+  ],
+  "domains": [
+    "appupdate.0cmds20cj2cdf8.workers.dev",
+    "maui-cocktailbar.com",
+    "mediumser.com",
+    "register.mediumser.com",
+    "regupdate.eamakfu49dc28wa.workers.dev"
+  ],
+  "urls": [
+    "https://appupdate.0cmds20cj2cdf8.workers.dev/A3cmf0q9ASCion",
+    "https://regupdate.eamakfu49dc28wa.workers.dev/vere0zme82cadre"
+  ],
+  "cves": [
+    "CVE-2026-18963"
+  ],
+  "ghsas": [],
+  "registry_keys": [],
+  "artifacts": [
+    "TrainingAnnouncement.jpg",
+    "TrainingAnnouncement.pdf.lnk",
+    "TrainingAnnouncement.pdf",
+    "header.doc",
+    "body.doc",
+    "Windowsupdate.exe",
+    "HolidayNotice.pdf.exe",
+    "ACMECS_Pillar_1.vhd",
+    "ftp.exe",
+    "SystemIn.lnk",
+    "create_lnk_*.ps1",
+    "desktop-stv6gg",
+    "RAT CA",
+    "MySecretEncryptionKey2025!@#$%",
+    "shell",
+    "set_heartbeat",
+    "upload",
+    "download",
+    "list_dir",
+    "Forgot password",
+    "reset-credentials"
+  ],
+  "collection_window": {
+    "start": "2026-08-23T13:02:13Z",
+    "end": "2026-08-24T13:02:13Z"
+  },
+  "provenance": {
+    "quicsilver": "https://www.seqrite.com/blog/operation-quicsilver-china-nexus-actor-targets-myanmar-diplomats-via-vhd-delivered-go-backdoor/",
+    "keycloak": "https://thehackernews.com/2026/08/critical-keycloak-password-reset-flaw.html",
+    "keycloak_vendor": "https://access.redhat.com/security/cve/cve-2026-18963",
+    "doublecup": "https://isc.sans.edu/diary/rss/33274"
+  }
+}

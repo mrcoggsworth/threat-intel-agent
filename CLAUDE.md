@@ -16,4 +16,6 @@
 - Keep source configuration validation offline and deterministic. Keep ingestion tests transport-mocked and free of live internet access.
 - Keep Phase 2 free of database tables, provider credentials,
   and scoring formulas. Phase 5 provider credentials remain runtime-only and
-  enrichment tests use mocked transports without live internet.
+  enrichment tests use mocked transports without live internet. Phase 7 report
+  validation and render tests are offline; optional sigma-cli and yara-python
+  integrations must report when native tools are unavailable.

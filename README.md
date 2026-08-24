@@ -3,7 +3,7 @@
 CTI-Hermes is an independently deployable service foundation for public cyber
 threat intelligence. It is being built phase by phase with deterministic
 processing, immutable evidence, explicit provenance, and a public read-only
-scope. This repository currently provides Phase 2 ingestion and normalization, Phase 3 deterministic IOC and CVE extraction, Phase 4 PostgreSQL persistence and scheduling, and Phase 5 bounded enrichment with explainable priority scoring.
+scope. This repository currently provides Phase 2 ingestion and normalization, Phase 3 deterministic IOC and CVE extraction, Phase 4 PostgreSQL persistence and scheduling, Phase 5 bounded enrichment with explainable priority scoring, Phase 6 historical correlation and resurfacing, Phase 7 evidence-backed detection, hunting, remediation, and report validation, and Phase 8 dynamic analyst portal and public-private API projections.
 
 ## Current capability status
 
@@ -29,17 +29,20 @@ Working now:
 - Phase 5 enrichment contracts and bounded CISA KEV, EPSS, and NVD clients in fixed order, with optional VirusTotal, OTX, and AbuseIPDB clients disabled unless explicitly configured with runtime credentials.
 - Per-provider timeout, response-size, retry, Retry-After, rate/concurrency, cache TTL, stale-if-error, quota metadata, and secret-free provider-health behavior.
 - Versioned provider results and risk assessments with preserved conflicts and a reproducible exploitation/CVSS/EPSS/recency/product/source/corroboration score breakdown.
+- Phase 6 deterministic exact-match correlation, non-relational candidate leads, contradiction records, versioned resurfacing events, reviewed-only public projections, and a guarded `db submit-proposal` model-proposal path.
+- Phase 7 structured report bundles, evidence-coverage validation, Sigma/YARA/SPL/KQL artifact generation, separate hunt and remediation guidance, safe Markdown/JSON/portal-ready rendering, version history, and rollback-safe publication persistence.
 - Frozen uv environment, Ruff, strict mypy, pytest, Dockerfile, development
   Compose configuration, and CI quality gates.
 
-Scaffolded boundaries:
+Phase boundaries:
 
-- correlation, detections, reporting, and portal packages remain explicit future boundaries.
-- LLM-assisted correlation, reports, and detection generation are not part of Phase 5.
+- Phase 9 deployment package, backup, monitoring, CI, rollback, and Hermes profile instructions are prepared; production deployment remains approval-gated.
+- LLM-assisted report generation is not part of Phase 7; report bundles require structured evidence inputs.
+- External sigma-cli and yara-python integrations are used when installed; deterministic compatibility validation remains explicit when unavailable.
 
-Planned after Phase 5:
+Planned after Phase 8:
 
-- Historical correlation, detection/report generation, authentication, portal projections, and approved deployment operations.
+- Approved production deployment, proxy separation, backup, monitoring, and Hermes operations.
 
 The public CTI scope does not include internal asset inventory or claims about
 an organization’s exposure.
@@ -136,7 +139,10 @@ variables and must never be committed.
 2. Phase 3: deterministic IOC and CVE extraction (implemented).
 3. Phase 4: PostgreSQL persistence, deduplication, and independent scheduling (implemented).
 4. Phase 5: bounded enrichment and explainable priority scoring (implemented).
-5. Phase 6+: historical correlation, detections/reports, portal, and approved deployment operations.
+5. Phase 6: historical correlation and resurfacing (implemented).
+6. Phase 7: detection, hunting, remediation, and report pipeline (implemented).
+7. Phase 8: dynamic portal/API, public projections, private token-gated operations, and progressive enhancement (implemented).
+8. Phase 9: production deployment and operations package prepared; deployment remains approval-gated.
 
 See the supplied architecture and implementation-plan documents under
 `CTI-Hermes/` for the approved later-phase contracts. License: MIT.

@@ -1,0 +1,45 @@
+title: QUICSILVER Suspicious LNK FTP Script and Startup Persistence
+id: 4f5e3f8a-bd53-4be5-a2c1-2bf0a0b7d7f1
+status: experimental
+description: "Detects process and file activity matching the Seqrite-reported Operation QUICSILVER chain: disguised LNK execution through ftp.exe, split-payload reconstruction, and Startup-folder persistence."
+author: Hermes Autonomous CTI Agent
+references:
+  - https://www.seqrite.com/blog/operation-quicsilver-china-nexus-actor-targets-myanmar-diplomats-via-vhd-delivered-go-backdoor/
+tags:
+  - attack.initial-access
+  - attack.t1566.001
+  - attack.execution
+  - attack.t1204.002
+  - attack.t1218
+  - attack.persistence
+  - attack.t1547.001
+  - attack.defense-evasion
+  - attack.t1036.008
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_ftp:
+    Image|endswith: '\\ftp.exe'
+    CommandLine|contains: '-s:'
+  selection_reconstruct:
+    Image|endswith:
+      - '\\cmd.exe'
+      - '\\copy.exe'
+    CommandLine|contains:
+      - 'copy /b'
+      - 'header.doc'
+      - 'body.doc'
+      - 'Windowsupdate.exe'
+  selection_persistence:
+    Image|endswith:
+      - '\\powershell.exe'
+      - '\\pwsh.exe'
+    CommandLine|contains:
+      - 'create_lnk_'
+      - 'SystemIn.lnk'
+      - '\\Startup\\'
+  condition: selection_ftp or selection_reconstruct or selection_persistence
+falsepositives:
+  - Approved administrative use of ftp.exe or PowerShell-based login-startup configuration
+level: high

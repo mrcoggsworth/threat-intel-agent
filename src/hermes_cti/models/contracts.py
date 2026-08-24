@@ -883,6 +883,12 @@ class RelationshipProposal(ContractModel):
     deterministic_rule: str | None = Field(
         default=None, description="Matching rule for deterministic relationships."
     )
+    attribution_evidence_quality: (
+        Literal["explicit_source", "corroborated_sources"] | None
+    ) = Field(
+        default=None,
+        description="Evidence quality gate for actor attribution proposals.",
+    )
 
     @model_validator(mode="after")
     def validate_origin_requirements(self) -> RelationshipProposal:
@@ -907,6 +913,16 @@ class RelationshipProposal(ContractModel):
             and not self.deterministic_rule
         ):
             raise ValueError("deterministic relationships require deterministic_rule")
+        is_actor_attribution = self.target.entity_type is EntityType.ACTOR and any(
+            token in self.relationship_type.casefold()
+            for token in ("attribut", "actor")
+        )
+        if is_actor_attribution and (
+            not self.evidence_ids or self.attribution_evidence_quality is None
+        ):
+            raise ValueError(
+                "actor attribution requires explicit or corroborated source evidence"
+            )
         return self
 
 
@@ -1005,6 +1021,12 @@ class ThreatHunt(ContractModel):
     validation_checklist: tuple[str, ...] = Field(
         default=(), description="Validation checklist."
     )
+    queries: tuple[str, ...] = Field(
+        default=(), description="Optional hunt queries or query templates."
+    )
+    evidence_ids: tuple[UUID, ...] = Field(
+        default=(), description="Evidence supporting the hunt hypothesis."
+    )
     detection_ids: tuple[UUID, ...] = Field(
         default=(), description="Related detection IDs."
     )
@@ -1046,6 +1068,9 @@ class Remediation(ContractModel):
     rollback: tuple[str, ...] = Field(
         default=(), description="Rollback considerations."
     )
+    evidence_ids: tuple[UUID, ...] = Field(
+        default=(), description="Evidence supporting remediation actions."
+    )
     references: tuple[HttpURL, ...] = Field(
         default=(), description="Authoritative references."
     )
@@ -1072,6 +1097,9 @@ class DetectionArtifact(ContractModel):
     )
     attack_techniques: tuple[AttackId, ...] = Field(
         default=(), description="Referenced ATT&CK techniques."
+    )
+    evidence_ids: tuple[UUID, ...] = Field(
+        default=(), description="Evidence supporting the artifact."
     )
     validation_tool: str | None = Field(
         default=None, description="Validation tool name."

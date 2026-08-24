@@ -1,0 +1,1 @@
+<h2>Related public reports</h2>{% for report in related.reports %}<p><a href="{{ report.canonical_url }}">{{ report.headline }}</a></p>{% else %}<p>No related published reports were found.</p>{% endfor %}

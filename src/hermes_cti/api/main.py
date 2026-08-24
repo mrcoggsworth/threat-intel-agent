@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from hermes_cti import __version__
 from hermes_cti.api.routes import router
@@ -16,13 +19,18 @@ from hermes_cti.core.logging import (
 )
 from hermes_cti.core.settings import Settings, load_settings
 from hermes_cti.db.readiness import DatabaseReadinessChecker, ReadinessChecker
+from hermes_cti.db.session import Database
 from hermes_cti.enrichment.service import EnrichmentService
+from hermes_cti.portal.routes import router as portal_router
+from hermes_cti.portal.security import PortalSecurityHeadersMiddleware
+from hermes_cti.portal.service import PortalService, PortalUnavailableError
 
 
 def create_app(
     settings: Settings | None = None,
     readiness_checker: ReadinessChecker | None = None,
     enrichment_service: EnrichmentService | None = None,
+    portal_service: PortalService | None = None,
 ) -> FastAPI:
     """Build the API with explicit settings and replaceable dependencies."""
 
@@ -38,7 +46,29 @@ def create_app(
         resolved_settings
     )
     app.state.enrichment_service = enrichment_service
+    app.state.portal_service = portal_service or PortalService(
+        database=Database(resolved_settings)
+        if resolved_settings.database_url is not None
+        else None
+    )
+    app.add_middleware(PortalSecurityHeadersMiddleware)
+    app.mount(
+        "/assets",
+        StaticFiles(
+            directory=Path(__file__).resolve().parents[1] / "portal" / "static"
+        ),
+        name="portal-assets",
+    )
     app.include_router(router)
+    app.include_router(portal_router)
+
+    @app.exception_handler(PortalUnavailableError)
+    async def portal_unavailable(
+        request: Request, exc: PortalUnavailableError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=503, content={"detail": "portal is unavailable"}
+        )
 
     @app.middleware("http")
     async def correlation_middleware(

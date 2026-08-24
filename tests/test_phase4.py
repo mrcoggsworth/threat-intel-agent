@@ -23,6 +23,7 @@ from hermes_cti.db.models import (
     IngestionRun,
     RawArtifact,
     Report,
+    ReportVersion,
     SourceRun,
     Vulnerability,
 )
@@ -49,6 +50,7 @@ from hermes_cti.models.contracts import (
     SourceType,
     sha256_text,
 )
+from hermes_cti.reporting.repository import ReportRepository
 
 
 def _start_postgres() -> tuple[str, str]:
@@ -225,6 +227,19 @@ async def test_migrations_and_immutable_artifacts(
         )
         names = set(tables)
         assert {"ingestion_run", "raw_artifact", "report", "model_run"} <= names
+        columns = await session.scalars(
+            text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'report_version'"
+            )
+        )
+        assert {
+            "structured_content",
+            "evidence_ids",
+            "artifact_manifest",
+            "skill_versions",
+            "application_version",
+        } <= set(columns)
 
         source = _source("migration-source", "https://research.example/feed")
         repository = PersistenceRepository()
@@ -458,3 +473,57 @@ def test_scheduler_uses_explicit_timezone() -> None:
     scheduler = DailyScheduler(settings, NoopPipeline(), registry)  # type: ignore[arg-type]
     instant = datetime(2026, 8, 22, 8, 30, tzinfo=UTC)
     assert scheduler.scheduled_for(instant).isoformat() == "2026-08-22T07:00:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_report_version_history_is_retained(database: Database) -> None:
+    report_id = uuid4()
+    first_id = uuid4()
+    second_id = uuid4()
+    now = datetime.now(UTC)
+    async with database.transaction() as session:
+        session.add(
+            Report(
+                id=report_id,
+                public_id=f"history-{report_id}",
+                slug=f"history-{report_id}",
+                headline="Public report history fixture",
+                report_type="threat",
+                severity="high",
+                confidence=0.8,
+                state="published",
+                last_updated_at=now,
+                current_version_id=second_id,
+            )
+        )
+        session.add_all(
+            [
+                ReportVersion(
+                    id=first_id,
+                    report_id=report_id,
+                    version=1,
+                    executive_summary="first",
+                    technical_analysis="first",
+                    evidence_summary="first",
+                    generated_by="test",
+                    validation_status="published",
+                    application_version="test",
+                ),
+                ReportVersion(
+                    id=second_id,
+                    report_id=report_id,
+                    version=2,
+                    executive_summary="second",
+                    technical_analysis="second",
+                    evidence_summary="second",
+                    generated_by="test",
+                    validation_status="published",
+                    supersedes_id=first_id,
+                    application_version="test",
+                ),
+            ]
+        )
+    async with database.session() as session:
+        history = await ReportRepository().version_history(session, report_id)
+    assert [item.version for item in history] == [1, 2]
+    assert history[1].supersedes_id == first_id

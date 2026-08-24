@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Reports · Hermes CTI{% endblock %}
+{% block content %}
+<section class="workspace" aria-labelledby="reports-heading">
+  <div class="intro"><p class="eyebrow">Analyst workspace</p><h1 id="reports-heading">Public threat reports</h1><p>Investigate evidence-backed reports, related entities, hunts, detections, and remediation.</p></div>
+  <form class="filters" method="get" action="/reports" hx-get="/partials/reports" hx-target="#report-list" hx-push-url="true">
+    <label for="q">Search <input id="q" name="q" value="{{ page.query.search or '' }}" maxlength="200" placeholder="CVE, product, threat, or report"></label>
+    <label for="confidence_min">Minimum confidence <input id="confidence_min" name="confidence_min" type="number" min="0" max="1" step="0.05" value="{{ page.query.confidence_min if page.query.confidence_min is not none else '' }}"></label>
+    <label for="sort">Sort <select id="sort" name="sort"><option value="priority">Priority</option><option value="newest">Newest</option><option value="changed">Recently changed</option><option value="confidence">Confidence</option><option value="sources">Source count</option></select></label>
+    <fieldset><legend>Severity</legend><label><input type="checkbox" name="severity" value="critical"> Critical</label><label><input type="checkbox" name="severity" value="high"> High</label><label><input type="checkbox" name="severity" value="medium"> Medium</label><label><input type="checkbox" name="severity" value="low"> Low</label></fieldset>
+    <fieldset><legend>Change state</legend><label><input type="checkbox" name="change_state" value="new"> New</label><label><input type="checkbox" name="change_state" value="updated"> Updated</label><label><input type="checkbox" name="change_state" value="resurfaced"> Resurfaced</label></fieldset>
+    <button type="submit">Apply filters</button><a class="button secondary" href="/reports">Clear all</a>
+  </form>
+  <div id="report-list" aria-live="polite">{% include "partials/report_list.html" %}</div>
+</section>
+<div id="report-dialog" class="dialog-shell" hidden aria-hidden="true"></div>
+{% endblock %}

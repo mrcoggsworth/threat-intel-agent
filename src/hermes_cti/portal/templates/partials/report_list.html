@@ -1,0 +1,13 @@
+{% if not page.items %}<div class="empty-state"><h2>No matching reports</h2><p>Try clearing a filter or broadening the search.</p></div>{% else %}
+<div class="report-list" role="list">
+{% for report in page.items %}<article class="report-line" role="listitem" data-report-slug="{{ report.slug }}">
+  <div><span class="severity severity-{{ report.severity }}">{{ report.severity|upper }}</span><span class="confidence">Confidence {{ "%.0f"|format(report.confidence * 100) }}%</span><span class="change change-{{ report.change_state }}">{{ report.change_state|upper }}</span></div>
+  <h2><a href="{{ report.canonical_url }}" hx-get="/partials/reports/{{ report.slug }}/modal" hx-target="#report-dialog" hx-swap="innerHTML" data-report-link="true">{{ report.headline }}</a></h2>
+  <p class="meta"><time datetime="{{ report.last_updated_at }}">Updated {{ report.last_updated_at }}</time> · {{ report.source_count }} source{{ '' if report.source_count == 1 else 's' }} · {% if report.hunt_available %}hunt{% else %}no hunt{% endif %} · {% if report.remediation_available %}remediation{% else %}no remediation{% endif %}</p>
+  {% if report.primary_cves %}<p class="tags">{% for cve in report.primary_cves %}<a href="/api/v1/public/vulnerabilities/{{ cve }}">{{ cve }}</a>{% endfor %}</p>{% endif %}
+  {% if report.products %}<p class="meta">Products: {{ report.products|join(', ') }}</p>{% endif %}
+  {% if report.attack_techniques %}<p class="tags">{% for attack in report.attack_techniques %}<a href="/techniques/{{ attack }}">{{ attack }}</a>{% endfor %}</p>{% endif %}
+</article>{% endfor %}
+</div>
+<nav class="pagination" aria-label="Report pages">{% if page.page > 1 %}<a href="?page={{ page.page - 1 }}&page_size={{ page.page_size }}">Previous</a>{% endif %}<span>Page {{ page.page }}{% if page.total_pages %} of {{ page.total_pages }}{% endif %}</span>{% if page.page < page.total_pages %}<a href="?page={{ page.page + 1 }}&page_size={{ page.page_size }}">Next</a>{% endif %}</nav>
+{% endif %}

@@ -480,6 +480,90 @@ class RelationshipEvidence(Base):
     note: Mapped[str | None] = mapped_column(Text)
 
 
+class CorrelationCandidateRecord(TimestampMixin, Base):
+    """Persisted lead that cannot be projected as an established relationship."""
+
+    __tablename__ = "correlation_candidate"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_entity_type",
+            "source_entity_id",
+            "target_entity_type",
+            "target_entity_id",
+            "candidate_type",
+            name="uq_correlation_candidate_natural_key",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    source_entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_entity_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    target_entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    target_entity_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    candidate_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    rationale: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence_ids: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
+    relationship_established: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
+
+class CorrelationContradictionRecord(TimestampMixin, Base):
+    """Durable contradictory public claims for analyst review."""
+
+    __tablename__ = "correlation_contradiction"
+    __table_args__ = (
+        UniqueConstraint(
+            "subject_entity_type",
+            "subject_entity_id",
+            "claim_key",
+            name="uq_correlation_contradiction_subject_claim",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    subject_entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    subject_entity_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), nullable=False
+    )
+    claim_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    observed_values: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
+    evidence_ids: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
+    justification: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class ResurfacingEventRecord(TimestampMixin, Base):
+    """Versioned link between a prior and current public-CTI assessment."""
+
+    __tablename__ = "resurfacing_event"
+    __table_args__ = (
+        UniqueConstraint(
+            "previous_assessment_id",
+            "new_assessment_id",
+            name="uq_resurfacing_assessment_transition",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    entity_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    previous_assessment_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("risk_assessment.id"), nullable=False
+    )
+    new_assessment_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("risk_assessment.id"), nullable=False
+    )
+    reasons: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
+    evidence_ids: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
+    previous_score: Mapped[float] = mapped_column(Float, nullable=False)
+    new_score: Mapped[float] = mapped_column(Float, nullable=False)
+    justification: Mapped[str] = mapped_column(Text, nullable=False)
+    review_state: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
 class Report(TimestampMixin, Base):
     __tablename__ = "report"
     __table_args__ = (
@@ -528,6 +612,19 @@ class ReportVersion(TimestampMixin, Base):
     prompt_version: Mapped[str | None] = mapped_column(String(128))
     validation_status: Mapped[str] = mapped_column(String(32), nullable=False)
     supersedes_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    structured_content: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, nullable=False
+    )
+    evidence_ids: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
+    artifact_manifest: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, nullable=False
+    )
+    skill_versions: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
+    application_version: Mapped[str] = mapped_column(
+        String(128), default="unknown", nullable=False
+    )
 
 
 class ReportEntity(Base):
@@ -582,6 +679,8 @@ class Hunt(Base):
     validation_checklist: Mapped[list[str]] = mapped_column(
         JSONB, default=list, nullable=False
     )
+    queries: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
+    evidence_ids: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     state: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
@@ -617,6 +716,7 @@ class Remediation(Base):
     recovery: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     verification: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     rollback: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
+    evidence_ids: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     references: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     state: Mapped[str] = mapped_column(String(32), nullable=False)
 
@@ -646,6 +746,7 @@ class Detection(Base):
     attack_references: Mapped[list[str]] = mapped_column(
         JSONB, default=list, nullable=False
     )
+    evidence_ids: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     validation_tool: Mapped[str | None] = mapped_column(String(128))
     validation_result: Mapped[str | None] = mapped_column(Text)
     artifact_hash: Mapped[str] = mapped_column(String(64), nullable=False)

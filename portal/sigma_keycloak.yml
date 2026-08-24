@@ -1,0 +1,23 @@
+title: Keycloak Reset-Credentials Flow Abuse
+id: 8dba6fe6-25b7-4b62-8dd0-3be4d50e8160
+status: experimental
+description: "Detects HTTP requests to the Keycloak reset-credentials flow associated with CVE-2026-18963. Correlate with password changes and administrative-account takeover signals."
+author: Hermes Autonomous CTI Agent
+references:
+  - https://access.redhat.com/security/cve/cve-2026-18963
+tags:
+  - attack.initial-access
+  - attack.t1190
+  - attack.credential-access
+  - attack.t1078
+logsource:
+  category: webserver
+  product: generic
+detection:
+  selection:
+    cs-method: POST
+    cs-uri-stem|contains: reset-credentials
+  condition: selection
+falsepositives:
+  - Legitimate user password-recovery requests; require correlation with anomalous source, missing email-token validation, or privileged-account password changes
+level: high

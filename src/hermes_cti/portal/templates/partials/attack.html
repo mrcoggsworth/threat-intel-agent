@@ -1,0 +1,1 @@
+{% for mapping in detail.attack_mappings %}<p><a href="/techniques/{{ mapping.attack_id }}">{{ mapping.attack_id }}</a> — {{ mapping.name }}{% if mapping.tactic %} · {{ mapping.tactic }}{% endif %}</p>{% else %}<p>No ATT&amp;CK mapping is available.</p>{% endfor %}

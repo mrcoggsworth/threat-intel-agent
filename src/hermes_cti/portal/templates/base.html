@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Hermes CTI{% endblock %}</title>
+  <meta name="description" content="Public cyber threat intelligence analyst workspace">
+  <link rel="stylesheet" href="/assets/portal.css">
+  <script defer src="/assets/portal.js"></script><script defer src="/assets/portal-enhance.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/reports">Hermes CTI</a>
+    <span class="scope">Public CTI · evidence-centered</span>
+  </header>
+  <main id="main-content">{% block content %}{% endblock %}</main>
+</body>
+</html>
