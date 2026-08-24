@@ -1,181 +1,142 @@
-# ⚡ HERMES // Autonomous Threat Intelligence Engine
+# CTI-Hermes
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
-[![Package Manager: uv](https://img.shields.io/badge/package--manager-uv-purple.svg)](https://github.com/astral-sh/uv)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![MITRE ATT&CK](https://img.shields.io/badge/MITRE-ATT%26CK%20v14-red.svg)](https://attack.mitre.org/)
-[![Status](https://img.shields.io/badge/Status-Active%20Development-green.svg)]()
+CTI-Hermes is an independently deployable service foundation for public cyber
+threat intelligence. It is being built phase by phase with deterministic
+processing, immutable evidence, explicit provenance, and a public read-only
+scope. This repository currently provides Phase 2 ingestion and normalization, Phase 3 deterministic IOC and CVE extraction, Phase 4 PostgreSQL persistence and scheduling, and Phase 5 bounded enrichment with explainable priority scoring.
 
-> **Hermes** is an autonomous, AI-driven Cyber Threat Intelligence (CTI) agent built to continuously monitor, extract, correlate, and publish actionable threat intelligence. Named after the messenger of the gods, Hermes scours global news events, RSS feeds, security blogs, vulnerability databases, and dark web/social intelligence streams 24/7—synthesizing raw noise into actionable defense capabilities.
+## Current capability status
 
----
+Working now:
 
-## 🚀 Key Capabilities
+- Installable `src/hermes_cti` package for Python 3.12+.
+- FastAPI application factory with `/health/live`, `/health/ready`, and `/version`.
+- Typed settings with YAML defaults and `HERMES_*` environment overrides.
+- JSON logging with request/run correlation fields and secret redaction.
+- Versioned Pydantic contracts for source evidence, indicators, vulnerabilities,
+  products, ATT&CK mappings, enrichment envelopes, relationship proposals,
+  reports, hunts, remediation, detections, run manifests, and operational events.
+- Typed offline loading and validation of the authoritative `config/sources.json`
+  registry, including deterministic defaults and secret-field rejection.
+- Typer CLI with `version`, `doctor`, `sources validate`, database-independent `collect-once`, and explicit `db migrate`, `db run-daily`, `db status`, and `db retry-failed` commands.
+- Provider-neutral HTTPX retrieval with bounded timeouts, redirects, response bytes, retries, user-agent, TLS verification, and conditional requests.
+- RSS/Atom and CISA KEV normalization with sanitized text, hashes, raw-artifact metadata, and deterministic ordering.
+- Partial-failure ingestion manifests that retain successful source documents.
+- Deterministic, evidence-preserving IOC and CVE extraction with refanging, validation, configurable IP exclusions and domain suppression, stable ordering, and JSON/CSV export.
+- Offline `extract` CLI support for UTF-8 files and standard input; extraction performs no network enrichment.
+- Typed PostgreSQL persistence models, Alembic baseline migrations, immutable raw-artifact enforcement, idempotent repository upserts, transaction boundaries, stale-run queries, and a session-held daily advisory lock.
+- A dedicated timezone-aware scheduler process and development Compose service independent of Hermes cron.
+- Phase 5 enrichment contracts and bounded CISA KEV, EPSS, and NVD clients in fixed order, with optional VirusTotal, OTX, and AbuseIPDB clients disabled unless explicitly configured with runtime credentials.
+- Per-provider timeout, response-size, retry, Retry-After, rate/concurrency, cache TTL, stale-if-error, quota metadata, and secret-free provider-health behavior.
+- Versioned provider results and risk assessments with preserved conflicts and a reproducible exploitation/CVSS/EPSS/recency/product/source/corroboration score breakdown.
+- Frozen uv environment, Ruff, strict mypy, pytest, Dockerfile, development
+  Compose configuration, and CI quality gates.
 
-### 🌐 1. Multi-Source Intelligence Ingestion
-* **Global Feed Monitoring:** Scrapes and parses security vendor blogs, CERT advisories, CISA KEV feeds, Mastodon/X security channels, and RSS feeds daily.
-* **Unstructured Text Extraction:** Converts raw HTML, PDFs, and blog posts into structured threat data using advanced natural language processing and regex engine parsers.
+Scaffolded boundaries:
 
-### 🧠 2. Deep Threat Analysis & Enrichment
-* **Automated IOC Harvesting:** Extracts IPs, domains, hashes (MD5/SHA256), malicious URLs, and registry keys, automatically validating against OSINT sources (VirusTotal, AlienVault OTX, AbuseIPDB).
-* **CVE & Zero-Day Scoring:** Correlates newly published vulnerabilities with EPSS scores, NVD metrics, and active exploitation telemetry to calculate real-world risk vectors.
-* **MITRE ATT&CK® Mapping:** Maps extracted threat actor tactics, techniques, and procedures (TTPs) directly to the MITRE ATT&CK framework.
+- correlation, detections, reporting, and portal packages remain explicit future boundaries.
+- LLM-assisted correlation, reports, and detection generation are not part of Phase 5.
 
-### ⚔️ 3. Actionable Defense Playbook Generation
-* **Threat Hunting Queries:** Automatically generates production-ready detection rules in **Sigma**, **YARA**, **KQL**, and **Splunk SPL**.
-* **Remediation & Incident Response Guides:** Produces step-by-step containment, isolation, and patching playbooks formatted for SOC analysts and incident response teams.
+Planned after Phase 5:
 
-### 📰 4. Web Portal Publishing & CMS Sync
-* **Automated Web Publishing:** Dynamically builds and updates a web portal hosting daily threat intelligence bulletins, interactive IOC search indexes, and playable security playbooks.
-* **Real-time Alerting:** Dispatches immediate high-priority threat digests to security teams via Webhooks (Discord, Slack, Teams, Email).
+- Historical correlation, detection/report generation, authentication, portal projections, and approved deployment operations.
 
----
+The public CTI scope does not include internal asset inventory or claims about
+an organization’s exposure.
 
-## 🗃️ Hermes State & Artifact Version Control
+## Local setup
 
-Hermes leverages Git to maintain strict, deterministic version control across all agent operational artifacts, memory states, configurations, skills, and persistent goals. This enables full auditability, profile isolation, and seamless rollback of agent knowledge over time.
+Prerequisites: Python 3.12+, [uv](https://docs.astral.sh/uv/), and Docker for
+container checks.
 
-| Artifact Type | Description | Tracked Location / Path |
-| :--- | :--- | :--- |
-| **Agent Identity** | Global personality, voice, tone, and behavioral identity | `.hermes/SOUL.md` (or `~/.hermes/SOUL.md`) |
-| **Project Context** | Repository instructions and project-specific conventions | `.hermes.md`, `AGENTS.md`, `CLAUDE.md`, `.cursorrules` |
-| **Memory** | Durable knowledge learned across conversations | `.hermes/memories/MEMORY.md` |
-| **User Model** | Persistent information and preferences about the user | `.hermes/memories/USER.md` |
-| **Skills** | Reusable procedures the agent creates, installs, and improves | `.hermes/skills/<skill>/SKILL.md` |
-| **Profiles** | Isolated agent instances with distinct config, memory, skills, sessions, and credentials | `.hermes/profiles/<profile>/profile.yaml` |
-| **Cron Jobs** | Scheduled prompts and automated workflows | `.hermes/cron/jobs.json` |
-| **Persistent Goals** | Long-running objectives that continue across execution turns | `.hermes/goals/state.json` |
-
----
-
-## 🏗️ Architecture & Workflow
-
-```mermaid
-flowchart TD
-    subgraph Ingestion ["1. Ingestion Layer"]
-        A[Security Blogs & News] --> D[Hermes Ingestion Pipeline]
-        B[RSS Feeds & CERTs] --> D
-        C[CVE & CISA KEV Data] --> D
-    end
-
-    subgraph Intelligence ["2. Analysis & Correlation Engine"]
-        D --> E[IOC Extractor & Validator]
-        E --> F[CVE Risk Calculator]
-        F --> G[MITRE ATT&CK Mapper]
-    end
-
-    subgraph Defense ["3. Playbook Synthesis"]
-        G --> H[Detection Rule Generator\nSigma / YARA / KQL / SPL]
-        G --> I[Incident Response & Hunt Guides]
-    end
-
-    subgraph Publishing ["4. Web Portal & Dispatch"]
-        H --> J[Hermes Web Portal Publisher]
-        I --> J
-        J --> K[(Threat Intel Web Portal)]
-        J --> L[SOC Alerts & Notifications]
-    end
+```bash
+git clone https://github.com/mrcoggsworth/threat-intel-agent.git
+cd threat-intel-agent
+uv sync --frozen
 ```
 
----
+`pyproject.toml` is authoritative. `requirements.txt` is intentionally absent;
+`uv.lock` is the reproducible dependency artifact.
 
-## 📂 Repository Blueprint
+## API
 
-```
-threat-intel-agent/
-├── .hermes/                   # Tracked Hermes Agent operational assets
-│   ├── SOUL.md                # Agent identity, voice, tone & principles
-│   ├── memories/              # Persistent memory log & user profile
-│   │   ├── MEMORY.md
-│   │   └── USER.md
-│   ├── skills/                # Procedural skill playbooks
-│   │   ├── cti-analysis/SKILL.md
-│   │   └── threat-hunting/SKILL.md
-│   ├── profiles/              # Isolated agent profile configurations
-│   │   └── default/profile.yaml
-│   ├── cron/                  # Scheduled prompts & automated tasks
-│   │   └── jobs.json
-│   └── goals/                 # Persistent goals tracking
-│       └── state.json
-├── config/
-│   ├── settings.yaml          # Feeds, API keys, and agent configuration
-│   └── sources.json           # Curated target blogs, RSS, and CTI feeds
-├── hermes/
-│   ├── __init__.py
-│   ├── ingestion/             # Scrapers, RSS readers, content extractors
-│   │   ├── rss_parser.py
-│   │   └── web_scraper.py
-│   ├── analysis/              # IOC extraction, CVE enrichment, MITRE mapping
-│   │   ├── ioc_extractor.py
-│   │   ├── cve_analyzer.py
-│   │   └── mitre_mapper.py
-│   ├── playbooks/             # Rule generators (Sigma/YARA/KQL) & IR guides
-│   │   ├── rule_generator.py
-│   │   └── hunt_playbook.py
-│   └── publisher/             # Web site generator & notification dispatchers
-│       ├── site_builder.py
-│       └── notifier.py
-├── portal/                    # Web portal template & static assets
-│   ├── index.html
-│   └── assets/
-├── tests/                     # Unit & integration tests
-├── .hermes.md                 # Hermes agent project instructions
-├── AGENTS.md                  # Multi-agent collaboration rules
-├── CLAUDE.md                  # Claude agent conventions
-├── .cursorrules               # Cursor IDE agent rules
-├── pyproject.toml             # Project configuration & dependencies (uv managed)
-├── requirements.txt           # Python dependencies export
-├── main.py                    # Agent orchestration entrypoint
-├── .gitignore                 # Environment & build exclusions
-└── README.md                  # Project documentation
+Start the development API:
+
+```bash
+uv run hermes-cti-api
 ```
 
----
+The liveness endpoint is dependency-independent. Readiness is expected to
+return HTTP 503 until a required PostgreSQL URL is configured and reachable:
 
-## ⚡ Quick Start
+```bash
+curl http://127.0.0.1:8000/health/live
+curl -i http://127.0.0.1:8000/health/ready
+curl http://127.0.0.1:8000/version
+```
 
-### Prerequisites
-* **Python 3.12+**
-* **[`uv`](https://github.com/astral-sh/uv)** (Fast Python package and project manager)
-* **Git**
+## CLI and source configuration
 
-### Installation & Environment Setup
+The source registry is validated locally and never fetched by this command:
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-username/threat-intel-agent.git
-   cd threat-intel-agent
-   ```
+```bash
+uv run hermes-cti version
+uv run hermes-cti doctor
+uv run hermes-cti sources validate
+uv run hermes-cti sources validate --path config/sources.json
+uv run hermes-cti collect-once --sources config/sources.json --output ingestion-manifest.json
+uv run hermes-cti db migrate
+uv run hermes-cti db run-daily
+uv run hermes-cti db status
+uv run hermes-cti db enrich --cve CVE-2021-40438
+uv run hermes-cti extract report.txt --format json --output extraction.json
+cat report.txt | uv run hermes-cti extract - --format csv
+```
 
-2. **Set up virtual environment using `uv`:**
-   ```bash
-   uv venv --python 3.12
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
+The loader accepts the Phase 0 `type` field and supplies typed defaults for
+enabled state, polling interval, timeout, response size, reliability, tags, and
+adapter settings. It does not rewrite the existing registry or add credentials.
+Validation failures identify the file, source, and invalid field without
+echoing secret-like values. Provider credentials are runtime-only HERMES_* secrets; missing optional credentials disable those providers without startup failure.
 
-3. **Install dependencies:**
-   ```bash
-   uv pip install -r requirements.txt
-   ```
+## Tests and quality gates
 
-4. **Run Hermes Agent:**
-   ```bash
-   uv run main.py --run-once
-   ```
+The default suite uses no live internet. Phase 4 integration tests start an ephemeral local PostgreSQL container (or use HERMES_TEST_DATABASE_URL):
 
----
+```bash
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy
+uv run pytest
+```
 
-## 🛡️ Strategic Roadmap
+## Docker
 
-- [ ] **Phase 1:** Core RSS ingestion, basic IOC regex extraction, and static Markdown report generation.
-- [ ] **Phase 2:** Automated CVE correlation with EPSS scores & YARA/Sigma rule generation engine.
-- [ ] **Phase 3:** Full web portal auto-publishing pipeline with interactive search engine for IOCs.
-- [ ] **Phase 4:** Multi-agent LLM reasoning for deep-dive threat actor profiling and proactive hunt playbook synthesis.
+```bash
+docker build --file deploy/Dockerfile --tag hermes-cti:dev .
+docker compose --file deploy/docker-compose.dev.yml config
+docker compose --file deploy/docker-compose.dev.yml up --build
+```
 
----
+The development Compose file includes web, PostgreSQL, and a dedicated scheduler.
+Migrations remain explicit via `uv run hermes-cti db migrate`; web workers do not
+run migrations automatically. Proxy, backup, monitoring, authentication, and
+production deployment operations remain planned.
 
-## 📜 License & Ethical Notice
+## Configuration and source policy
 
-Distributed under the MIT License. See `LICENSE` for more information.
+`config/sources.json` remains the authoritative public-source registry. Phase 2
+uses it for bounded collection and preserves backward compatibility with its existing
+shape. Runtime secrets and database URLs must be supplied through environment
+variables and must never be committed.
 
-> **Disclaimer:** Hermes is designed strictly for defensive cybersecurity operations, threat intelligence research, and SOC automation. Ensure proper authorization when querying external threat feeds or testing detection rules.
+## Roadmap
+
+1. Phase 2: bounded public-source ingestion and evidence preservation (implemented).
+2. Phase 3: deterministic IOC and CVE extraction (implemented).
+3. Phase 4: PostgreSQL persistence, deduplication, and independent scheduling (implemented).
+4. Phase 5: bounded enrichment and explainable priority scoring (implemented).
+5. Phase 6+: historical correlation, detections/reports, portal, and approved deployment operations.
+
+See the supplied architecture and implementation-plan documents under
+`CTI-Hermes/` for the approved later-phase contracts. License: MIT.

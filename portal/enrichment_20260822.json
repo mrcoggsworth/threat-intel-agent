@@ -1,0 +1,98 @@
+{
+  "nvd": {
+    "id": "CVE-2026-73570",
+    "published": "2026-08-13T16:19:06.003",
+    "lastModified": "2026-08-22T04:18:14.897",
+    "description": "A remote code execution vulnerability exists in Zimbra Collaboration (ZCS) before 10.1.20 when the optional zimbra-snmp package is installed and SNMP notifications are enabled. Due to improper sanitization of untrusted input during SNMP notification processing, an unauthenticated attacker can send specially crafted SMTP requests that may result in execution of arbitrary operating system commands as the Zimbra user.",
+    "cvss": 8.9,
+    "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:L",
+    "raw_status_code": 200
+  },
+  "epss": {
+    "status": "OK",
+    "status-code": 200,
+    "version": "1.0",
+    "access": "public",
+    "total": 1,
+    "offset": 0,
+    "limit": 100,
+    "data": [
+      {
+        "cve": "CVE-2026-73570",
+        "epss": "0.005390000",
+        "percentile": "0.431830000",
+        "date": "2026-08-21"
+      }
+    ]
+  },
+  "kev": [
+    {
+      "cveID": "CVE-2026-73570",
+      "vendorProject": "Synacor",
+      "product": "Zimbra Collaboration Suite (ZCS)",
+      "vulnerabilityName": "Zimbra Collaboration Suite (ZCS) OS Command Injection Vulnerability",
+      "dateAdded": "2026-08-21",
+      "shortDescription": "Zimbra Collaboration Suite (ZCS) contains an OS command injection vulnerability which could allow an unauthenticated attacker to send specially crafted SMTP requests that may result in execution of arbitrary operating system commands as the Zimbra user.",
+      "requiredAction": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA\u2019s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA\u2019s \u201cForensics Triage Requirements\u201d (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
+      "dueDate": "2026-08-24",
+      "knownRansomwareCampaignUse": "Unknown",
+      "notes": "https://wiki.zimbra.com/wiki/Zimbra_Security_Advisories ; https://blog.zimbra.com/2026/07/patch-release-update-zimbra-10-1-20/ ; BOD 26-04: https://www.cisa.gov/news-events/directives/bod-26-04-prioritizing-security-updates-based-risk ; Forensics Triage Requirements: https://www.cisa.gov/news-events/directives/bod-26-04-implementation-guidance-prioritizing-security-updates-based-risk ; https://nvd.nist.gov/vuln/detail/CVE-2026-73570",
+      "cwes": [
+        "CWE-78"
+      ]
+    }
+  ],
+  "otx": {
+    "217.60.77.63": {
+      "http_status": 200,
+      "pulse_count": 3,
+      "reputation": 0,
+      "sections": [
+        "general",
+        "geo",
+        "reputation",
+        "url_list",
+        "passive_dns",
+        "malware",
+        "nids_list",
+        "http_scans"
+      ]
+    },
+    "neversoftmain.net": {
+      "http_status": 200,
+      "pulse_count": 2,
+      "reputation": null,
+      "sections": [
+        "general",
+        "geo",
+        "url_list",
+        "passive_dns",
+        "malware",
+        "whois",
+        "http_scans"
+      ]
+    },
+    "rootfarmapp.net": {
+      "http_status": 200,
+      "pulse_count": 2,
+      "reputation": null,
+      "sections": [
+        "general",
+        "geo",
+        "url_list",
+        "passive_dns",
+        "malware",
+        "whois",
+        "http_scans"
+      ]
+    }
+  },
+  "abuseipdb": {
+    "status": "not_queried",
+    "reason": "API key not available"
+  },
+  "virustotal": {
+    "status": "not_queried",
+    "reason": "API key not available"
+  }
+}

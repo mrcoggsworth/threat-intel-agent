@@ -1,19 +1,83 @@
 [project]
 name = "threat-intel-agent"
 version = "0.1.0"
-description = "Hermes - Autonomous Threat Intelligence Engine"
+description = "CTI-Hermes public cyber threat intelligence service foundation"
 readme = "README.md"
 requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "CTI-Hermes contributors" }]
 dependencies = [
-    "feedparser>=6.0.11",
-    "requests>=2.31.0",
-    "beautifulsoup4>=4.12.3",
-    "pydantic>=2.6.0",
-    "pyyaml>=6.0.1",
-    "jinja2>=3.1.3",
-    "rich>=13.7.0",
+    "alembic>=1.14.1",
+    "asyncpg>=0.30.0",
+    "fastapi>=0.115.6",
+    "httpx>=0.28.1",
+    "jinja2>=3.1.5",
+    "pydantic>=2.10.4",
+    "pydantic-settings>=2.7.1",
+    "pyyaml>=6.0.2",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "typer>=0.15.1",
+    "uvicorn[standard]>=0.34.0",
+]
+
+[dependency-groups]
+dev = [
+    "coverage[toml]>=7.6.10",
+    "mypy>=1.14.1",
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.3",
+    "pytest-httpx>=0.35.0",
+    "ruff>=0.9.4",
+    "types-pyyaml>=6.0.12.20241230",
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27.0"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hermes_cti"]
+
+[project.scripts]
+hermes-cti-api = "hermes_cti.api.main:run"
+hermes-cti = "hermes_cti.cli.main:run"
+hermes-cti-worker = "hermes_cti.cli.entrypoints:run_worker"
+hermes-cti-scheduler = "hermes_cti.cli.entrypoints:run_scheduler"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+packages = ["hermes_cti"]
+plugins = ["pydantic.mypy"]
+exclude = ["^tests/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+addopts = "--strict-config --strict-markers"
+
+[tool.coverage.run]
+branch = true
+source = ["hermes_cti"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+show_missing = true
+skip_covered = true

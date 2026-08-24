@@ -1,0 +1,380 @@
+{
+  "schema_version": "1.0",
+  "report_date": "2026-08-23",
+  "collection_time": "2026-08-23T13:01:43Z",
+  "window": {
+    "start": "2026-08-22T13:01:43Z",
+    "end": "2026-08-23T13:01:43Z",
+    "context_hours": 48
+  },
+  "assessment": "NO_NEW_QUALIFYING_ENTERPRISE_THREATS",
+  "report_file": "../cti_daily_report_20260823.md",
+  "threats": [
+    {
+      "id": "CVE-2026-73570",
+      "title": "Zimbra Collaboration Suite OS command injection",
+      "severity": "CRITICAL",
+      "status": "UPDATE / CISA KEV / ACTIVE EXPLOITATION",
+      "published": "2026-08-21",
+      "vendor": "Synacor/Zimbra",
+      "cvss": 8.9,
+      "epss": 0.00539,
+      "epss_percentile": 0.43183,
+      "kev_due": "2026-08-24",
+      "summary": "Unauthenticated crafted SMTP input can reach OS command execution as zimbra when the optional zimbra-snmp path and SNMP notifications are enabled.",
+      "fixed_versions": [
+        "10.1.20"
+      ],
+      "attack_ids": [
+        "T1190"
+      ],
+      "references": [
+        "https://www.cisa.gov/news-events/alerts/2026/08/21/cisa-adds-one-known-exploited-vulnerability-catalog",
+        "https://nvd.nist.gov/vuln/detail/CVE-2026-73570",
+        "https://wiki.zimbra.com/wiki/Zimbra_Security_Advisories"
+      ]
+    },
+    {
+      "id": "RED-C2-2026-08",
+      "title": "RedC2 4.0 Linux implant via trojanized npm packages",
+      "severity": "CRITICAL",
+      "status": "NEW / SUPPLY-CHAIN COMPROMISE",
+      "published": "2026-08-20",
+      "vendor": "TrendAI/npm ecosystem",
+      "summary": "Fourteen functional-looking npm packages execute a bundled RedShell ELF at import time and provide shell, credential theft, persistence, tunneling, and exfiltration capabilities.",
+      "observed_iocs": [
+        "217.60.77.63",
+        "neversoftmain.net",
+        "rootfarmapp.net",
+        "tripinupdate.net"
+      ],
+      "artifacts": [
+        "dist/index.mjs",
+        "RedShellLinux",
+        "math-core.bin",
+        "calc-cache.bin",
+        "streak-metrics-math@1.0.0"
+      ],
+      "attack_ids": [
+        "T1195.002",
+        "T1059.004",
+        "T1105",
+        "T1555.003",
+        "T1543.002",
+        "T1053.003"
+      ],
+      "references": [
+        "https://www.trendaisecurity.com/en-us/resources-insights/trendai-security-blog/redc2-ai-powered-linux-implant",
+        "https://thehackernews.com/2026/08/14-trojanized-npm-packages-drop-redc2.html"
+      ]
+    },
+    {
+      "id": "SYNKLOADER-2026-08",
+      "title": "SynkLoader Microsoft Teams phishing campaign",
+      "severity": "HIGH",
+      "status": "NEW / ACTIVE CAMPAIGN",
+      "published": "2026-08-20",
+      "vendor": "Expel",
+      "observed_iocs": [
+        "filereserve.blob.core.windows.net",
+        "neversoftmain.net",
+        "rootfarmapp.net",
+        "tripinupdate.net"
+      ],
+      "artifacts": [
+        "331.msi",
+        "PowershellCleaner",
+        "cleaner.ps1",
+        "archive6.zip",
+        "PhishLocker",
+        "TrafficRedirector",
+        "StreamMaster"
+      ],
+      "sha256_count": 12,
+      "attack_ids": [
+        "T1566.002",
+        "T1059.001",
+        "T1059.006",
+        "T1053.005",
+        "T1056.002",
+        "T1572"
+      ],
+      "references": [
+        "https://expel.com/blog/synkloader-when-you-throw-in-everything-but-the-kitchen-sink/",
+        "https://www.bleepingcomputer.com/news/security/new-synkloader-malware-pushed-in-microsoft-teams-phishing-campaign/"
+      ]
+    },
+    {
+      "id": "BTR-REFORGED-2026-08",
+      "title": "Microsoft Defender BTR.sys weaponization",
+      "severity": "HIGH",
+      "status": "NEW / RESEARCH WATCH / EXPLOITATION NOT ESTABLISHED",
+      "published": "2026-08-20",
+      "vendor": "Check Point Research",
+      "artifacts": [
+        "BTR.sys",
+        "BTR_CLI",
+        ":changelist",
+        "MpEngine.dll",
+        "BootClean.log",
+        "HKLM\\SYSTEM\\CurrentControlSet\\Services\\{Random}\\Args"
+      ],
+      "attack_ids": [
+        "T1562.001",
+        "T1543.003",
+        "T1564.004",
+        "T1070.004"
+      ],
+      "references": [
+        "https://research.checkpoint.com/2026/btr-reforged-weaponizing-defenders-remediation-driver-as-a-kernel-operation-primitive/"
+      ]
+    },
+    {
+      "id": "AWS-KEYS-2026-08",
+      "title": "Live exposed corporate AWS keys",
+      "severity": "HIGH",
+      "status": "NEW / EXPOSURE INTELLIGENCE / NO CUSTOMER IOC PUBLISHED",
+      "published": "2026-08-19",
+      "vendor": "Truffle Security",
+      "summary": "Truffle Security re-verified 10,616 leaked AWS keys; 88% still authenticated, including 768 business-linked keys with full account control.",
+      "exposure_metrics": {
+        "reverified": 10616,
+        "still_authenticate_percent": 88,
+        "corporate_full_control_keys": 768,
+        "corporate_root_keys": 526,
+        "corporate_admin_iam_keys": 242,
+        "org_management_root_keys": 130
+      },
+      "attack_ids": [
+        "T1078"
+      ],
+      "references": [
+        "https://trufflesecurity.com/blog/leaked-corporate-aws-keys-held-full-admin-rights",
+        "https://www.bleepingcomputer.com/news/security/hundreds-of-leaked-aws-keys-give-full-control-over-corporate-accounts/"
+      ]
+    }
+  ],
+  "iocs": {
+    "ipv4": [
+      "217.60.77.63"
+    ],
+    "ipv6": [],
+    "md5": [],
+    "sha256": [
+      "0428FBDEFA8DDA10CE8FC12B1B516641E83CD5088388168E3F1A0BE1432B4077",
+      "151d2a7f52f047638ca8ad80c859c6bfe04d7510fb10933817fa0e3ba5d07a11",
+      "209F69A6CA859F05C954096B30391A43FDA33C9ED264DFDCCF806697F04B06A8",
+      "4537B1189CE419F1A595CF47216C03F80E9170CE80DAD8D9227A1E52F9CB3466",
+      "61F961CFEBDF9967844526649B4B75BBA5B1B83210B70AA1BFFE3F64E6AC3112",
+      "63622C1DDB3E2A9F11CAC192E13AC7494F558516B19D5D8F140F6D0D4D38EA84",
+      "80f08360ba768b152b71abb1cab557f552a13de18c83fe8e6396a197feec9185",
+      "8207D8D949530EA063FFD5D47EE81B74BF718EC0A4755E2349E6AF9B91E92DC1",
+      "A335E75B78B601EBC5C258975D95FD79AA21F836FC6B79D82E9A22C596133F07",
+      "C4ACDA412774C292F0DB5D64467A2DD09282CDEA43C41967E8BF90F6298ACCF3",
+      "CB1C657F74B9E57F5E81126179128E8DB949D1D4196BE9DCB890341E222FD384",
+      "D150C70D2732DF17AA77991B9EBF4C896F044445E900978581D9598DFA5DC98C"
+    ],
+    "domains": [
+      "api.ipify.org",
+      "filereserve.blob.core.windows.net",
+      "litterbox.catbox.moe",
+      "neversoftmain.net",
+      "rootfarmapp.net",
+      "tripinupdate.net"
+    ],
+    "urls": [
+      "https://filereserve.blob.core.windows.net/vgnghuyk/331/331.msi"
+    ],
+    "cves": [
+      "CVE-2026-73570"
+    ],
+    "ghsas": [],
+    "registry_keys": [
+      "HKLM\\SYSTEM\\CurrentControlSet\\Services\\mzqnjtaq",
+      "HKLM\\SYSTEM\\CurrentControlSet\\Services\\{Random}\\Args"
+    ],
+    "artifacts": [
+      "/bin/sh",
+      "/ra",
+      "AWSCompromisedKeyQuarantine",
+      "BTR.sys",
+      "BTR_CLI",
+      "HKLM\\SYSTEM\\CurrentControlSet\\Services\\mzqnjtaq",
+      "HKLM\\SYSTEM\\CurrentControlSet\\Services\\{Random}\\Args",
+      "MpEngine.dll",
+      "PhishLocker",
+      "PowershellCleaner",
+      "REDSHELL",
+      "Red Agent",
+      "RedC2",
+      "RedShell",
+      "RedShellLinux",
+      "StreamMaster",
+      "SynkLoader",
+      "TrafficRedirector",
+      "XDG autostart",
+      "\\Windows\\system32\\drivers\\BTR.sys:changelist",
+      "\\Windows\\system32\\drivers\\mzqnjtaq.sys:changelist",
+      "\\Windows\\system32\\drivers\\mzqnjtaq.sysGroupREG_SZBoot",
+      "archive6.zip",
+      "calc-cache.bin",
+      "calc-mapping.bin",
+      "calc-math.dat",
+      "calc.bin",
+      "cleaner.ps1",
+      "cleaner1.ps1",
+      "daymath.mjs",
+      "file.bin",
+      "index.mjs",
+      "kit-map-vim@1.0.0",
+      "map-streak-kit@1.0.0",
+      "math-calc.bin",
+      "math-core.bin",
+      "msvcp150.dll",
+      "msvcp160.dll",
+      "mzqnjtaq.dat",
+      "mzqnjtaq.sys",
+      "pwshnewdll.pdb",
+      "redshell",
+      "streak-cache-map@1.0.0",
+      "streak-calc-math@1.0.0",
+      "streak-calc-metrics@1.0.0",
+      "streak-kit-map@1.0.0",
+      "streak-map-cache@1.0.0",
+      "streak-map-kit@1.0.0",
+      "streak-math-abz@1.0.0",
+      "streak-math-metrics@1.0.0",
+      "streak-metricazbd@1.0.0",
+      "streak-metrics-math@1.0.0",
+      "streak-metricsaz@1.0.0",
+      "streak-metricsazb@1.0.0",
+      "systemd services",
+      "~/.bashrc"
+    ],
+    "excluded_benign_network_indicators": [
+      "8.8.8.8 (local UDP route probe in RedC2 analysis)"
+    ]
+  },
+  "enrichment": {
+    "cisa_kev": "queried; CVE-2026-73570 added 2026-08-21, due 2026-08-24",
+    "nvd": {
+      "id": "CVE-2026-73570",
+      "published": "2026-08-13T16:19:06.003",
+      "lastModified": "2026-08-22T04:18:14.897",
+      "description": "A remote code execution vulnerability exists in Zimbra Collaboration (ZCS) before 10.1.20 when the optional zimbra-snmp package is installed and SNMP notifications are enabled. Due to improper sanitization of untrusted input during SNMP notification processing, an unauthenticated attacker can send specially crafted SMTP requests that may result in execution of arbitrary operating system commands as the Zimbra user.",
+      "cvss": 8.9,
+      "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:L",
+      "raw_status_code": 200
+    },
+    "epss": {
+      "status": "OK",
+      "status-code": 200,
+      "version": "1.0",
+      "access": "public",
+      "total": 1,
+      "offset": 0,
+      "limit": 100,
+      "data": [
+        {
+          "cve": "CVE-2026-73570",
+          "epss": "0.005390000",
+          "percentile": "0.431830000",
+          "date": "2026-08-21"
+        }
+      ]
+    },
+    "abuseipdb": "not_claimed_no_api_credential",
+    "virustotal": "not_claimed_no_api_credential",
+    "otx": {
+      "217.60.77.63": {
+        "http_status": 200,
+        "pulse_count": 3,
+        "reputation": 0,
+        "sections": [
+          "general",
+          "geo",
+          "reputation",
+          "url_list",
+          "passive_dns",
+          "malware",
+          "nids_list",
+          "http_scans"
+        ]
+      },
+      "neversoftmain.net": {
+        "http_status": 200,
+        "pulse_count": 2,
+        "reputation": null,
+        "sections": [
+          "general",
+          "geo",
+          "url_list",
+          "passive_dns",
+          "malware",
+          "whois",
+          "http_scans"
+        ]
+      },
+      "rootfarmapp.net": {
+        "http_status": 200,
+        "pulse_count": 2,
+        "reputation": null,
+        "sections": [
+          "general",
+          "geo",
+          "url_list",
+          "passive_dns",
+          "malware",
+          "whois",
+          "http_scans"
+        ]
+      }
+    }
+  },
+  "detection_artifacts": {
+    "sigma_rules": [
+      "zimbra-zimbra-account-shell",
+      "redc2-npm-redshell",
+      "synkloader-teams-phishing",
+      "btr-driver-weaponization"
+    ],
+    "splunk_queries": 4,
+    "elastic_kql_queries": 4,
+    "yara": [
+      "redc2-npm-redshell-triage",
+      "synkloader-windows-triage",
+      "btr-driver-triage"
+    ],
+    "playbook_steps": 4
+  },
+  "sources": [
+    "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+    "https://www.cisa.gov/news-events/alerts/2026/08/21/cisa-adds-one-known-exploited-vulnerability-catalog",
+    "https://nvd.nist.gov/vuln/detail/CVE-2026-73570",
+    "https://api.first.org/data/v1/epss",
+    "https://www.trendaisecurity.com/en-us/resources-insights/trendai-security-blog/redc2-ai-powered-linux-implant",
+    "https://expel.com/blog/synkloader-when-you-throw-in-everything-but-the-kitchen-sink/",
+    "https://research.checkpoint.com/2026/btr-reforged-weaponizing-defenders-remediation-driver-as-a-kernel-operation-primitive/",
+    "https://trufflesecurity.com/blog/leaked-corporate-aws-keys-held-full-admin-rights",
+    "https://thehackernews.com/2026/08/14-trojanized-npm-packages-drop-redc2.html",
+    "https://www.bleepingcomputer.com/news/security/new-synkloader-malware-pushed-in-microsoft-teams-phishing-campaign/"
+  ],
+  "current_window": {
+    "qualifying_entry_count": 0,
+    "new_cves": [],
+    "new_kev": [],
+    "new_iocs_file": "../iocs_20260823.json",
+    "collection_file": "../collection_20260823.json",
+    "excluded_entries": [
+      {
+        "title": "Hackers infect Android car head units with proxy botnet malware",
+        "reason": "consumer/automotive scope; enterprise impact and actionable enterprise telemetry not established"
+      },
+      {
+        "title": "TikTok privacy settlement",
+        "reason": "non-cyber legal/news item"
+      }
+    ]
+  },
+  "carry_forward_only": true
+}

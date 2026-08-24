@@ -1,14 +1,19 @@
 # CLAUDE.md - Project Conventions for Claude Agent
 
 ## Environment Setup & Build Commands
+
 - **Python Version:** Python 3.12+
-- **Package Management:** `uv`
-- **Virtual Environment:** `uv venv` -> `source .venv/bin/activate`
-- **Install Dependencies:** `uv pip install -r requirements.txt`
-- **Run Agent:** `uv run main.py`
-- **Run Tests:** `pytest`
+- **Package Management:** `uv` with committed `uv.lock`
+- **Install Dependencies:** `uv sync --frozen`
+- **Run API:** `uv run hermes-cti-api`
+- **Run CLI:** `uv run hermes-cti version`, `doctor`, or `sources validate`
+- **Run Tests:** `uv run pytest`
 
 ## Code Style & Guidelines
+
 - Use explicit type annotations for function signatures.
-- Prefer dataclasses or Pydantic models for structured CTI data.
-- Ensure all IOC regex matching handles obfuscated or defanged indicators (e.g. `192[.]168[.]1[.]1`, `example[.]com`).
+- Use Pydantic contracts for data exchanged between pipeline boundaries.
+- Keep source configuration validation offline and deterministic. Keep ingestion tests transport-mocked and free of live internet access.
+- Keep Phase 2 free of database tables, provider credentials,
+  and scoring formulas. Phase 5 provider credentials remain runtime-only and
+  enrichment tests use mocked transports without live internet.

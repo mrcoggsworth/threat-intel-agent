@@ -1,77 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hermes // Cyber Threat Intelligence Portal</title>
-    <style>
-        :root {
-            --bg-color: #0b0f19;
-            --card-bg: #111827;
-            --accent-color: #00f2fe;
-            --text-color: #e2e8f0;
-            --text-muted: #94a3b8;
-            --border-color: #1e293b;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-        }
-        header {
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        h1 {
-            color: var(--accent-color);
-            margin: 0;
-            font-size: 1.8rem;
-            letter-spacing: 1px;
-        }
-        .subtitle {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            margin-top: 5px;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-        }
-        .card h2 {
-            font-size: 1.2rem;
-            margin-top: 0;
-            color: var(--accent-color);
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <h1>⚡ HERMES // Threat Intelligence Portal</h1>
-        <div class="subtitle">Autonomous CTI Monitoring, IOC Correlation & Playbook Feed</div>
-    </header>
-    <main class="grid">
-        <div class="card">
-            <h2>Latest Threat Advisories</h2>
-            <p style="color: var(--text-muted);">No advisories published yet. Run Hermes agent to populate intelligence feeds.</p>
-        </div>
-        <div class="card">
-            <h2>Active IOC Indexes</h2>
-            <p style="color: var(--text-muted);">IPs, Hashes, and Domains extracted daily will appear here.</p>
-        </div>
-        <div class="card">
-            <h2>Generated Playbooks</h2>
-            <p style="color: var(--text-muted);">Sigma, YARA, and KQL rules will be downloadable here.</p>
-        </div>
-    </main>
-</body>
-</html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hermes CTI Portal — 2026-08-23</title>
+<style>
+:root{color-scheme:dark;--bg:#08111f;--card:#101d30;--line:#263b57;--text:#e8f0fa;--muted:#9db0c8;--red:#ff5d73;--amber:#ffbf69;--blue:#75bfff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1180px;margin:0 auto;padding:28px 20px 60px}header{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:22px}h1{margin:0 0 6px;font-size:26px}h2{margin:26px 0 10px;font-size:19px}.sub,.meta,small{color:var(--muted)}.badge{border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;letter-spacing:.04em}.critical{background:#6e1e35;color:#ffdce2}.high{background:#65451d;color:#ffe3ae}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}.card h3{margin:0 0 6px;font-size:16px}.card p{margin:8px 0}.card a{color:var(--blue)}table{border-collapse:collapse;width:100%;background:var(--card);border:1px solid var(--line)}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}code{color:#c7e1ff}ul{margin:8px 0 0;padding-left:20px}.footer{margin-top:28px;color:var(--muted);font-size:13px}
+</style></head>
+<body><main>
+<header><h1>⚡ HERMES // Cyber Threat Intelligence Portal</h1><div class="sub">Daily enterprise CTI briefing · 2026-08-23 · <span class="badge high">NO NEW</span></div><div class="meta">Collection: 2026-08-23T13:01:43Z · 24-hour window with 48-hour deduplication context</div></header>
+<section><h2>Priority findings</h2><div class="card"><p><strong>No new qualifying enterprise-grade threats verified in the 2026-08-22–2026-08-23 UTC window.</strong> Carry-forward actions and the validated detection package remain in the <a href="cti_daily_report_20260823.md">daily report</a>.</p></div><div class="grid">
+<div class="card"><h3>Zimbra CVE-2026-73570 <span class="badge critical">UPDATE / KEV</span></h3><small>CVSS 8.9 · EPSS 0.00539 · CISA due 2026-08-24</small><p>Unauthenticated SMTP/SNMP command injection. Patch to 10.1.20 or current fixed build and triage exposed servers.</p><a href="cti_daily_report_20260823.md">Report</a></div>
+<div class="card"><h3>RedC2 npm supply chain <span class="badge critical">NEW</span></h3><small>14 packages · RedShell Linux implant · C2 217.60.77.63:8792</small><p>Import-time ELF execution without install hooks; credential theft, persistence, tunneling, and exfiltration.</p><a href="cti_daily_report_20260823.md">Report</a></div>
+<div class="card"><h3>SynkLoader Teams phishing <span class="badge high">NEW</span></h3><small>Azure MSI · fake lock screen · 12 SHA-256 hashes</small><p>Multi-stage PowerShell/Python/C# loader with credential capture and reverse-proxy access into corporate networks.</p><a href="cti_daily_report_20260823.md">Report</a></div>
+<div class="card"><h3>Defender BTR.sys weaponization <span class="badge high">WATCH</span></h3><small>Signed driver · kernel file/registry operations</small><p>Check Point demonstrated security-tool disablement without conventional exploit or external BYOVD.</p><a href="cti_daily_report_20260823.md">Report</a></div>
+<div class="card"><h3>Exposed AWS keys <span class="badge high">NEW EXPOSURE</span></h3><small>768 corporate full-control keys · 526 root</small><p>Truffle Security reports 88% of 10,616 re-verified leaked keys still authenticate.</p><a href="cti_daily_report_20260823.md">Report</a></div>
+</div></section>
+<section><h2>IoC index</h2><div class="card"><table><thead><tr><th>Type</th><th>Count</th><th>Disposition</th></tr></thead><tbody>
+<tr><td>IPv4</td><td>1</td><td><code>217.60.77.63</code> — RedC2 C2, reported port 8792</td></tr>
+<tr><td>SHA-256</td><td>12</td><td>SynkLoader source-published file/module hashes; map to labeled artifacts before enforcement</td></tr>
+<tr><td>Domains</td><td>6</td><td>RedC2/SynkLoader C2 and delivery/shared services; see <a href="data/cti_database.json">database</a></td></tr>
+<tr><td>URLs</td><td>1</td><td>Azure Blob MSI delivery URL; treat as source-observed malicious delivery infrastructure</td></tr>
+<tr><td>CVE</td><td>1</td><td><code>CVE-2026-73570</code> — CISA KEV update</td></tr>
+<tr><td>Registry/artifacts</td><td>58</td><td>BTR.sys, npm package/file artifacts, SynkLoader modules, and service paths</td></tr>
+</tbody></table></div></section>
+<section><h2>Detection package</h2><div class="card"><p>Four experimental Sigma rules, generic <code>index=*</code> Splunk SPL, Elastic KQL, three triage-only YARA rules, and a four-step investigation playbook remain active from the prior collection. See the <a href="cti_daily_report_20260823.md">current daily report</a>.</p><ul><li>Zimbra post-exploitation shell</li><li>RedC2 Node-to-ELF package execution</li><li>SynkLoader MSI/PowerShell/Python chain</li><li>BTR.sys signed-driver abuse indicators</li></ul></div></section>
+<div class="footer">Machine-readable portal database: <a href="data/cti_database.json">data/cti_database.json</a> · Deterministic IoCs: <a href="iocs_20260823.json">iocs_20260823.json</a> · Source registry: <code>code/threat-intel-agent/config/sources.json</code></div>
+</main></body></html>

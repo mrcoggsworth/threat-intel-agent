@@ -1,0 +1,197 @@
+{
+  "collection_time": "2026-08-23T13:01:43+00:00",
+  "window_start": "2026-08-22T13:01:43+00:00",
+  "window_hours": 24,
+  "sources": [
+    {
+      "source": "CISA Known Exploited Vulnerabilities",
+      "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "type": "json",
+      "category": "vulnerabilities",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/json"
+    },
+    {
+      "source": "CISA Cybersecurity Advisories",
+      "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+      "type": "rss",
+      "category": "cert_advisories",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=utf-8"
+    },
+    {
+      "source": "The DFIR Report",
+      "url": "https://thedfirreport.com/feed/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "Cisco Talos Intelligence",
+      "url": "https://blog.talosintelligence.com/rss/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=utf-8"
+    },
+    {
+      "source": "Palo Alto Unit 42",
+      "url": "https://unit42.paloaltonetworks.com/feed/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "Google Threat Analysis Group",
+      "url": "https://blog.google/threat-analysis-group/rss/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "error",
+      "entries": [],
+      "error": "HTTPError: HTTP Error 404: Not Found"
+    },
+    {
+      "source": "Microsoft Threat Intelligence",
+      "url": "https://www.microsoft.com/en-us/security/blog/topic/threat-intelligence/feed/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "SentinelLabs",
+      "url": "https://www.sentinelone.com/labs/feed/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "Red Canary Threat Research",
+      "url": "https://redcanary.com/blog/feed/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "SANS ISC InfoSec Diaries",
+      "url": "https://isc.sans.edu/rssfeed_full.xml",
+      "type": "rss",
+      "category": "incident_response",
+      "status": "parse_error",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "text/xml; charset=utf-8",
+      "error": "ParseError: syntax error: line 1, column 0"
+    },
+    {
+      "source": "Trend Micro Zero Day Initiative",
+      "url": "https://www.zerodayinitiative.com/blog?format=rss",
+      "type": "rss",
+      "category": "vulnerabilities",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "Krebs on Security",
+      "url": "https://krebsonsecurity.com/feed/",
+      "type": "rss",
+      "category": "news",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "text/html; charset=UTF-8"
+    },
+    {
+      "source": "BleepingComputer",
+      "url": "https://www.bleepingcomputer.com/feed/",
+      "type": "rss",
+      "category": "news",
+      "status": "ok",
+      "entries": [
+        {
+          "title": "Hackers infect Android car head units with proxy botnet malware",
+          "link": "https://www.bleepingcomputer.com/news/security/hackers-infect-android-car-head-units-with-proxy-botnet-malware/",
+          "published_raw": "Sat, 22 Aug 2026 10:14:24 -0400",
+          "published": "2026-08-22T14:14:24+00:00",
+          "summary": "A supply-chain attack targeting Android-based car head units is using a legitimate device-update app to spread malware that enlists compromised devices in a proxy botnet or uses them for ad fraud. [...]"
+        }
+      ],
+      "http_status": 200,
+      "content_type": "text/xml; charset=utf-8"
+    },
+    {
+      "source": "Microsoft Security Response Center",
+      "url": "https://msrc.microsoft.com/blog/feed",
+      "type": "rss",
+      "category": "vendor_advisories",
+      "status": "parse_error",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "error": "ParseError: not well-formed (invalid token): line 124, column 158"
+    },
+    {
+      "source": "The Hacker News (supplemental)",
+      "url": "https://feeds.feedburner.com/TheHackersNews",
+      "type": "rss",
+      "category": "supplemental",
+      "status": "ok",
+      "entries": [
+        {
+          "title": "TikTok Agrees to $400 Million Settlement in U.S. Child Privacy Lawsuit",
+          "link": "https://thehackernews.com/2026/08/tiktok-agrees-to-400-million-settlement.html",
+          "published_raw": "Sat, 22 Aug 2026 20:02:41 +0530",
+          "published": "2026-08-22T14:32:41+00:00",
+          "summary": "The U.S. Department of Justice (DoJ) announced on Friday that ByteDance-owned TikTok will pay $400 million to settle a 2024 lawsuit accusing the company of violating child privacy laws in the country.\n\nAs part of the settlement, the social media platform will pay $300 million immediately, and an additional $100 million \"upon entry of an order vacating a prior consent decree entered against"
+        }
+      ],
+      "http_status": 200,
+      "content_type": "text/xml; charset=utf-8"
+    }
+  ],
+  "qualifying_entry_count": 2,
+  "qualifying_entries": [
+    {
+      "title": "Hackers infect Android car head units with proxy botnet malware",
+      "link": "https://www.bleepingcomputer.com/news/security/hackers-infect-android-car-head-units-with-proxy-botnet-malware/",
+      "published_raw": "Sat, 22 Aug 2026 10:14:24 -0400",
+      "published": "2026-08-22T14:14:24+00:00",
+      "summary": "A supply-chain attack targeting Android-based car head units is using a legitimate device-update app to spread malware that enlists compromised devices in a proxy botnet or uses them for ad fraud. [...]",
+      "source": "BleepingComputer",
+      "source_url": "https://www.bleepingcomputer.com/feed/",
+      "category": "news"
+    },
+    {
+      "title": "TikTok Agrees to $400 Million Settlement in U.S. Child Privacy Lawsuit",
+      "link": "https://thehackernews.com/2026/08/tiktok-agrees-to-400-million-settlement.html",
+      "published_raw": "Sat, 22 Aug 2026 20:02:41 +0530",
+      "published": "2026-08-22T14:32:41+00:00",
+      "summary": "The U.S. Department of Justice (DoJ) announced on Friday that ByteDance-owned TikTok will pay $400 million to settle a 2024 lawsuit accusing the company of violating child privacy laws in the country.\n\nAs part of the settlement, the social media platform will pay $300 million immediately, and an additional $100 million \"upon entry of an order vacating a prior consent decree entered against",
+      "source": "The Hacker News (supplemental)",
+      "source_url": "https://feeds.feedburner.com/TheHackersNews",
+      "category": "supplemental"
+    }
+  ]
+}
