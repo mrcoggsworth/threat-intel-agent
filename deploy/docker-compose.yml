@@ -1,0 +1,225 @@
+name: cti-hermes
+
+services:
+  proxy:
+    image: nginx:1.27-alpine
+    depends_on:
+      web:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - hermes-proxy-tls:/etc/nginx/tls:ro
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - edge
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-check-certificate --spider -q https://127.0.0.1/__proxy_health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  web:
+    image: ${HERMES_IMAGE:?HERMES_IMAGE must be an immutable application image}
+    command: ["uvicorn", "hermes_cti.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      HERMES_ENVIRONMENT: production
+      HERMES_DATABASE_REQUIRED: "true"
+      HERMES_DATABASE_URL_FILE: /run/secrets/hermes_database_url
+      HERMES_ADMIN_TOKEN_FILE: /run/secrets/hermes_admin_token
+      HERMES_SECRET_KEY_FILE: /run/secrets/hermes_secret_key
+      HERMES_SCHEDULER_HEARTBEAT_FILE: /runtime/scheduler.heartbeat
+    secrets:
+      - hermes_database_url
+      - hermes_admin_token
+      - hermes_secret_key
+    networks:
+      - backend
+    volumes:
+      - hermes-runtime:/runtime:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  worker:
+    image: ${HERMES_IMAGE:?HERMES_IMAGE must be an immutable application image}
+    command: ["hermes-cti-worker"]
+    environment:
+      HERMES_ENVIRONMENT: production
+      HERMES_DATABASE_REQUIRED: "true"
+      HERMES_DATABASE_URL_FILE: /run/secrets/hermes_database_url
+    secrets:
+      - hermes_database_url
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+
+  scheduler:
+    image: ${HERMES_IMAGE:?HERMES_IMAGE must be an immutable application image}
+    command: ["/app/scripts/scheduler-entrypoint.sh"]
+    environment:
+      HERMES_ENVIRONMENT: production
+      HERMES_DATABASE_REQUIRED: "true"
+      HERMES_DATABASE_URL_FILE: /run/secrets/hermes_database_url
+      HERMES_SCHEDULER_HEARTBEAT_FILE: /runtime/scheduler.heartbeat
+      HERMES_HEARTBEAT_INTERVAL_SECONDS: "30"
+    secrets:
+      - hermes_database_url
+    volumes:
+      - hermes-runtime:/runtime
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /runtime/scheduler.heartbeat && find /runtime/scheduler.heartbeat -mmin -2 | grep -q ."]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: hermes
+      POSTGRES_USER: hermes
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - hermes-postgres:/var/lib/postgresql/data
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hermes -d hermes"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  backup:
+    image: postgres:16
+    command: ["/opt/hermes/backup-postgres.sh"]
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: hermes
+      PGDATABASE: hermes
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      BACKUP_ENCRYPTION_KEY_FILE: /run/secrets/backup_encryption_key
+      BACKUP_DIR: /backups
+      BACKUP_RETENTION_DAYS: ${HERMES_BACKUP_RETENTION_DAYS:-14}
+    secrets:
+      - postgres_password
+      - backup_encryption_key
+    volumes:
+      - hermes-backups:/backups
+      - ../scripts/backup-postgres.sh:/opt/hermes/backup-postgres.sh:ro
+    networks:
+      - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /backups/latest.metadata || find /backups -name 'hermes-*.dump.enc.metadata' -print -quit | grep -q ."]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+
+  monitor:
+    image: ${HERMES_IMAGE:?HERMES_IMAGE must be an immutable application image}
+    command: ["python", "/app/scripts/monitor.py", "--loop"]
+    environment:
+      HERMES_PUBLIC_BASE_URL: http://web:8000
+      HERMES_PRIVATE_HOST: ops.cti-hermes.local
+      HERMES_PRIVATE_BASE_URL: http://web:8000
+      HERMES_ADMIN_TOKEN_FILE: /run/secrets/hermes_admin_token
+      HERMES_HEARTBEAT_FILE: /runtime/scheduler.heartbeat
+      HERMES_BACKUP_METADATA_FILE: /backups/latest.metadata
+      HERMES_CERT_FILE: /etc/hermes/tls/fullchain.pem
+      HERMES_DISK_USED_FRACTION: ${HERMES_DISK_USED_FRACTION:-0.85}
+    secrets:
+      - hermes_admin_token
+    volumes:
+      - hermes-runtime:/runtime:ro
+      - hermes-backups:/backups:ro
+      - hermes-proxy-tls:/etc/hermes/tls:ro
+    networks:
+      - backend
+    depends_on:
+      proxy:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "/app/scripts/monitor.py"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+
+  migrate:
+    image: ${HERMES_IMAGE:?HERMES_IMAGE must be an immutable application image}
+    command: ["hermes-cti", "db", "migrate"]
+    environment:
+      HERMES_ENVIRONMENT: production
+      HERMES_DATABASE_REQUIRED: "true"
+      HERMES_DATABASE_URL_FILE: /run/secrets/hermes_database_url
+    secrets:
+      - hermes_database_url
+    networks:
+      - backend
+    profiles: ["migration"]
+
+  smoke:
+    image: curlimages/curl:8.11.1
+    command: ["/opt/hermes/smoke-test.sh", "https://proxy", "https://proxy", "/run/secrets/hermes_admin_token"]
+    environment:
+      SMOKE_CONNECT_TIMEOUT_SECONDS: "5"
+      SMOKE_TOTAL_TIMEOUT_SECONDS: "15"
+    secrets:
+      - hermes_admin_token
+    volumes:
+      - ../scripts/smoke-test.sh:/opt/hermes/smoke-test.sh:ro
+    networks:
+      - edge
+    profiles: ["ops"]
+
+networks:
+  edge:
+  backend:
+    internal: true
+
+volumes:
+  hermes-postgres:
+  hermes-backups:
+  hermes-runtime:
+  hermes-proxy-tls:
+
+secrets:
+  postgres_password:
+    external: true
+    name: ${HERMES_POSTGRES_PASSWORD_SECRET:-cti-hermes-postgres-password}
+  hermes_database_url:
+    external: true
+    name: ${HERMES_DATABASE_URL_SECRET:-cti-hermes-database-url}
+  hermes_admin_token:
+    external: true
+    name: ${HERMES_ADMIN_TOKEN_SECRET:-cti-hermes-admin-token}
+  hermes_secret_key:
+    external: true
+    name: ${HERMES_SECRET_KEY_SECRET:-cti-hermes-secret-key}
+  backup_encryption_key:
+    external: true
+    name: ${HERMES_BACKUP_KEY_SECRET:-cti-hermes-backup-key}

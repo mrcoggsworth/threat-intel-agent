@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -19,12 +22,68 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run ruff check .
       - run: uv run mypy
-      - run: uv run pytest
+      - run: uv run pytest tests/test_phase0.py tests/test_phase1.py tests/test_phase2.py tests/test_phase3.py tests/test_phase5.py tests/test_phase6.py tests/test_phase7.py tests/test_phase8.py
+      - run: uv run pytest tests/test_phase7.py
+      - name: Secret scan
+        uses: zricethezav/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Dependency scan
+        run: |
+          uv export --locked --no-dev --no-emit-project --format requirements.txt --output-file /tmp/hermes-requirements.txt
+          uvx --from pip-audit pip-audit -r /tmp/hermes-requirements.txt
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: hermes_test
+          POSTGRES_USER: hermes
+          POSTGRES_PASSWORD: hermes
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hermes -d hermes_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.9.5"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - name: PostgreSQL integration and migration rehearsal
+        env:
+          HERMES_TEST_DATABASE_URL: postgresql+asyncpg://hermes:hermes@127.0.0.1:5432/hermes_test
+        run: uv run pytest tests/test_phase4.py
 
   container:
     runs-on: ubuntu-latest
-    needs: quality
+    needs: [quality, postgres-integration]
     steps:
       - uses: actions/checkout@v4
       - run: docker build --file deploy/Dockerfile --tag hermes-cti:ci .
+      - run: docker compose --env-file deploy/.env.ci --file deploy/docker-compose.yml config
       - run: docker compose --file deploy/docker-compose.dev.yml config
+      - name: API and portal smoke
+        run: |
+          docker compose --file deploy/docker-compose.dev.yml up --detach postgres
+          for attempt in $(seq 1 30); do
+            docker compose --file deploy/docker-compose.dev.yml exec -T postgres pg_isready -U hermes -d hermes >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker compose --file deploy/docker-compose.dev.yml run --rm web hermes-cti db migrate
+          docker compose --file deploy/docker-compose.dev.yml up --detach web
+          for attempt in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:8000/health/live >/dev/null && break
+            sleep 2
+          done
+          curl --fail --silent http://127.0.0.1:8000/health/live
+          curl --fail --silent http://127.0.0.1:8000/api/v1/public/reports
+          docker compose --file deploy/docker-compose.dev.yml down --volumes

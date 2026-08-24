@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     schedule_timezone: str = "UTC"
     schedule_hour: int = 2
     daily_run_stale_after_seconds: int = 86_400
+    scheduler_heartbeat_file: str | None = None
     request_id_header: str = "X-Request-ID"
     max_concurrency: int = 5
     http_timeout_seconds: float = 30.0
@@ -177,6 +178,15 @@ def load_settings(config_path: Path | None = None) -> Settings:
     values = _yaml_values(path)
     for field_name in Settings.model_fields:
         env_name = f"HERMES_{field_name.upper()}"
-        if env_name in os.environ:
+        file_env_name = f"{env_name}_FILE"
+        if file_env_name in os.environ:
+            secret_path = Path(os.environ[file_env_name])
+            try:
+                values[field_name] = secret_path.read_text(encoding="utf-8").strip()
+            except OSError as exc:
+                raise ValueError(
+                    f"unable to read runtime secret file for {field_name}"
+                ) from exc
+        elif env_name in os.environ:
             values[field_name] = os.environ[env_name]
     return Settings.model_validate(values)
