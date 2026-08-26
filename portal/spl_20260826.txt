@@ -1,0 +1,16 @@
+# Gitea CVE-2026-60004
+index=* (url="*/diffpatch*" OR request_uri="*/diffpatch*") ("git hook" OR "hooks/" OR "git apply" OR "sh -c")
+| stats count min(_time) as first_seen max(_time) as last_seen values(src_ip) as src_ip values(user) as user by host
+
+# NemoClaw CVE-2026-65105
+index=* (CommandLine="*OLLAMA_HOST=0.0.0.0:11434*" OR process_command_line="*OLLAMA_HOST=0.0.0.0:11434*" OR CommandLine="*NEMOCLAW_OLLAMA_PROXY_SKIP_BIND_PROBE=1*")
+| stats count values(host) as host values(user) as user by process_name CommandLine
+
+# SLEEPWALKER side-loading watch
+index=* (Image="*\\ERAAgent.exe" OR process_path="*\\ERAAgent.exe") (ImageLoaded="*\\dpapi.dll" OR module="*\\dpapi.dll")
+| stats count values(host) as host values(ImageLoaded) as ImageLoaded by Image user
+
+# Mirage2FA / Microsoft 365 session-theft hunting
+index=* (OperationName="*SignIn*" OR operation="*SignIn*") ResultType=0 (AuthenticationRequirement="*multiFactorAuthentication*" OR AuthenticationRequirement="*singleFactorAuthentication*")
+| stats count dc(IPAddress) as source_ip_count values(IPAddress) as source_ips values(UserAgent) as user_agents by UserPrincipalName SessionId
+| where source_ip_count > 1

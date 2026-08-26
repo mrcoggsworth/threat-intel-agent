@@ -6,6 +6,7 @@ from typing import cast
 from fastapi import Header, HTTPException, Request
 
 from hermes_cti.db.readiness import ReadinessChecker
+from hermes_cti.db.session import Database
 from hermes_cti.enrichment.service import EnrichmentService
 from hermes_cti.portal.service import PortalService
 
@@ -27,6 +28,15 @@ def get_portal_service(request: Request) -> PortalService:
     return cast(PortalService, request.app.state.portal_service)
 
 
+def get_database(request: Request) -> Database:
+    """Resolve the application database for authenticated analyst operations."""
+
+    database = getattr(request.app.state, "database", None)
+    if database is None:
+        raise HTTPException(status_code=503, detail="database is not configured")
+    return cast(Database, database)
+
+
 def require_admin_token(
     request: Request,
     x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
@@ -41,5 +51,20 @@ def require_admin_token(
         configured is None
         or x_admin_token is None
         or not secrets.compare_digest(x_admin_token, configured.get_secret_value())
+    ):
+        raise HTTPException(status_code=404, detail="not found")
+
+
+def require_analyst_token(
+    request: Request,
+    x_analyst_token: str | None = Header(default=None, alias="X-Analyst-Token"),
+) -> None:
+    """Authorize the narrowly scoped CTI analyst service identity."""
+
+    configured = request.app.state.settings.analyst_token
+    if (
+        configured is None
+        or x_analyst_token is None
+        or not secrets.compare_digest(x_analyst_token, configured.get_secret_value())
     ):
         raise HTTPException(status_code=404, detail="not found")

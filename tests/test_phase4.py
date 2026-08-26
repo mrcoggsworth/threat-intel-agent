@@ -7,40 +7,61 @@ import os
 import shutil
 import subprocess
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 import asyncpg
 import pytest
-from sqlalchemy import select, text, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from hermes_cti.core.settings import Settings
+from hermes_cti.db.entity_repositories import EntityRepository
+from hermes_cti.db.lifecycle import (
+    LIFECYCLE_FIELDS,
+    constraint_name,
+)
 from hermes_cti.db.migrations import run_migrations
 from hermes_cti.db.models import (
+    Base,
     IndicatorObservation,
     IngestionRun,
+    ModelRun,
     RawArtifact,
+    Relationship,
     Report,
+    ReportEntity,
     ReportVersion,
+    SourceConfigurationHistory,
     SourceRun,
     Vulnerability,
 )
 from hermes_cti.db.models import (
     SourceDocument as SourceDocumentRecord,
 )
+from hermes_cti.db.query_plans import verify_query_plans
 from hermes_cti.db.repositories import PersistenceRepository, RunRepository
 from hermes_cti.db.scheduler import DailyScheduler
 from hermes_cti.db.session import Database
+from hermes_cti.db.vulnerability_models import (
+    VulnerabilityAttributeSelection,
+    VulnerabilityProviderObservation,
+)
 from hermes_cti.extraction import ExtractionConfig, extract_document
 from hermes_cti.ingestion.service import CollectionResult
 from hermes_cti.models.contracts import (
     CacheState,
     DocumentType,
+    EnrichmentStatus,
+    EntityReference,
+    EntityType,
     IngestionRunManifest,
+    ProviderRequest,
+    ProviderResponse,
     RawArtifactMetadata,
     ReliabilityClassification,
+    ReviewState,
     RunStatus,
     SourceCategory,
     SourceConfig,
@@ -50,6 +71,7 @@ from hermes_cti.models.contracts import (
     SourceType,
     sha256_text,
 )
+from hermes_cti.portal.entity_repository import SqlEntityReadRepository
 from hermes_cti.reporting.repository import ReportRepository
 
 
@@ -527,3 +549,450 @@ async def test_report_version_history_is_retained(database: Database) -> None:
         history = await ReportRepository().version_history(session, report_id)
     assert [item.version for item in history] == [1, 2]
     assert history[1].supersedes_id == first_id
+
+
+@pytest.mark.asyncio
+async def test_persists_normalized_entity_and_model_run(database: Database) -> None:
+    from hermes_cti.db.entity_repositories import EntityRepository
+    from hermes_cti.db.model_run_repository import ModelRunRepository
+
+    now = datetime(2026, 8, 24, 12, tzinfo=UTC)
+    actor_id = uuid4()
+    model_run_id = uuid4()
+    async with database.transaction() as session:
+        actor = await EntityRepository().upsert_threat_actor(
+            session,
+            entity_id=actor_id,
+            canonical_name="Example Group",
+            normalized_name=f"example-group-{actor_id}",
+            aliases=("Example",),
+            first_seen_at=now,
+            last_seen_at=now,
+        )
+        model_run = await ModelRunRepository().persist(
+            session,
+            model_run_id=model_run_id,
+            purpose="test_audit",
+            model_provider="test-provider",
+            prompt_name="test-prompt",
+            prompt_version="1",
+            system_prompt_hash="a" * 64,
+            skill_version_hashes=("b" * 64,),
+            output_hash="c" * 64,
+            started_at=now,
+            completed_at=now,
+        )
+    assert actor.id == actor_id
+    assert model_run.id == model_run_id
+    assert model_run.system_prompt_hash == "a" * 64
+    assert model_run.skill_version_hashes == ["b" * 64]
+
+
+@pytest.mark.asyncio
+async def test_postgres_enforces_lifecycle_registry(database: Database) -> None:
+    expected = {constraint_name(table, column) for table, column in LIFECYCLE_FIELDS}
+    expected |= {
+        constraint_name(table.name, "record_status")
+        for table in Base.metadata.tables.values()
+        if "record_status" in table.c
+    }
+    async with database.session() as session:
+        actual = set(
+            await session.scalars(
+                text(
+                    "SELECT conname FROM pg_constraint "
+                    "WHERE conname LIKE 'ck\\_%\\_lifecycle' ESCAPE '\\'"
+                )
+            )
+        )
+        assert expected <= actual
+
+        from hermes_cti.db.model_run_repository import ModelRunRepository
+
+        with pytest.raises(ValueError, match="model_run.status"):
+            await ModelRunRepository().persist(
+                session,
+                model_run_id=uuid4(),
+                purpose="lifecycle-test",
+                model_provider="test",
+                prompt_name="test",
+                prompt_version="1",
+                output_hash=None,
+                status="__invalid__",
+            )
+        with pytest.raises(ValueError, match="threat_actor.attribution_state"):
+            await EntityRepository().upsert_threat_actor(
+                session,
+                entity_id=uuid4(),
+                canonical_name="Invalid Actor",
+                normalized_name=f"invalid-actor-{uuid4()}",
+                attribution_state="__invalid__",
+            )
+
+        model_run = ModelRun(
+            id=uuid4(),
+            purpose="lifecycle-test",
+            model_provider="test",
+            prompt_name="test",
+            prompt_version="1",
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
+            status="completed",
+        )
+        session.add(model_run)
+        await session.flush()
+        with pytest.raises(DBAPIError):
+            async with session.begin_nested():
+                await session.execute(
+                    text("UPDATE model_run SET status = '__invalid__' WHERE id = :id"),
+                    {"id": model_run.id},
+                )
+                await session.flush()
+
+
+@pytest.mark.asyncio
+async def test_postgres_public_projection_excludes_draft_and_rejected_rows(
+    database: Database,
+) -> None:
+    now = datetime(2026, 8, 24, 12, tzinfo=UTC)
+    actor_id, malware_id, draft_product_id = uuid4(), uuid4(), uuid4()
+    published_report_id, published_version_id = uuid4(), uuid4()
+    draft_report_id, draft_version_id = uuid4(), uuid4()
+    reviewed_id, rejected_id = uuid4(), uuid4()
+    async with database.transaction() as session:
+        await EntityRepository().upsert_threat_actor(
+            session,
+            entity_id=actor_id,
+            canonical_name="Published Actor",
+            normalized_name=f"published-actor-{actor_id}",
+            first_seen_at=now,
+            last_seen_at=now,
+        )
+        await EntityRepository().upsert_malware(
+            session,
+            entity_id=malware_id,
+            canonical_name="Published Malware",
+            normalized_name=f"published-malware-{malware_id}",
+            first_seen_at=now,
+            last_seen_at=now,
+        )
+        await EntityRepository().upsert_product(
+            session,
+            entity_id=draft_product_id,
+            vendor="Draft Vendor",
+            product="Draft Product",
+            normalized_vendor="draft-vendor",
+            normalized_product="draft-product",
+        )
+        session.add_all(
+            [
+                Report(
+                    id=published_report_id,
+                    public_id=f"published-projection-{published_report_id}",
+                    slug=f"published-projection-{published_report_id}",
+                    headline="Published projection",
+                    report_type="threat",
+                    severity="high",
+                    confidence=0.9,
+                    state="published",
+                    last_updated_at=now,
+                ),
+                Report(
+                    id=draft_report_id,
+                    public_id=f"draft-projection-{draft_report_id}",
+                    slug=f"draft-projection-{draft_report_id}",
+                    headline="Draft projection",
+                    report_type="threat",
+                    severity="high",
+                    confidence=0.9,
+                    state="draft",
+                    last_updated_at=now,
+                ),
+            ]
+        )
+        await session.flush()
+        session.add_all(
+            [
+                ReportVersion(
+                    id=published_version_id,
+                    report_id=published_report_id,
+                    version=1,
+                    executive_summary="Published",
+                    technical_analysis="Published",
+                    evidence_summary="Published",
+                    generated_by="test",
+                    validation_status="published",
+                    application_version="test",
+                ),
+                ReportVersion(
+                    id=draft_version_id,
+                    report_id=draft_report_id,
+                    version=1,
+                    executive_summary="Draft",
+                    technical_analysis="Draft",
+                    evidence_summary="Draft",
+                    generated_by="test",
+                    validation_status="draft",
+                    application_version="test",
+                ),
+            ]
+        )
+        await session.flush()
+        await session.execute(
+            update(Report)
+            .where(Report.id == published_report_id)
+            .values(current_version_id=published_version_id)
+        )
+        await session.execute(
+            update(Report)
+            .where(Report.id == draft_report_id)
+            .values(current_version_id=draft_version_id)
+        )
+        session.add_all(
+            [
+                ReportEntity(
+                    id=uuid4(),
+                    report_version_id=published_version_id,
+                    entity_type=EntityType.ACTOR.value,
+                    entity_id=actor_id,
+                    role="subject",
+                ),
+                ReportEntity(
+                    id=uuid4(),
+                    report_version_id=published_version_id,
+                    entity_type=EntityType.MALWARE.value,
+                    entity_id=malware_id,
+                    role="subject",
+                ),
+                ReportEntity(
+                    id=uuid4(),
+                    report_version_id=draft_version_id,
+                    entity_type=EntityType.PRODUCT.value,
+                    entity_id=draft_product_id,
+                    role="subject",
+                ),
+            ]
+        )
+        session.add_all(
+            [
+                Relationship(
+                    id=reviewed_id,
+                    source_entity_type=EntityType.ACTOR.value,
+                    source_entity_id=actor_id,
+                    relationship_type="uses_malware",
+                    target_entity_type=EntityType.MALWARE.value,
+                    target_entity_id=malware_id,
+                    direction="forward",
+                    origin="deterministic",
+                    confidence=0.9,
+                    first_seen_at=now,
+                    last_seen_at=now,
+                    active=True,
+                    review_state=ReviewState.REVIEWED.value,
+                    origin_rule="test",
+                    justification="Published fixture",
+                ),
+                Relationship(
+                    id=rejected_id,
+                    source_entity_type=EntityType.ACTOR.value,
+                    source_entity_id=actor_id,
+                    relationship_type="uses_malware",
+                    target_entity_type=EntityType.MALWARE.value,
+                    target_entity_id=malware_id,
+                    direction="forward",
+                    origin="model_inference",
+                    confidence=0.9,
+                    active=True,
+                    review_state=ReviewState.REJECTED.value,
+                    origin_rule="test-rejected",
+                    justification="Rejected fixture",
+                ),
+            ]
+        )
+    async with database.session() as session:
+        repository = SqlEntityReadRepository()
+        actor = await repository.get_public_entity(
+            session, EntityType.ACTOR.value, f"published-actor-{actor_id}"
+        )
+        draft = await repository.get_public_entity(
+            session, EntityType.PRODUCT.value, "draft-vendor|draft-product|unknown"
+        )
+        relationships = await repository.public_relationships(session)
+    assert actor is not None
+    assert actor.entity_id == actor_id
+    assert draft is None
+    assert [row.relationship.id for row in relationships] == [reviewed_id]
+
+
+@pytest.mark.asyncio
+async def test_postgres_query_plan_checks_use_declared_indexes(
+    database: Database,
+) -> None:
+    async with database.session() as session:
+        await session.execute(text("SET LOCAL enable_seqscan = off"))
+        results = await verify_query_plans(session)
+
+    assert results
+    assert all(result.passed for result in results), results
+
+
+@pytest.mark.asyncio
+async def test_postgres_persists_typed_vulnerability_enrichment(
+    database: Database,
+) -> None:
+    now = datetime(2026, 8, 24, 12, tzinfo=UTC)
+    vulnerability_id = uuid4()
+    cve_id = "CVE-2026-4242"
+
+    def response(
+        provider: str, values: dict[str, object], payload_hash: str
+    ) -> ProviderResponse:
+        return ProviderResponse(
+            provider=provider,
+            request=ProviderRequest(
+                entity=EntityReference(
+                    entity_type=EntityType.VULNERABILITY, entity_id=vulnerability_id
+                ),
+                query_key=cve_id,
+                query_kind="cve",
+                requested_at=now,
+            ),
+            retrieved_at=now,
+            status=EnrichmentStatus.SUCCESS,
+            normalized_result=values,
+            payload_hash=payload_hash,
+        )
+
+    responses = (
+        response(
+            "cisa_kev",
+            {
+                "cve_id": cve_id,
+                "known_exploited": True,
+                "date_added": "2026-08-01",
+                "due_date": "2026-08-21",
+                "vendor_project": "Example",
+                "product": "Example Product",
+                "required_action": "Apply the vendor mitigation.",
+            },
+            "a" * 64,
+        ),
+        response(
+            "epss",
+            {
+                "cve_id": cve_id,
+                "epss_score": 0.91,
+                "epss_percentile": 0.99,
+                "epss_date": "2026-08-23",
+            },
+            "b" * 64,
+        ),
+        response(
+            "nvd",
+            {
+                "cve_id": cve_id,
+                "description": "Example vulnerability",
+                "published_at": "2026-07-01T00:00:00Z",
+                "modified_at": "2026-08-20T00:00:00Z",
+                "cvss_score": 9.8,
+                "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "cwe_ids": ["CWE-787"],
+            },
+            "c" * 64,
+        ),
+    )
+
+    async with database.transaction() as session:
+        await PersistenceRepository().persist_enrichment_run(
+            session,
+            provider_responses=responses,
+            entity_type="vulnerability",
+            entity_id=vulnerability_id,
+        )
+
+    async with database.session() as session:
+        vulnerability = await session.scalar(
+            select(Vulnerability).where(Vulnerability.id == vulnerability_id)
+        )
+        observations = tuple(
+            (
+                await session.scalars(
+                    select(VulnerabilityProviderObservation).where(
+                        VulnerabilityProviderObservation.vulnerability_id
+                        == vulnerability_id
+                    )
+                )
+            ).all()
+        )
+        selections = tuple(
+            (
+                await session.scalars(
+                    select(VulnerabilityAttributeSelection).where(
+                        VulnerabilityAttributeSelection.vulnerability_id
+                        == vulnerability_id
+                    )
+                )
+            ).all()
+        )
+
+    assert vulnerability is not None
+    assert vulnerability.cvss_score == 9.8
+    assert vulnerability.cvss_version == "3.1"
+    assert vulnerability.epss_percentile == 0.99
+    assert vulnerability.epss_date == date(2026, 8, 23)
+    assert vulnerability.cwe_ids == ["CWE-787"]
+    assert vulnerability.known_exploited is True
+    assert vulnerability.exploitation_state == "known_exploited"
+    assert vulnerability.kev_required_action == "Apply the vendor mitigation."
+    assert len(observations) == 3
+    assert {item.field_name for item in selections} >= {
+        "cvss_score",
+        "epss_percentile",
+        "known_exploited",
+    }
+
+    async with database.transaction() as session:
+        await PersistenceRepository().persist_enrichment_run(
+            session,
+            provider_responses=responses,
+            entity_type="vulnerability",
+            entity_id=vulnerability_id,
+        )
+    async with database.session() as session:
+        count = await session.scalar(
+            select(func.count())
+            .select_from(VulnerabilityProviderObservation)
+            .where(
+                VulnerabilityProviderObservation.vulnerability_id == vulnerability_id
+            )
+        )
+    assert count == 3
+
+
+@pytest.mark.asyncio
+async def test_source_configuration_history_is_idempotent_and_versioned(
+    database: Database,
+) -> None:
+    source = _source("history-source", "https://research.example/history")
+    repository = PersistenceRepository()
+
+    async with database.transaction() as session:
+        await repository.upsert_source(session, source)
+    async with database.transaction() as session:
+        await repository.upsert_source(session, source)
+
+    changed = source.model_copy(update={"tags": ("changed",)})
+    async with database.transaction() as session:
+        await repository.upsert_source(session, changed)
+
+    async with database.session() as session:
+        history = await session.scalars(
+            select(SourceConfigurationHistory)
+            .where(SourceConfigurationHistory.source_id == source.source_id)
+            .order_by(SourceConfigurationHistory.configuration_version)
+        )
+        rows = tuple(history)
+
+    assert [row.configuration_version for row in rows] == [1, 2]
+    assert rows[0].configuration_hash != rows[1].configuration_hash
+    assert rows[1].configuration["tags"] == ["changed"]

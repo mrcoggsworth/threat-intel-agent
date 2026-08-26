@@ -165,6 +165,32 @@ def test_public_detail_hunt_remediation_detection_and_canonical_pages() -> None:
     assert f"/reports/{slug}/hunt" in page.text
 
 
+def test_analyst_api_requires_scoped_token_and_has_validation_route() -> None:
+    settings = Settings(
+        admin_token=SecretStr("test-admin"),
+        analyst_token=SecretStr("test-analyst"),
+        database_required=False,
+    )
+    c = TestClient(create_app(settings=settings, portal_service=MemoryPortalService()))
+
+    assert c.get("/api/v1/analyst/runs/latest").status_code == 404
+    assert (
+        c.get(
+            "/api/v1/analyst/runs/latest",
+            headers={"X-Analyst-Token": "test-analyst"},
+        ).status_code
+        == 503
+    )
+
+    response = c.post(
+        "/api/v1/analyst/reports/validate",
+        headers={"X-Analyst-Token": "test-analyst"},
+        json=_fixture().model_dump(mode="json"),
+    )
+    assert response.status_code == 200
+    assert response.json()["valid"] is True
+
+
 def test_drafts_are_not_public_and_private_routes_fail_closed() -> None:
     c = client()
     assert c.get("/api/v1/public/reports/private-draft").status_code == 404

@@ -20,6 +20,14 @@ from hermes_cti.portal.contracts import (
     PublicReportSummary,
     ReportChangeState,
 )
+from hermes_cti.portal.entity_contracts import (
+    PublicEntity,
+    PublicEntityReference,
+    PublicRelationship,
+    PublicRelationshipPage,
+    PublicVulnerability,
+)
+from hermes_cti.portal.entity_repository import SqlEntityReadRepository
 from hermes_cti.portal.repository import (
     PortalReadRepository,
     ReportPageRows,
@@ -90,6 +98,7 @@ class PortalService:
     ) -> None:
         self.database = database
         self.repository = repository or SqlPortalReadRepository()
+        self.entity_repository = SqlEntityReadRepository()
 
     async def _rows(self, query: PortalQuery) -> ReportPageRows:
         if self.database is None:
@@ -214,6 +223,73 @@ class PortalService:
         page = await self.list_reports(query)
         return PublicRelatedReports(
             entity_type=entity_type, entity_id=entity_id, reports=page.items
+        )
+
+    async def get_public_entity(
+        self, entity_type: str, identifier: str
+    ) -> PublicEntity | None:
+        if self.database is None:
+            raise PortalUnavailableError("portal database is not configured")
+        async with self.database.session() as session:
+            row = await self.entity_repository.get_public_entity(
+                session, entity_type, identifier
+            )
+        if row is None:
+            return None
+        return PublicEntity(
+            entity_type=row.entity_type,
+            public_key=row.public_key,
+            display_name=row.display_name,
+            first_seen_at=_utc(row.first_seen_at) if row.first_seen_at else None,
+            last_seen_at=_utc(row.last_seen_at) if row.last_seen_at else None,
+            source_count=row.source_count,
+            vulnerability=(
+                PublicVulnerability.model_validate(row.vulnerability)
+                if row.vulnerability is not None
+                else None
+            ),
+        )
+
+    async def public_relationships(
+        self,
+        *,
+        entity_type: str | None = None,
+        identifier: str | None = None,
+        limit: int = 100,
+    ) -> PublicRelationshipPage:
+        if self.database is None:
+            raise PortalUnavailableError("portal database is not configured")
+        async with self.database.session() as session:
+            rows = await self.entity_repository.public_relationships(
+                session, entity_type=entity_type, identifier=identifier, limit=limit
+            )
+        return PublicRelationshipPage(
+            items=tuple(
+                PublicRelationship(
+                    source=PublicEntityReference(
+                        entity_type=row.source.entity_type,
+                        public_key=row.source.public_key,
+                        display_name=row.source.display_name,
+                    ),
+                    relationship_type=row.relationship.relationship_type,
+                    target=PublicEntityReference(
+                        entity_type=row.target.entity_type,
+                        public_key=row.target.public_key,
+                        display_name=row.target.display_name,
+                    ),
+                    direction=row.relationship.direction,
+                    origin=row.relationship.origin,
+                    confidence=row.relationship.confidence,
+                    first_seen_at=_utc(row.relationship.first_seen_at)
+                    if row.relationship.first_seen_at
+                    else None,
+                    last_seen_at=_utc(row.relationship.last_seen_at)
+                    if row.relationship.last_seen_at
+                    else None,
+                )
+                for row in rows
+            ),
+            limit=min(limit, 100),
         )
 
     async def list_drafts(self, limit: int = 100) -> PrivateDraftPage:

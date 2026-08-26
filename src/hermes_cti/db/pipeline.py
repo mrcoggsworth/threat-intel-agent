@@ -15,7 +15,7 @@ from hermes_cti.db.repositories import PersistenceRepository
 from hermes_cti.db.session import Database
 from hermes_cti.extraction import ExtractionConfig, extract_document
 from hermes_cti.ingestion.service import CollectionResult, IngestionService
-from hermes_cti.models.contracts import SourceRegistry
+from hermes_cti.models.contracts import RunStatus, SourceRegistry
 
 DAILY_LOCK_KEY = int.from_bytes(
     hashlib.sha256(b"hermes-cti:daily-pipeline").digest()[:8], "big", signed=True
@@ -100,9 +100,19 @@ class DailyPipeline:
                     scheduled_for=scheduled,
                 )
                 async with session.begin():
-                    await self.repository.persist_collection(
+                    run = await self.repository.persist_collection(
                         session, registry, collection
                     )
+                    if (
+                        run.status == RunStatus.COMPLETED.value
+                        and run.completed_at is not None
+                        and run.id != collection.manifest.ingestion_run_id
+                    ):
+                        return DailyRunResult(
+                            acquired_lock=True,
+                            ingestion_run_id=run.id,
+                            collection=collection,
+                        )
                     for document in collection.source_documents:
                         extraction = extract_document(document, ExtractionConfig())
                         observed_at = (
@@ -116,12 +126,12 @@ class DailyPipeline:
                         await self.repository.persist_extraction(
                             session,
                             extraction,
-                            collection.manifest.ingestion_run_id,
+                            run.id,
                             observed_at,
                         )
                 return DailyRunResult(
                     acquired_lock=True,
-                    ingestion_run_id=collection.manifest.ingestion_run_id,
+                    ingestion_run_id=run.id,
                     collection=collection,
                 )
             finally:

@@ -1,0 +1,11 @@
+// Gitea CVE-2026-60004
+(url.path : "/diffpatch" or http.request.uri : "/diffpatch") and (message : "git hook" or message : "hooks/" or process.command_line : "git apply" or process.command_line : "sh -c")
+
+// NemoClaw CVE-2026-65105
+process.command_line : "OLLAMA_HOST=0.0.0.0:11434" or process.command_line : "NEMOCLAW_OLLAMA_PROXY_SKIP_BIND_PROBE=1"
+
+// SLEEPWALKER side-loading watch
+process.name : "ERAAgent.exe" and (dll.name : "dpapi.dll" or file.name : "dpapi.dll")
+
+// Mirage2FA / Microsoft 365 session-theft hunting
+azure.signinlogs.operation_name : "*SignIn*" and azure.signinlogs.result_type : "0" and azure.signinlogs.authentication_requirement : "*Authentication*"

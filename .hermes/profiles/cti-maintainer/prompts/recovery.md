@@ -3,7 +3,7 @@ destructive recovery is not authorized unless the current request explicitly
 approves it.
 
 Project root: /home/$USER/code/threat-intel-agent/
-Private service base URL: https://ops.cti-hermes.local
+Private service base URL: https://ops.cti-hermes.home.arpa
 Incident summary: __INCIDENT_SUMMARY__
 
 Record time, application version, image digest, migration revision, container

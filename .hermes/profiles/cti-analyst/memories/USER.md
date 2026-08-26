@@ -3,6 +3,6 @@
 - Scope: public cyber threat intelligence, historical correlation, detection,
   hunting, remediation, and report validation.
 - Repository: `/home/$USER/code/threat-intel-agent/`.
-- Private service base URL: `https://ops.cti-hermes.local` unless the human
+- Analyst API base URL: `https://matrix-1.taild27e3c.ts.net:9443` unless the human
   installer changes `PRIVATE_SERVICE_URL` to the actual private endpoint.
 - Output: concise, evidence-backed, machine-readable where applicable.

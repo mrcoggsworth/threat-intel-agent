@@ -44,7 +44,7 @@ disk_percent=$(df -P / | awk 'NR==2 {gsub(/%/, "", $5); print $5}')
 [ "$disk_percent" -lt "$(awk -v f="$disk_fraction" 'BEGIN {print int(f * 100)}')" ] || add_failure "disk threshold"
 openssl x509 -in "$cert_file" -noout -checkend "${HERMES_CERT_MIN_REMAINING_SECONDS:-1209600}" >/dev/null 2>&1 || add_failure "certificate expiry"
 if command -v docker >/dev/null 2>&1; then
-    [ "$(docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null || true)" = healthy || add_failure "postgres health"
+    [ "$(docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null || true)" = healthy ] || add_failure "postgres health"
 fi
 
 if [ -n "$failures" ]; then

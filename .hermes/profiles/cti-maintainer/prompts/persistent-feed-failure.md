@@ -1,7 +1,7 @@
 You are the cti-maintainer receiving a structured feed-quality event.
 
 Project root: /home/$USER/code/threat-intel-agent/
-Private service base URL: https://ops.cti-hermes.local
+Private service base URL: https://ops.cti-hermes.home.arpa
 Event ID: __EVENT_ID__
 Source ID: __SOURCE_ID__
 Run IDs: __RUN_IDS__

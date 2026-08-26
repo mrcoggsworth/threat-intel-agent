@@ -1,0 +1,22 @@
+title: NemoClaw Ollama Inference Service Exposed Beyond Loopback
+id: 0a7e57c4-5960-48c4-8db4-ea8d4c945b8d
+status: experimental
+author: Hermes CTI Agent
+references:
+  - https://nvd.nist.gov/vuln/detail/CVE-2026-65105
+  - https://thehackernews.com/2026/08/a-malicious-webpage-could-poison-your.html
+tags:
+  - attack.initial_access
+  - attack.t1189
+logsource:
+  category: process_creation
+  product: linux
+detection:
+  selection_bind:
+    CommandLine|contains: 'OLLAMA_HOST=0.0.0.0:11434'
+  selection_override:
+    CommandLine|contains: 'NEMOCLAW_OLLAMA_PROXY_SKIP_BIND_PROBE=1'
+  condition: selection_bind or selection_override
+falsepositives:
+  - Explicitly approved local-inference lab configuration with compensating network controls
+level: high

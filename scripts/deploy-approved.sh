@@ -35,9 +35,10 @@ resolved_image=$(docker image inspect --format '{{index .RepoDigests 0}}' "$imag
 [ -n "$resolved_image" ] || { echo "deployment blocked: image digest unavailable" >&2; exit 2; }
 
 compose run --rm --no-deps backup /opt/hermes/backup-postgres.sh --once
+compose run --rm runtime-init
 compose run --rm migrate
 printf 'image=%s\ndigest=%s\napproval=%s\n' "$image" "$resolved_image" "${HERMES_APPROVAL_REFERENCE}" >"$state_file"
-compose up --detach postgres web worker scheduler backup monitor proxy
+compose up --detach postgres web worker scheduler backup monitor
 
 if deploy_smoke_output=$(HERMES_IMAGE="$image" compose run --rm --no-deps smoke 2>&1); then
     echo "deployment succeeded: $resolved_image"
@@ -50,7 +51,7 @@ echo "$deploy_smoke_output" >&2
 }
 sed "s#^HERMES_IMAGE=.*#HERMES_IMAGE=$previous_image#" "$env_file" >"$env_file.rollback"
 mv "$env_file.rollback" "$env_file"
-compose up --detach postgres web worker scheduler backup monitor proxy
+compose up --detach postgres web worker scheduler backup monitor
 if compose run --rm --no-deps smoke; then
     echo "deployment failed and rolled back to $previous_image" >&2
 else

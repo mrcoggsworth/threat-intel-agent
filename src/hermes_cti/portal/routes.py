@@ -26,6 +26,7 @@ from hermes_cti.portal.contracts import (
     ReportChangeState,
     ReportSort,
 )
+from hermes_cti.portal.entity_contracts import PublicEntity, PublicRelationshipPage
 from hermes_cti.portal.service import PortalService
 
 router = APIRouter()
@@ -158,6 +159,45 @@ async def public_detections(
             "report": detail.summary.model_dump(mode="json"),
             "detections": detail.detections,
         },
+    )
+
+
+@router.get(
+    "/api/v1/public/entities/{entity_type}/{identifier}", response_model=PublicEntity
+)
+async def public_entity(
+    request: Request,
+    entity_type: str,
+    identifier: str,
+    service: PortalService = Depends(get_portal_service),
+) -> Response:  # noqa: B008
+    entity = await service.get_public_entity(entity_type, identifier)
+    if entity is None:
+        raise HTTPException(status_code=404, detail="entity not found")
+    body = entity.model_dump(mode="json")
+    if entity.vulnerability is None:
+        body.pop("vulnerability", None)
+    return _json_response(request, body)
+
+
+@router.get("/api/v1/public/relationships", response_model=PublicRelationshipPage)
+async def public_relationships(
+    request: Request,
+    entity_type: str | None = Query(default=None, max_length=64),
+    identifier: str | None = Query(default=None, max_length=512),
+    limit: int = Query(default=100, ge=1, le=100),
+    service: PortalService = Depends(get_portal_service),
+) -> Response:  # noqa: B008
+    if (entity_type is None) != (identifier is None):
+        raise HTTPException(
+            status_code=400,
+            detail="entity_type and identifier must be supplied together",
+        )
+    return _json_response(
+        request,
+        await service.public_relationships(
+            entity_type=entity_type, identifier=identifier, limit=limit
+        ),
     )
 
 

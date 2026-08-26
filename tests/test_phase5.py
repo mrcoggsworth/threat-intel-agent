@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from uuid import UUID
 
 import httpx
@@ -26,6 +27,10 @@ from hermes_cti.enrichment import (
     calculate_priority_score,
 )
 from hermes_cti.enrichment.providers import ProviderRuntimeConfig
+from hermes_cti.enrichment.vulnerability import (
+    normalized_fields,
+    select_canonical_fields,
+)
 from hermes_cti.ingestion.http_client import AsyncHTTPClient, HTTPClientConfig
 from hermes_cti.models import (
     EnrichmentStatus,
@@ -376,3 +381,35 @@ def test_private_health_and_cli_fail_closed() -> None:
     assert result.exit_code == 1
     assert "provide at least one" in result.output
     assert "api_key" not in result.output.lower()
+
+
+def test_typed_vulnerability_normalization_and_precedence() -> None:
+    response = ProviderResponse(
+        provider="nvd",
+        request=make_request(),
+        retrieved_at=NOW,
+        status=EnrichmentStatus.SUCCESS,
+        normalized_result={
+            "cvss_vector": "CVSS:3.1/AV:N",
+            "cwe_ids": ["CWE-787", "CWE-787"],
+            "epss_percentile": "0.98",
+            "published_at": "2026-07-01T00:00:00Z",
+        },
+        payload_hash="a" * 64,
+    )
+    fields = normalized_fields(response)
+    assert fields["cvss_version"] == "3.1"
+    assert fields["cwe_ids"] == ["CWE-787"]
+    assert fields["epss_percentile"] == 0.98
+
+    older = SimpleNamespace(
+        provider="nvd", status="success", retrieved_at=NOW, cvss_score=7.5
+    )
+    newer = SimpleNamespace(
+        provider="nvd",
+        status="success",
+        retrieved_at=NOW + timedelta(hours=1),
+        cvss_score=9.8,
+    )
+    selected = select_canonical_fields([older, newer])
+    assert selected["cvss_score"][0] == 9.8

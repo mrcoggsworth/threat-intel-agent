@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from enum import StrEnum
 from uuid import UUID
 
@@ -16,6 +16,7 @@ from hermes_cti.models.contracts import (
     DetectionArtifact,
     EntityReference,
     HttpURL,
+    JSONValue,
     PublicSourceReference,
     Remediation,
     ReportState,
@@ -66,6 +67,17 @@ class ReportVulnerability(ContractModel):
     vulnerability_id: UUID
     cve_id: str = Field(..., min_length=1)
     summary: str = Field(..., min_length=1)
+    cvss_score: float | None = Field(default=None, ge=0, le=10)
+    cvss_version: str | None = None
+    cvss_vector: str | None = None
+    epss_score: float | None = Field(default=None, ge=0, le=1)
+    epss_percentile: float | None = Field(default=None, ge=0, le=1)
+    cwe_ids: tuple[str, ...] = ()
+    known_exploited: bool | None = None
+    exploitation_state: str = "unknown"
+    kev_date_added: date | None = None
+    kev_due_date: date | None = None
+    kev_required_action: str | None = None
     affected_products: tuple[AffectedProduct, ...] = ()
     product_references: tuple[EntityReference, ...] = ()
     evidence_ids: tuple[UUID, ...] = Field(..., min_length=1)
@@ -121,6 +133,11 @@ class ReportBundle(ContractModel):
     model_identifier: str | None = None
     prompt_version: str | None = None
     skill_versions: tuple[str, ...] = ()
+    system_prompt_hash: str | None = None
+    skill_version_hashes: tuple[str, ...] = ()
+    triggering_run_id: UUID | None = None
+    token_metadata: dict[str, JSONValue] | None = None
+    cost_metadata: dict[str, JSONValue] | None = None
     supersedes_id: UUID | None = None
 
     @model_validator(mode="after")

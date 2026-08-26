@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import UTC, datetime
 from uuid import UUID, uuid5
@@ -11,6 +12,9 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from hermes_cti import __version__
+from hermes_cti.db.entity_models import EntityEvidence
+from hermes_cti.db.entity_repositories import EntityRepository
+from hermes_cti.db.model_run_repository import ModelRunRepository
 from hermes_cti.db.models import (
     Detection,
     Hunt,
@@ -49,7 +53,9 @@ class ReportRepository:
             )
         now = datetime.now(UTC)
         target_state = "published" if publish else bundle.state.value
+        pending_current_version_id: UUID | None = None
         if report is None:
+            pending_current_version_id = bundle.report_version_id
             report = Report(
                 id=bundle.report_id,
                 public_id=bundle.public_id,
@@ -61,7 +67,7 @@ class ReportRepository:
                 state=target_state,
                 first_published_at=now if publish else None,
                 last_updated_at=now,
-                current_version_id=bundle.report_version_id,
+                current_version_id=None,
                 resurfaced=bundle.resurfaced,
             )
             session.add(report)
@@ -73,7 +79,7 @@ class ReportRepository:
             if publish:
                 report.state = "published"
                 report.first_published_at = report.first_published_at or now
-                report.current_version_id = bundle.report_version_id
+                pending_current_version_id = bundle.report_version_id
             elif report.state != "published":
                 report.state = target_state
 
@@ -117,6 +123,31 @@ class ReportRepository:
             )
             session.add(version)
         await session.flush()
+        if pending_current_version_id is not None:
+            report.current_version_id = pending_current_version_id
+
+        await self._persist_provenance(session, bundle, report.id)
+
+        if bundle.model_identifier is not None:
+            await ModelRunRepository().persist(
+                session,
+                model_run_id=uuid5(bundle.report_version_id, "model-run"),
+                purpose="report_generation",
+                model_provider=bundle.model_identifier,
+                prompt_name="report_generation",
+                prompt_version=bundle.prompt_version or "unknown",
+                skill_version_hashes=(
+                    bundle.skill_version_hashes or bundle.skill_versions
+                ),
+                system_prompt_hash=bundle.system_prompt_hash,
+                triggering_run_id=bundle.triggering_run_id,
+                token_metadata=bundle.token_metadata,
+                cost_metadata=bundle.cost_metadata,
+                input_evidence_ids=tuple(item.evidence_id for item in bundle.evidence),
+                output_hash=hashlib.sha256(bundle.stable_json().encode()).hexdigest(),
+                started_at=now,
+                completed_at=now,
+            )
 
         for entity_type, entity_id, role in self._entities(bundle):
             await session.execute(
@@ -167,6 +198,29 @@ class ReportRepository:
                 )
                 .on_conflict_do_nothing()
             )
+            publication_id = uuid5(bundle.report_version_id, "publication")
+            if rendered is not None:
+                artifact_hashes = (
+                    rendered.markdown.artifact_hash,
+                    rendered.json_artifact.artifact_hash,
+                    rendered.portal.artifact_hash,
+                    *(item.artifact_hash for item in rendered.downloads),
+                )
+                for index, artifact_hash in enumerate(artifact_hashes):
+                    await session.execute(
+                        insert(EntityEvidence)
+                        .values(
+                            id=uuid5(
+                                publication_id, f"artifact:{index}:{artifact_hash}"
+                            ),
+                            entity_type="publication",
+                            entity_id=publication_id,
+                            evidence_span={"artifact_index": index},
+                            origin_type="publication_renderer",
+                            content_hash=artifact_hash,
+                        )
+                        .on_conflict_do_nothing(index_elements=[EntityEvidence.id])
+                    )
         await session.flush()
         return report
 
@@ -178,6 +232,8 @@ class ReportRepository:
                 (ioc.indicator.entity_type.value, ioc.indicator.entity_id, "ioc")
             )
         for vulnerability in bundle.vulnerabilities:
+            for affected in vulnerability.affected_products:
+                output.add(("product", affected.product.product_id, "affected_product"))
             output.add(
                 (
                     "vulnerability",
@@ -185,6 +241,8 @@ class ReportRepository:
                     "vulnerability",
                 )
             )
+        for mapping in bundle.attack_mappings:
+            output.add(("technique", mapping.mapping_id, "attack_mapping"))
         for relation in bundle.historical_relationships:
             output.add(
                 (
@@ -201,6 +259,139 @@ class ReportRepository:
                 )
             )
         return tuple(sorted(output, key=lambda item: (item[0], str(item[1]), item[2])))
+
+    async def _persist_provenance(
+        self, session: AsyncSession, bundle: ReportBundle, report_id: UUID
+    ) -> None:
+        """Persist source-backed links for reports and generated artifacts."""
+        entity_repository = EntityRepository()
+        evidence_by_id = {item.evidence_id: item for item in bundle.evidence}
+        all_evidence_ids = tuple(evidence_by_id)
+
+        async def link(
+            entity_type: str,
+            entity_id: UUID,
+            evidence_ids: tuple[UUID, ...] = (),
+            source_document_ids: tuple[UUID, ...] = (),
+            content_hash: str | None = None,
+            supporting_urls: tuple[str, ...] = (),
+        ) -> None:
+            links: set[tuple[UUID | None, UUID | None, tuple[str, ...]]] = set()
+            for source_document_id in source_document_ids:
+                links.add((source_document_id, None, ()))
+            for evidence_id in evidence_ids:
+                evidence = evidence_by_id.get(evidence_id)
+                if evidence is None:
+                    continue
+                urls: list[str] = []
+                if evidence.source_url is not None:
+                    urls.append(str(evidence.source_url))
+                if evidence.source_reference is not None:
+                    urls.append(str(evidence.source_reference.canonical_url))
+                links.add(
+                    (evidence.source_document_id, evidence_id, tuple(sorted(set(urls))))
+                )
+            if supporting_urls:
+                links.add((None, None, tuple(sorted(set(supporting_urls)))))
+            if not links and content_hash is not None:
+                links.add((None, None, ()))
+            for index, (
+                link_source_document_id,
+                link_evidence_id,
+                link_urls,
+            ) in enumerate(sorted(links, key=str)):
+                await session.execute(
+                    insert(EntityEvidence)
+                    .values(
+                        id=uuid5(
+                            entity_id,
+                            f"report-provenance:{entity_type}:{index}:{link_evidence_id}:{link_source_document_id}",
+                        ),
+                        entity_type=entity_type,
+                        entity_id=entity_id,
+                        source_document_id=link_source_document_id,
+                        evidence_claim_id=None,
+                        evidence_span={"evidence_id": str(link_evidence_id)}
+                        if link_evidence_id
+                        else {},
+                        confidence=evidence_by_id[link_evidence_id].confidence
+                        if link_evidence_id
+                        else 1.0,
+                        origin_type="report_generation",
+                        supporting_urls=list(link_urls) or None,
+                        content_hash=content_hash,
+                    )
+                    .on_conflict_do_nothing(index_elements=[EntityEvidence.id])
+                )
+
+        await link(
+            "report",
+            report_id,
+            all_evidence_ids,
+            supporting_urls=tuple(
+                str(item.canonical_url) for item in bundle.source_references
+            ),
+        )
+        await link("report_version", bundle.report_version_id, all_evidence_ids)
+        for vulnerability in bundle.vulnerabilities:
+            await link(
+                "vulnerability",
+                vulnerability.vulnerability_id,
+                vulnerability.evidence_ids,
+            )
+            for affected in vulnerability.affected_products:
+                product = affected.product
+                await entity_repository.upsert_product(
+                    session,
+                    entity_id=product.product_id,
+                    vendor=product.vendor,
+                    product=product.product,
+                    normalized_vendor=product.normalized_vendor
+                    or product.vendor.casefold(),
+                    normalized_product=product.normalized_product
+                    or product.product.casefold(),
+                    ecosystem=product.ecosystem or "unknown",
+                    product_type=product.product_type,
+                    canonical_identifiers={
+                        "values": list(product.canonical_identifiers)
+                    },
+                )
+                await link("product", product.product_id, vulnerability.evidence_ids)
+        for mapping in bundle.attack_mappings:
+            await entity_repository.upsert_attack_technique(
+                session,
+                entity_id=mapping.mapping_id,
+                attack_id=mapping.attack_id,
+                framework_version=mapping.framework_version,
+                name=mapping.name,
+                tactic=mapping.tactic,
+                platform=",".join(mapping.platforms) if mapping.platforms else None,
+                description_reference=str(mapping.description_reference)
+                if mapping.description_reference
+                else None,
+            )
+            await link(
+                "technique",
+                mapping.mapping_id,
+                source_document_ids=mapping.source_document_ids,
+            )
+        for artifact in bundle.detections:
+            await link("detection", artifact.detection_id, artifact.evidence_ids)
+        if bundle.hunt is not None:
+            await link("hunt", bundle.hunt.hunt_id, bundle.hunt.evidence_ids)
+        if bundle.remediation is not None:
+            await link(
+                "remediation",
+                bundle.remediation.remediation_id,
+                bundle.remediation.evidence_ids,
+            )
+        if bundle.historical_relationships:
+            for item in bundle.historical_relationships:
+                await link(
+                    "relationship",
+                    item.relationship.relationship_id,
+                    item.evidence_ids or item.relationship.evidence_ids,
+                )
 
     async def _persist_hunt(self, session: AsyncSession, bundle: ReportBundle) -> None:
         assert bundle.hunt is not None

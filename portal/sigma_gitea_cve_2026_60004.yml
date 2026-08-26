@@ -1,0 +1,29 @@
+title: Gitea Diffpatch Git Hook Code Injection
+id: 7d1b95ac-9aa5-4dc2-a9c3-6c4584b54b92
+status: experimental
+author: Hermes CTI Agent
+references:
+  - https://www.cisa.gov/news-events/alerts/2026/08/25/cisa-adds-one-known-exploited-vulnerability-catalog
+  - https://thehackernews.com/2026/08/critical-gitea-rce-actively-exploited.html
+tags:
+  - attack.execution
+  - attack.t1190
+  - attack.t1059.004
+logsource:
+  category: webserver
+  product: gitea
+detection:
+  selection_endpoint:
+    url|contains: '/diffpatch'
+  selection_hook:
+    message|contains:
+      - 'git hook'
+      - 'hooks/'
+  selection_shell:
+    process.command_line|contains:
+      - 'git apply'
+      - 'sh -c'
+  condition: selection_endpoint and (selection_hook or selection_shell)
+falsepositives:
+  - Authorized repository maintenance using the diffpatch API
+level: critical

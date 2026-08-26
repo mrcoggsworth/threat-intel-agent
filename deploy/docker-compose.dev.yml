@@ -23,6 +23,7 @@ services:
       HERMES_ENVIRONMENT: development
       HERMES_DATABASE_URL: postgresql+asyncpg://hermes@postgres:5432/hermes
       HERMES_DATABASE_REQUIRED: "true"
+      HERMES_ANALYST_TOKEN: ${HERMES_ANALYST_TOKEN:-dev-analyst-token}
     depends_on:
       postgres:
         condition: service_healthy

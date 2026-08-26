@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import ipaddress
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from enum import StrEnum
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
@@ -118,6 +118,7 @@ class EntityType(StrEnum):
     PRODUCT = "product"
     ACTOR = "actor"
     MALWARE = "malware"
+    TOOL = "tool"
     CAMPAIGN = "campaign"
     INFRASTRUCTURE = "infrastructure"
     TECHNIQUE = "technique"
@@ -142,6 +143,15 @@ class RelationshipOrigin(StrEnum):
     DETERMINISTIC = "deterministic"
     SOURCED_ASSERTION = "sourced_assertion"
     MODEL_INFERENCE = "model_inference"
+
+
+class ExploitationState(StrEnum):
+    """Controlled exploitation state for vulnerability projections."""
+
+    UNKNOWN = "unknown"
+    NOT_OBSERVED = "not_observed"
+    KNOWN_EXPLOITED = "known_exploited"
+    ACTIVELY_EXPLOITED = "actively_exploited"
 
 
 class ReviewState(StrEnum):
@@ -418,6 +428,16 @@ class RawArtifactMetadata(ContractModel):
     storage_locator: str | None = Field(
         default=None, description="Private immutable storage locator."
     )
+    retention_policy: str = Field(
+        default="immutable_evidence",
+        description="Retention policy name; evidence is never deleted by default.",
+    )
+    retention_expires_at: UTCDateTime | None = Field(
+        default=None, description="Optional policy review/expiry timestamp."
+    )
+    storage_state: str = Field(
+        default="retained", description="Private storage lifecycle state."
+    )
     ingestion_run_id: UUID = Field(..., description="Owning ingestion run identifier.")
 
 
@@ -628,6 +648,28 @@ class Vulnerability(ContractModel):
         default=None, description="Known-exploitation state when evidenced."
     )
     cwe_ids: tuple[str, ...] = Field(default=(), description="CWE identifiers.")
+    cvss_version: str | None = Field(
+        default=None, max_length=16, description="CVSS version."
+    )
+    cvss_vector: str | None = Field(default=None, description="CVSS vector string.")
+    epss_percentile: Confidence | None = Field(
+        default=None, description="EPSS percentile."
+    )
+    epss_date: date | None = Field(default=None, description="EPSS observation date.")
+    kev_date_added: date | None = Field(
+        default=None, description="CISA KEV date added."
+    )
+    kev_due_date: date | None = Field(
+        default=None, description="CISA KEV remediation due date."
+    )
+    kev_vendor_project: str | None = Field(
+        default=None, description="KEV vendor or project."
+    )
+    kev_product: str | None = Field(default=None, description="KEV product.")
+    kev_required_action: str | None = Field(
+        default=None, description="KEV required action."
+    )
+    exploitation_state: ExploitationState = Field(default=ExploitationState.UNKNOWN)
     severity: Severity | None = Field(
         default=None, description="Analyst severity, not score."
     )
@@ -880,6 +922,17 @@ class RelationshipProposal(ContractModel):
         default=None, description="Model prompt version."
     )
     model_identifier: str | None = Field(default=None, description="Model identifier.")
+    system_prompt_hash: SHA256Hash | None = Field(
+        default=None, description="SHA-256 hash of the system prompt."
+    )
+    skill_version_hashes: tuple[SHA256Hash, ...] = Field(
+        default=(), description="Hashes of the skills used for model execution."
+    )
+    triggering_run_id: UUID | None = Field(
+        default=None, description="Ingestion run that triggered model execution."
+    )
+    token_metadata: dict[str, JSONValue] | None = Field(default=None)
+    cost_metadata: dict[str, JSONValue] | None = Field(default=None)
     deterministic_rule: str | None = Field(
         default=None, description="Matching rule for deterministic relationships."
     )

@@ -8,10 +8,32 @@ local profiles:
 - `cti-maintainer` for repository maintenance, CI, operations, deployment
   preparation, and explicitly approved release work.
 
-The repository copy under `.hermes/profiles/` is safe to commit and review. A
-runtime Hermes home must live outside the repository and must be private to
-its profile. Never run both profiles against the same home, and never commit a
-runtime `.env`, token, database URL, private key, session, or production log.
+The repository copy under `.hermes/profiles/` is safe to commit and review. The
+installed Hermes root is `$HOME/.hermes`, and this release stores named profiles
+under `$HOME/.hermes/profiles/<name>/`. The installer writes the two CTI-Hermes
+profiles directly into that native profile directory by default. It does not
+merge them with the existing `threat-gpt` or `threat-intel-gemma` profiles, and it
+never replaces an existing destination unless `--replace` is explicitly used.
+
+Never run both CTI profiles against the same home, and never commit a runtime
+`.env`, token, database URL, private key, session, or production log.
+
+### Service endpoints
+
+The home-lab analyst API is served by host Nginx at
+`https://matrix-1.taild27e3c.ts.net:9443`. Nginx forwards that endpoint to the
+loopback-published Hermes web container at `127.0.0.1:18000`; the Hermes
+analyst profile must use the HTTPS URL, not the loopback address. The 9443
+surface is allowlisted to Tailscale clients and requires `X-Analyst-Token`.
+
+The separate operations surface remains `ops.cti-hermes.home.arpa` on the
+private Nginx listener. For direct local Compose testing before Nginx and DNS
+are ready, use `http://127.0.0.1:18000` for the analyst API. `/etc/hosts` maps
+only names to IP addresses; ports belong in the URL.
+
+If an endpoint changes later, update local DNS or hosts files, the Nginx
+`server_name` and proxy routing, the TLS certificate name, the production
+environment, and the Hermes profile URL values and prompt assets.
 
 ## Choose an installation path
 
@@ -35,11 +57,12 @@ scripts/install-hermes-profiles.sh --guided
 ```
 
 The guided installer asks for the runtime root, private service URL, and
-whether to create Hermes profiles and cron jobs. It creates separate homes
-under the selected runtime root, for example:
+whether to create Hermes profiles and cron jobs. With the installed CLI and the
+default answers, it creates the two native profiles below. Existing profiles in
+the same directory are left untouched:
 
 ```text
-~/.hermes-profiles/
+$HOME/.hermes/profiles/
 ├── cti-analyst/
 └── cti-maintainer/
 ```
@@ -56,7 +79,10 @@ After it finishes:
 
 The script creates `.env` from `.env.example` with mode `0600`, but it never
 puts credentials into that file. Treat the file as an operator-owned template
-until its placeholders are replaced.
+until its placeholders are replaced. Hermes also keeps global state such as
+`config.yaml`, `skills/`, `cron/`, sessions, logs, and gateway state at the
+root level; the installer changes only the two named profile directories and
+profile-scoped CLI state.
 
 ### Intermediate: explicit, reviewable setup
 
@@ -65,32 +91,38 @@ Use explicit paths and skip actions you want to perform manually:
 ```sh
 scripts/install-hermes-profiles.sh \
   --repo "$PWD" \
-  --runtime-root "$HOME/.local/share/hermes-profiles" \
+  --runtime-root "$HOME/.hermes/profiles" \
   --private-service-url "http://127.0.0.1:8000" \
+  --analyst-service-url "http://127.0.0.1:8000" \
   --no-cron
 ```
 
 Review the generated files before using them:
 
 ```sh
-find "$HOME/.local/share/hermes-profiles" -maxdepth 3 -type f | sort
+find "$HOME/.hermes/profiles" -maxdepth 3 -type f | sort
 diff -u .hermes/profiles/cti-analyst/config.yaml \
-  "$HOME/.local/share/hermes-profiles/cti-analyst/config.yaml"
+  "$HOME/.hermes/profiles/cti-analyst/config.yaml"
 ```
 
-Create the native Hermes profiles manually if the CLI is not installed or its
-home-location behavior is customized:
+If the CLI is unavailable, run the installer with `--no-cli`; it still places the
+assets under `$HOME/.hermes/profiles/`, but it does not create aliases or edit
+Hermes CLI metadata. After installing Hermes, register/configure the profiles
+without copying the directories elsewhere:
 
 ```sh
-hermes profile create cti-analyst --description "Public CTI analyst"
-hermes profile create cti-maintainer \
-  --description "Approval-gated CTI-Hermes maintainer"
+hermes profile describe cti-analyst --text "Public CTI analyst"
+hermes profile describe cti-maintainer \
+  --text "Approval-gated CTI-Hermes maintainer"
 hermes --profile cti-analyst config set terminal.cwd "$PWD"
 hermes --profile cti-maintainer config set terminal.cwd "$PWD"
 ```
 
-Copy each generated profile directory into the native home reported by the
-Hermes CLI. Do not merge the two directories and do not copy either
+For a custom Hermes root, set `HERMES_HOME` to the parent directory before
+running the installer, for example `HERMES_HOME=/var/lib/hermes`; the profile
+root is then `/var/lib/hermes/profiles`. If you intentionally use a directory
+that is not the native profile root, use `--no-cli` and perform the native CLI
+registration separately. Do not merge the two directories or copy either
 `memories/MEMORY.md` into the other profile.
 
 Install cron jobs separately after review:
@@ -98,12 +130,12 @@ Install cron jobs separately after review:
 ```sh
 HERMES_REPOSITORY="$PWD" \
 HERMES_PROFILE=cti-analyst \
-HERMES_PROMPT_DIR="$HOME/.local/share/hermes-profiles/cti-analyst/prompts" \
+HERMES_PROMPT_DIR="$HOME/.hermes/profiles/cti-analyst/prompts" \
 scripts/install-hermes-jobs.sh
 
 HERMES_REPOSITORY="$PWD" \
 HERMES_PROFILE=cti-maintainer \
-HERMES_PROMPT_DIR="$HOME/.local/share/hermes-profiles/cti-maintainer/prompts" \
+HERMES_PROMPT_DIR="$HOME/.hermes/profiles/cti-maintainer/prompts" \
 scripts/install-hermes-jobs.sh
 ```
 
@@ -113,7 +145,7 @@ For a home server or multi-user host:
 
 1. Create two OS service accounts or two locked-down service identities.
 2. Give each identity ownership of only its Hermes home, for example
-   `/var/lib/hermes/cti-analyst` and `/var/lib/hermes/cti-maintainer`.
+   `/var/lib/hermes/profiles/cti-analyst` and `/var/lib/hermes/profiles/cti-maintainer`.
 3. Set directory mode `0700`; set `.env` mode `0600`.
 4. Give the analyst identity public web access and the analyst service token
    only. Do not grant Docker socket, production environment, database
@@ -131,13 +163,18 @@ For a home server or multi-user host:
 
 ## What the installer migrates
 
+The installed Hermes root remains the owner of global state such as `config.yaml`,
+`cron/`, `skills/`, gateway state, and top-level sessions/logs. The installer
+adds only `cti-analyst/` and `cti-maintainer/` below the native profile root; it
+does not copy or merge the existing `threat-gpt` or `threat-intel-gemma` homes.
+
 For each profile, the installer copies:
 
 - `config.yaml` and `.env.example`, then creates a protected `.env` template.
 - `SOUL.md`.
 - `memories/`.
 - `skills/`.
-- `cron/jobs.json`.
+- `cron/cti-hermes-jobs.manifest.json`.
 - `prompts/`.
 - `sessions/`, `logs/`, `gateway/`, and `audit/` placeholders.
 - The maintainer's script-only `scripts/health-watchdog.sh`.
@@ -146,7 +183,7 @@ It rewrites only the copied files, never the repository source. The following
 values are localized:
 
 - `/home/$USER/code/threat-intel-agent/` → the selected repository path.
-- `https://ops.cti-hermes.local` → `--private-service-url` when supplied.
+- `https://ops.cti-hermes.home.arpa` → `--private-service-url` when supplied.
 - Staging profile paths → the selected runtime profile paths.
 
 `PRIVATE_SERVICE_URL` is needed when jobs use private readiness, run-manifest,

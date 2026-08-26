@@ -1,0 +1,27 @@
+title: Zimbra CVE-2026-73570 Exploitation Indicators
+id: 4d5c9bc6-1b8c-4b5a-a4e3-34e2dfb3ec0e
+status: experimental
+description: Detects SMTP or Zimbra service activity requiring investigation for command injection attempts against CVE-2026-73570.
+author: Hermes Autonomous CTI Agent
+references:
+  - https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+  - https://www.bleepingcomputer.com/news/security/hackers-breached-over-270-zimbra-servers-in-ongoing-attacks/
+tags:
+  - attack.initial-access
+  - attack.t1190
+  - attack.execution
+  - attack.t1059.004
+logsource:
+  category: application
+  product: zimbra
+detection:
+  selection:
+    message|contains:
+      - 'zimbra-snmp'
+      - 'SNMP'
+      - 'command injection'
+      - '/opt/zimbra'
+  condition: selection
+falsepositives:
+  - Administrative maintenance and legitimate SNMP notifications; correlate with unexpected shell processes and outbound connections from the Zimbra host.
+level: critical

@@ -21,7 +21,6 @@ def test_production_compose_has_private_topology_and_one_application_image() -> 
     compose = yaml.safe_load((ROOT / "deploy/docker-compose.yml").read_text())
     services = compose["services"]
     assert set(services) >= {
-        "proxy",
         "web",
         "worker",
         "scheduler",
@@ -32,11 +31,25 @@ def test_production_compose_has_private_topology_and_one_application_image() -> 
     assert services["web"]["image"].startswith("${HERMES_IMAGE")
     assert services["web"]["image"] == services["worker"]["image"]
     assert services["web"]["image"] == services["scheduler"]["image"]
-    assert services["proxy"]["ports"] == ["80:80", "443:443"]
-    for name in ("web", "worker", "scheduler", "postgres", "backup", "monitor"):
+    assert "proxy" not in services
+    assert services["web"]["ports"] == [
+        "${HERMES_WEB_BIND_ADDRESS:-127.0.0.1}:${HERMES_WEB_PORT:-18000}:8000",
+    ]
+    for name in ("worker", "scheduler", "postgres", "backup", "monitor"):
         assert "ports" not in services[name]
     assert compose["networks"]["backend"]["internal"] is True
-    assert "docker.sock" not in (ROOT / "deploy/docker-compose.yml").read_text()
+    compose_text = (ROOT / "deploy/docker-compose.yml").read_text()
+    assert "docker.sock" not in compose_text
+    assert "HERMES_PRIVATE_HOST" in compose_text
+
+
+def test_internal_proxy_has_lan_and_tailscale_allowlist() -> None:
+    proxy = (ROOT / "deploy/proxy/nginx.conf").read_text()
+    assert "allow 100.64.0.0/10;" in proxy
+    assert "allow fd7a:115c:a1e0::/48;" in proxy
+    assert proxy.count("deny all;") >= 3
+    assert "public_rate" not in proxy
+    assert "ops.cti-hermes.home.arpa" in proxy
 
 
 def test_production_dockerfile_is_multistage_and_non_root() -> None:
@@ -55,6 +68,7 @@ def test_production_dockerfile_is_multistage_and_non_root() -> None:
         "scripts/smoke-test.sh",
         "scripts/health-watchdog.sh",
         "scripts/deploy-approved.sh",
+        "scripts/setup-docker-secrets.sh",
         "scripts/install-hermes-jobs.sh",
         "scripts/scheduler-entrypoint.sh",
     ),
@@ -68,10 +82,13 @@ def test_runtime_secret_files_are_supported_without_committing_values(
 ) -> None:
     database_file = tmp_path / "database-url"
     admin_file = tmp_path / "admin-token"
+    analyst_file = tmp_path / "analyst-token"
     database_file.write_text("postgresql+asyncpg://hermes:pw@postgres/hermes\n")
     admin_file.write_text("admin-token-value\n")
+    analyst_file.write_text("analyst-token-value\n")
     monkeypatch.setenv("HERMES_DATABASE_URL_FILE", str(database_file))
     monkeypatch.setenv("HERMES_ADMIN_TOKEN_FILE", str(admin_file))
+    monkeypatch.setenv("HERMES_ANALYST_TOKEN_FILE", str(analyst_file))
     monkeypatch.delenv("HERMES_DATABASE_URL", raising=False)
     monkeypatch.delenv("HERMES_ADMIN_TOKEN", raising=False)
     settings = load_settings(tmp_path / "missing.yaml")
@@ -79,6 +96,7 @@ def test_runtime_secret_files_are_supported_without_committing_values(
         "postgresql+asyncpg://hermes:pw@postgres/hermes"
     )
     assert settings.admin_token == SecretStr("admin-token-value")
+    assert settings.analyst_token == SecretStr("analyst-token-value")
 
 
 def test_scheduler_heartbeat_is_private_and_safe(tmp_path: Path) -> None:
@@ -115,3 +133,17 @@ def test_profiles_separate_governance_and_prompts_contain_no_secret_values() -> 
     for path in (ROOT / ".hermes").rglob("*.md"):
         assert "postgresql+asyncpg://" not in path.read_text()
     assert "HERMES_ADMIN_TOKEN=" not in installer
+
+
+def test_query_plan_result_retains_plan_and_flags_sequential_scan() -> None:
+    from hermes_cti.db.query_plans import QueryPlanResult
+
+    result = QueryPlanResult(
+        name="fixture",
+        expected_indexes=("ix_fixture",),
+        used_indexes=(),
+        plan={"Plan": {"Node Type": "Seq Scan"}},
+    )
+
+    assert not result.passed
+    assert result.has_sequential_scan

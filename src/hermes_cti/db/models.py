@@ -2,47 +2,49 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
+    Date,
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     LargeBinary,
     String,
     Text,
     UniqueConstraint,
-    func,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 
-
-class Base(DeclarativeBase):
-    """Declarative registry for all Phase 4 tables."""
-
-
-class TimestampMixin:
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
+from hermes_cti.db.base import Base, TimestampMixin
+from hermes_cti.db.vulnerability_models import (  # noqa: F401
+    VulnerabilityAttributeSelection,
+    VulnerabilityProviderObservation,
+)
 
 
 class IngestionRun(TimestampMixin, Base):
     __tablename__ = "ingestion_run"
     __table_args__ = (
         UniqueConstraint("idempotency_key", name="uq_ingestion_run_idempotency"),
+        CheckConstraint(
+            "status IN ('scheduled', 'running', 'completed', 'failed', 'skipped')",
+            name="ck_ingestion_run_status",
+        ),
+        CheckConstraint(
+            "(status IN ('completed', 'failed', 'skipped')) = "
+            "(completed_at IS NOT NULL)",
+            name="ck_ingestion_run_terminal_completion",
+        ),
+        Index("ix_ingestion_run_status_schedule", "status", "scheduled_for"),
     )
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
@@ -65,13 +67,15 @@ class IngestionRun(TimestampMixin, Base):
     error_summary: Mapped[str | None] = mapped_column(Text)
 
 
-class SourceRun(Base):
+class SourceRun(TimestampMixin, Base):
     __tablename__ = "source_run"
 
     ingestion_run_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("ingestion_run.id"), primary_key=True
     )
-    source_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    source_id: Mapped[str] = mapped_column(
+        String(128), ForeignKey("source.source_id"), primary_key=True
+    )
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
@@ -82,17 +86,20 @@ class SourceRun(Base):
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     cache_state: Mapped[str] = mapped_column(String(32), nullable=False)
     error_classification: Mapped[str | None] = mapped_column(String(128))
+
     error_detail: Mapped[str | None] = mapped_column(Text)
 
 
-class OperationalEvent(Base):
+class OperationalEvent(TimestampMixin, Base):
     __tablename__ = "operational_event"
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     event_type: Mapped[str] = mapped_column(String(128), nullable=False)
     severity: Mapped[str] = mapped_column(String(32), nullable=False)
     component: Mapped[str] = mapped_column(String(128), nullable=False)
-    run_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    run_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("ingestion_run.id")
+    )
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
@@ -127,7 +134,43 @@ class Source(TimestampMixin, Base):
     )
 
 
-class RawArtifact(Base):
+class SourceConfigurationHistory(TimestampMixin, Base):
+    """Immutable, secret-free history of accepted source configurations."""
+
+    __tablename__ = "source_configuration_history"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_id",
+            "configuration_hash",
+            name="uq_source_configuration_history_hash",
+        ),
+        UniqueConstraint(
+            "source_id",
+            "configuration_version",
+            name="uq_source_configuration_history_version",
+        ),
+        Index(
+            "ix_source_configuration_history_source_recorded",
+            "source_id",
+            "recorded_at",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    source_id: Mapped[str] = mapped_column(
+        String(128), ForeignKey("source.source_id"), nullable=False
+    )
+    configuration_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    configuration_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    configuration: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, nullable=False
+    )
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+
+class RawArtifact(TimestampMixin, Base):
     __tablename__ = "raw_artifact"
     __table_args__ = (
         UniqueConstraint(
@@ -155,13 +198,22 @@ class RawArtifact(Base):
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     byte_length: Mapped[int] = mapped_column(Integer, nullable=False)
     storage_locator: Mapped[str | None] = mapped_column(Text)
+    retention_policy: Mapped[str] = mapped_column(
+        String(64), default="immutable_evidence", nullable=False
+    )
+    retention_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    storage_state: Mapped[str] = mapped_column(
+        String(32), default="retained", nullable=False
+    )
     payload: Mapped[bytes | None] = mapped_column(LargeBinary)
     ingestion_run_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("ingestion_run.id"), nullable=False
     )
 
 
-class SourceDocument(Base):
+class SourceDocument(TimestampMixin, Base):
     __tablename__ = "source_document"
     __table_args__ = (
         UniqueConstraint(
@@ -169,6 +221,11 @@ class SourceDocument(Base):
             "identity_key",
             "normalized_content_hash",
             name="uq_source_document_version",
+        ),
+        Index(
+            "ix_source_document_canonical_hash",
+            "canonical_url",
+            "normalized_content_hash",
         ),
     )
 
@@ -195,13 +252,24 @@ class SourceDocument(Base):
     language: Mapped[str | None] = mapped_column(String(32))
     document_type: Mapped[str] = mapped_column(String(32), nullable=False)
     normalized_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    supersedes_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    supersedes_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("source_document.id")
+    )
     document_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     parse_version: Mapped[str] = mapped_column(String(128), nullable=False)
 
 
-class EvidenceClaim(Base):
+class EvidenceClaim(TimestampMixin, Base):
     __tablename__ = "evidence_claim"
+    __table_args__ = (
+        CheckConstraint(
+            "start_offset >= 0 AND end_offset >= start_offset",
+            name="ck_evidence_claim_offsets",
+        ),
+        CheckConstraint(
+            "confidence >= 0 AND confidence <= 1", name="ck_evidence_claim_confidence"
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     source_document_id: Mapped[UUID] = mapped_column(
@@ -221,7 +289,7 @@ class EvidenceClaim(Base):
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
 
 
-class Indicator(Base):
+class Indicator(TimestampMixin, Base):
     __tablename__ = "indicator"
     __table_args__ = (
         UniqueConstraint(
@@ -243,7 +311,7 @@ class Indicator(Base):
     suppression_reason: Mapped[str | None] = mapped_column(Text)
 
 
-class IndicatorObservation(Base):
+class IndicatorObservation(TimestampMixin, Base):
     __tablename__ = "indicator_observation"
     __table_args__ = (
         UniqueConstraint(
@@ -252,6 +320,14 @@ class IndicatorObservation(Base):
             "start_offset",
             "end_offset",
             name="uq_indicator_observation_evidence",
+        ),
+        CheckConstraint(
+            "start_offset >= 0 AND end_offset >= start_offset",
+            name="ck_indicator_observation_offsets",
+        ),
+        CheckConstraint(
+            "confidence >= 0 AND confidence <= 1",
+            name="ck_indicator_observation_confidence",
         ),
     )
 
@@ -276,7 +352,7 @@ class IndicatorObservation(Base):
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
 
 
-class Vulnerability(Base):
+class Vulnerability(TimestampMixin, Base):
     __tablename__ = "vulnerability"
     __table_args__ = (UniqueConstraint("cve_id", name="uq_vulnerability_cve"),)
 
@@ -288,9 +364,24 @@ class Vulnerability(Base):
     cvss_score: Mapped[float | None] = mapped_column(Float)
     epss_score: Mapped[float | None] = mapped_column(Float)
     known_exploited: Mapped[bool | None] = mapped_column(Boolean)
+    cvss_version: Mapped[str | None] = mapped_column(String(16))
+    cvss_vector: Mapped[str | None] = mapped_column(Text)
+    epss_percentile: Mapped[float | None] = mapped_column(Float)
+    epss_date: Mapped[date | None] = mapped_column(Date)
+    cwe_ids: Mapped[list[str]] = mapped_column(
+        ARRAY(String(32)), default=list, nullable=False
+    )
+    kev_date_added: Mapped[date | None] = mapped_column(Date)
+    kev_due_date: Mapped[date | None] = mapped_column(Date)
+    kev_vendor_project: Mapped[str | None] = mapped_column(String(255))
+    kev_product: Mapped[str | None] = mapped_column(String(255))
+    kev_required_action: Mapped[str | None] = mapped_column(Text)
+    exploitation_state: Mapped[str] = mapped_column(
+        String(32), default="unknown", nullable=False
+    )
 
 
-class Product(Base):
+class Product(TimestampMixin, Base):
     __tablename__ = "product"
     __table_args__ = (
         UniqueConstraint(
@@ -315,7 +406,7 @@ class Product(Base):
     )
 
 
-class AffectedProduct(Base):
+class AffectedProduct(TimestampMixin, Base):
     __tablename__ = "affected_product"
     __table_args__ = (
         UniqueConstraint(
@@ -337,12 +428,14 @@ class AffectedProduct(Base):
     version_range: Mapped[str | None] = mapped_column(Text)
     cpe: Mapped[str | None] = mapped_column(Text)
     affected_status: Mapped[str] = mapped_column(String(32), nullable=False)
-    source_claim_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    source_claim_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("evidence_claim.id")
+    )
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     remediation_available: Mapped[bool | None] = mapped_column(Boolean)
 
 
-class AttackTechnique(Base):
+class AttackTechnique(TimestampMixin, Base):
     __tablename__ = "attack_technique"
     __table_args__ = (
         UniqueConstraint(
@@ -359,7 +452,7 @@ class AttackTechnique(Base):
     description_reference: Mapped[str | None] = mapped_column(Text)
 
 
-class EnrichmentResult(Base):
+class EnrichmentResult(TimestampMixin, Base):
     __tablename__ = "enrichment_result"
     __table_args__ = (
         UniqueConstraint(
@@ -392,7 +485,7 @@ class EnrichmentResult(Base):
     quota_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
 
-class RiskAssessment(Base):
+class RiskAssessment(TimestampMixin, Base):
     __tablename__ = "risk_assessment"
     __table_args__ = (
         UniqueConstraint(
@@ -417,11 +510,14 @@ class RiskAssessment(Base):
     )
     evidence_ids: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     origin: Mapped[str] = mapped_column(String(64), nullable=False)
+    priority_explanation: Mapped[str | None] = mapped_column(Text)
     review_state: Mapped[str] = mapped_column(String(32), nullable=False)
-    supersedes_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    supersedes_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("risk_assessment.id")
+    )
 
 
-class Relationship(Base):
+class Relationship(TimestampMixin, Base):
     __tablename__ = "relationship"
     __table_args__ = (
         UniqueConstraint(
@@ -432,6 +528,11 @@ class Relationship(Base):
             "target_entity_id",
             "origin_rule",
             name="uq_relationship_natural_key",
+        ),
+        Index("ix_relationship_source", "source_entity_type", "source_entity_id"),
+        Index("ix_relationship_target", "target_entity_type", "target_entity_id"),
+        CheckConstraint(
+            "confidence >= 0 AND confidence <= 1", name="ck_relationship_confidence"
         ),
     )
 
@@ -448,7 +549,9 @@ class Relationship(Base):
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     review_state: Mapped[str] = mapped_column(String(32), nullable=False)
-    supersedes_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    supersedes_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("relationship.id")
+    )
     origin_rule: Mapped[str] = mapped_column(String(255), nullable=False)
     justification: Mapped[str | None] = mapped_column(Text)
     prompt_version: Mapped[str | None] = mapped_column(String(128))
@@ -456,7 +559,7 @@ class Relationship(Base):
     analyst_run_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
 
 
-class RelationshipEvidence(Base):
+class RelationshipEvidence(TimestampMixin, Base):
     __tablename__ = "relationship_evidence"
     __table_args__ = (
         UniqueConstraint(
@@ -466,15 +569,26 @@ class RelationshipEvidence(Base):
             "provider_result_id",
             name="uq_relationship_evidence",
         ),
+        CheckConstraint(
+            "source_document_id IS NOT NULL OR evidence_claim_id IS NOT NULL "
+            "OR provider_result_id IS NOT NULL",
+            name="ck_relationship_evidence_source",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     relationship_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("relationship.id"), nullable=False
     )
-    source_document_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
-    evidence_claim_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
-    provider_result_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    source_document_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("source_document.id")
+    )
+    evidence_claim_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("evidence_claim.id")
+    )
+    provider_result_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("enrichment_result.id")
+    )
     evidence_role: Mapped[str] = mapped_column(String(32), nullable=False)
     weight: Mapped[float] = mapped_column(Float, nullable=False)
     note: Mapped[str | None] = mapped_column(Text)
@@ -583,7 +697,15 @@ class Report(TimestampMixin, Base):
     last_updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    current_version_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    current_version_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(
+            "report_version.id",
+            name="fk_report_current_version",
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+    )
     resurfaced: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
@@ -611,7 +733,9 @@ class ReportVersion(TimestampMixin, Base):
     model_identifier: Mapped[str | None] = mapped_column(String(255))
     prompt_version: Mapped[str | None] = mapped_column(String(128))
     validation_status: Mapped[str] = mapped_column(String(32), nullable=False)
-    supersedes_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    supersedes_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("report_version.id")
+    )
     structured_content: Mapped[dict[str, Any]] = mapped_column(
         JSONB, default=dict, nullable=False
     )
@@ -627,7 +751,7 @@ class ReportVersion(TimestampMixin, Base):
     )
 
 
-class ReportEntity(Base):
+class ReportEntity(TimestampMixin, Base):
     __tablename__ = "report_entity"
     __table_args__ = (
         UniqueConstraint(
@@ -636,6 +760,12 @@ class ReportEntity(Base):
             "entity_id",
             "role",
             name="uq_report_entity",
+        ),
+        Index(
+            "ix_report_entity_entity",
+            "entity_type",
+            "entity_id",
+            "report_version_id",
         ),
     )
 
@@ -648,7 +778,7 @@ class ReportEntity(Base):
     role: Mapped[str] = mapped_column(String(64), nullable=False)
 
 
-class Hunt(Base):
+class Hunt(TimestampMixin, Base):
     __tablename__ = "hunt"
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
@@ -684,7 +814,7 @@ class Hunt(Base):
     state: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
-class Remediation(Base):
+class Remediation(TimestampMixin, Base):
     __tablename__ = "remediation"
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
@@ -721,7 +851,7 @@ class Remediation(Base):
     state: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
-class Detection(Base):
+class Detection(TimestampMixin, Base):
     __tablename__ = "detection"
     __table_args__ = (
         UniqueConstraint(
@@ -753,7 +883,7 @@ class Detection(Base):
     state: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
-class Publication(Base):
+class Publication(TimestampMixin, Base):
     __tablename__ = "publication"
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
@@ -768,20 +898,29 @@ class Publication(Base):
     validation_manifest: Mapped[dict[str, Any]] = mapped_column(
         JSONB, default=dict, nullable=False
     )
-    rollback_target: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    rollback_target: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("report_version.id")
+    )
     state: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
-class ModelRun(Base):
+class ModelRun(TimestampMixin, Base):
     __tablename__ = "model_run"
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     purpose: Mapped[str] = mapped_column(String(128), nullable=False)
-    triggering_run_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    triggering_run_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("ingestion_run.id")
+    )
     model_provider: Mapped[str] = mapped_column(String(128), nullable=False)
     prompt_name: Mapped[str] = mapped_column(String(128), nullable=False)
     prompt_version: Mapped[str] = mapped_column(String(64), nullable=False)
     skill_version_hash: Mapped[str | None] = mapped_column(String(64))
+    system_prompt_hash: Mapped[str | None] = mapped_column(String(64))
+    skill_version_hashes: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
+    cost_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     input_evidence_ids: Mapped[list[str]] = mapped_column(
         JSONB, default=list, nullable=False
     )
@@ -793,3 +932,14 @@ class ModelRun(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     error_classification: Mapped[str | None] = mapped_column(String(128))
+
+
+# Imported at the end so normalized entities share this module.s Base.
+from hermes_cti.db.entity_models import (  # noqa: E402,F401
+    Campaign,
+    EntityEvidence,
+    Infrastructure,
+    Malware,
+    ThreatActor,
+    Tool,
+)

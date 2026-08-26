@@ -1,0 +1,758 @@
+{
+  "queried_at": "2026-08-25T13:01:37Z",
+  "cves": {
+    "CVE-2026-21962": {
+      "cisa_kev": {
+        "cveID": "CVE-2026-21962",
+        "vendorProject": "Oracle",
+        "product": "HTTP Server and Oracle Weblogic Server Proxy Plug-in",
+        "vulnerabilityName": "Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in Improper Access Control Vulnerability",
+        "dateAdded": "2026-08-24",
+        "shortDescription": "Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in contain an improper access control vulnerability that can result in unauthorized creation, deletion or modification access to critical data as well as unauthorized access to critical data or complete access to all Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in accessible data.",
+        "requiredAction": "Apply mitigations per vendor instructions, follow applicable BOD 22-01 guidance for cloud services, or discontinue use of the product if mitigations are unavailable.",
+        "dueDate": "2026-08-27",
+        "knownRansomwareCampaignUse": "Unknown",
+        "notes": "https://www.oracle.com/security-alerts/cpujan2026.html ; BOD 26-04: https://www.cisa.gov/news-events/directives/bod-26-04-prioritizing-security-updates-based-risk ; Forensics Triage Requirements: https://www.cisa.gov/news-events/directives/bod-26-04-implementation-guidance-prioritizing-security-updates-based-risk ; https://nvd.nist.gov/vuln/detail/CVE-2026-21962",
+        "cwes": [
+          "CWE-284"
+        ]
+      },
+      "nvd": {
+        "http_status": 200,
+        "data": {
+          "resultsPerPage": 1,
+          "startIndex": 0,
+          "totalResults": 1,
+          "format": "NVD_CVE",
+          "version": "2.0",
+          "timestamp": "2026-08-25T13:05:19.713",
+          "vulnerabilities": [
+            {
+              "cve": {
+                "id": "CVE-2026-21962",
+                "sourceIdentifier": "secalert_us@oracle.com",
+                "published": "2026-01-20T22:15:59.110",
+                "lastModified": "2026-08-25T04:18:11.067",
+                "vulnStatus": "Analyzed",
+                "cveTags": [],
+                "descriptions": [
+                  {
+                    "lang": "en",
+                    "value": "Vulnerability in the Oracle HTTP Server, Oracle Weblogic Server Proxy Plug-in product of Oracle Fusion Middleware (component: Weblogic Server Proxy Plug-in for Apache HTTP Server, Weblogic Server Proxy Plug-in for IIS).  Supported versions that are affected are 12.2.1.4.0, 14.1.1.0.0 and  14.1.2.0.0. Easily exploitable vulnerability allows unauthenticated attacker with network access via HTTP to compromise Oracle HTTP Server, Oracle Weblogic Server Proxy Plug-in.  While the vulnerability is in Oracle HTTP Server, Oracle Weblogic Server Proxy Plug-in, attacks may significantly impact additional products (scope change).  Successful attacks of this vulnerability can result in  unauthorized creation, deletion or modification access to critical data or all Oracle HTTP Server, Oracle Weblogic Server Proxy Plug-in accessible data as well as  unauthorized access to critical data or complete access to all Oracle HTTP Server, Oracle Weblogic Server Proxy Plug-in accessible data. Note: Affected version for Weblogic Server Proxy Plug-in for IIS is 12.2.1.4.0 only. CVSS 3.1 Base Score 10.0 (Confidentiality and Integrity impacts).  CVSS Vector: (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:N)."
+                  },
+                  {
+                    "lang": "es",
+                    "value": "Vulnerabilidad en el producto Oracle HTTP Server, Oracle Weblogic Server Proxy Plug-in de Oracle Fusion Middleware (componente: Weblogic Server Proxy Plug-in para Servidor HTTP Apache, Weblogic Server Proxy Plug-in para IIS). Las versiones compatibles afectadas son 12.2.1.4.0, 14.1.1.0.0 y 14.1.2.0.0. Una vulnerabilidad fácilmente explotable permite a un atacante no autenticado con acceso de red vía HTTP comprometer Oracle HTTP Server, Oracle Weblogic Server Proxy Plug-in. Aunque la vulnerabilidad está en Oracle HTTP Server, Oracle Weblogic Server Proxy Plug-in, los ataques pueden impactar significativamente productos adicionales (cambio de alcance). Los ataques exitosos de esta vulnerabilidad pueden resultar en acceso no autorizado de creación, eliminación o modificación de datos críticos o de todos los datos accesibles por Oracle HTTP Server, Oracle Weblogic Server Proxy Plug-in, así como acceso no autorizado a datos críticos o acceso completo a todos los datos accesibles por Oracle HTTP Server, Oracle Weblogic Server Proxy Plug-in. Nota: La versión afectada para Weblogic Server Proxy Plug-in para IIS es solo 12.2.1.4.0. Puntuación Base CVSS 3.1 10.0 (impactos en la Confidencialidad e Integridad). Vector CVSS: (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:N)."
+                  }
+                ],
+                "affected": [
+                  {
+                    "source": "secalert_us@oracle.com",
+                    "affectedData": [
+                      {
+                        "vendor": "Oracle Corporation",
+                        "product": "Oracle HTTP Server, Oracle Weblogic Server Proxy Plug-in",
+                        "versions": [
+                          {
+                            "version": "12.2.1.4.0",
+                            "versionType": "semver",
+                            "status": "affected"
+                          },
+                          {
+                            "version": "14.1.1.0.0",
+                            "versionType": "semver",
+                            "status": "affected"
+                          },
+                          {
+                            "version": "14.1.2.0.0",
+                            "versionType": "semver",
+                            "status": "affected"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "metrics": {
+                  "cvssMetricV31": [
+                    {
+                      "source": "secalert_us@oracle.com",
+                      "type": "Secondary",
+                      "cvssData": {
+                        "version": "3.1",
+                        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:N",
+                        "baseScore": 10.0,
+                        "baseSeverity": "CRITICAL",
+                        "attackVector": "NETWORK",
+                        "attackComplexity": "LOW",
+                        "privilegesRequired": "NONE",
+                        "userInteraction": "NONE",
+                        "scope": "CHANGED",
+                        "confidentialityImpact": "HIGH",
+                        "integrityImpact": "HIGH",
+                        "availabilityImpact": "NONE"
+                      },
+                      "exploitabilityScore": 3.9,
+                      "impactScore": 5.8
+                    }
+                  ],
+                  "ssvcV203": [
+                    {
+                      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                      "ssvcData": {
+                        "timestamp": "2026-01-21T00:00:00+00:00",
+                        "id": "CVE-2026-21962",
+                        "options": [
+                          {
+                            "exploitation": "active"
+                          },
+                          {
+                            "automatable": "yes"
+                          },
+                          {
+                            "technicalImpact": "total"
+                          }
+                        ],
+                        "role": "CISA Coordinator",
+                        "version": "2.0.3"
+                      }
+                    }
+                  ]
+                },
+                "cisaExploitAdd": "2026-08-24",
+                "cisaActionDue": "2026-08-27",
+                "cisaRequiredAction": "Apply mitigations per vendor instructions, follow applicable BOD 22-01 guidance for cloud services, or discontinue use of the product if mitigations are unavailable.",
+                "cisaVulnerabilityName": "Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in Improper Access Control Vulnerability",
+                "weaknesses": [
+                  {
+                    "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                    "type": "Secondary",
+                    "description": [
+                      {
+                        "lang": "en",
+                        "value": "CWE-284"
+                      }
+                    ]
+                  }
+                ],
+                "configurations": [
+                  {
+                    "nodes": [
+                      {
+                        "operator": "OR",
+                        "negate": false,
+                        "cpeMatch": [
+                          {
+                            "vulnerable": true,
+                            "criteria": "cpe:2.3:a:oracle:http_server:12.2.1.4.0:*:*:*:*:*:*:*",
+                            "matchCriteriaId": "AD04BEE5-E9A8-4584-A68C-0195CE9C402C"
+                          },
+                          {
+                            "vulnerable": true,
+                            "criteria": "cpe:2.3:a:oracle:http_server:14.1.1.0.0:*:*:*:*:*:*:*",
+                            "matchCriteriaId": "24404505-FD69-4844-8253-053776E1CC1D"
+                          },
+                          {
+                            "vulnerable": true,
+                            "criteria": "cpe:2.3:a:oracle:http_server:14.1.2.0.0:*:*:*:*:*:*:*",
+                            "matchCriteriaId": "49A6B4CB-3C5C-446A-902D-3C4824CA24D0"
+                          },
+                          {
+                            "vulnerable": true,
+                            "criteria": "cpe:2.3:a:oracle:weblogic_server_proxy_plug-in:12.2.1.4.0:*:*:*:*:*:*:*",
+                            "matchCriteriaId": "5E29C004-51D7-4BBE-B28A-EE6B7B10F89F"
+                          },
+                          {
+                            "vulnerable": true,
+                            "criteria": "cpe:2.3:a:oracle:weblogic_server_proxy_plug-in:14.1.1.0.0:*:*:*:*:*:*:*",
+                            "matchCriteriaId": "6E726C52-A697-4A3B-AA34-F88FF8FE5DEB"
+                          },
+                          {
+                            "vulnerable": true,
+                            "criteria": "cpe:2.3:a:oracle:weblogic_server_proxy_plug-in:14.1.2.0.0:*:*:*:*:*:*:*",
+                            "matchCriteriaId": "A6C22A45-61D1-43D3-A187-993FBA4485F0"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "references": [
+                  {
+                    "url": "https://www.oracle.com/security-alerts/cpujan2026.html",
+                    "source": "secalert_us@oracle.com",
+                    "tags": [
+                      "Patch",
+                      "Vendor Advisory"
+                    ]
+                  },
+                  {
+                    "url": "https://github.com/Ashwesker/Ashwesker-CVE-2026-21962/issues/1",
+                    "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                    "tags": [
+                      "Broken Link",
+                      "Not Applicable"
+                    ]
+                  },
+                  {
+                    "url": "https://web.archive.org/web/20260129165916/https://github.com/Ashwesker/Ashwesker-CVE-2026-21962/issues/1",
+                    "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                    "tags": [
+                      "Issue Tracking"
+                    ]
+                  },
+                  {
+                    "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2026-21962",
+                    "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                    "tags": [
+                      "US Government Resource"
+                    ]
+                  },
+                  {
+                    "url": "https://x.com/0xacb/status/2015473216844620280",
+                    "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                    "tags": [
+                      "Not Applicable"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "epss": {
+        "http_status": 200,
+        "data": {
+          "status": "OK",
+          "status-code": 200,
+          "version": "1.0",
+          "access": "public",
+          "total": 1,
+          "offset": 0,
+          "limit": 100,
+          "data": [
+            {
+              "cve": "CVE-2026-21962",
+              "epss": "0.432300000",
+              "percentile": "0.986200000",
+              "date": "2026-08-24"
+            }
+          ]
+        }
+      },
+      "abuseipdb": "not_queried_no_api_credential",
+      "virustotal": "not_queried_no_api_credential",
+      "otx": "not_queried_no_api_credential"
+    },
+    "CVE-2026-73570": {
+      "cisa_kev": {
+        "cveID": "CVE-2026-73570",
+        "vendorProject": "Synacor",
+        "product": "Zimbra Collaboration Suite (ZCS)",
+        "vulnerabilityName": "Zimbra Collaboration Suite (ZCS) OS Command Injection Vulnerability",
+        "dateAdded": "2026-08-21",
+        "shortDescription": "Zimbra Collaboration Suite (ZCS) contains an OS command injection vulnerability which could allow an unauthenticated attacker to send specially crafted SMTP requests that may result in execution of arbitrary operating system commands as the Zimbra user.",
+        "requiredAction": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
+        "dueDate": "2026-08-24",
+        "knownRansomwareCampaignUse": "Unknown",
+        "notes": "https://wiki.zimbra.com/wiki/Zimbra_Security_Advisories ; https://blog.zimbra.com/2026/07/patch-release-update-zimbra-10-1-20/ ; BOD 26-04: https://www.cisa.gov/news-events/directives/bod-26-04-prioritizing-security-updates-based-risk ; Forensics Triage Requirements: https://www.cisa.gov/news-events/directives/bod-26-04-implementation-guidance-prioritizing-security-updates-based-risk ; https://nvd.nist.gov/vuln/detail/CVE-2026-73570",
+        "cwes": [
+          "CWE-78"
+        ]
+      },
+      "nvd": {
+        "http_status": 200,
+        "data": {
+          "resultsPerPage": 1,
+          "startIndex": 0,
+          "totalResults": 1,
+          "format": "NVD_CVE",
+          "version": "2.0",
+          "timestamp": "2026-08-25T13:05:20.066",
+          "vulnerabilities": [
+            {
+              "cve": {
+                "id": "CVE-2026-73570",
+                "sourceIdentifier": "cve@mitre.org",
+                "published": "2026-08-13T16:19:06.003",
+                "lastModified": "2026-08-24T13:19:17.577",
+                "vulnStatus": "Analyzed",
+                "cveTags": [],
+                "descriptions": [
+                  {
+                    "lang": "en",
+                    "value": "A remote code execution vulnerability exists in Zimbra Collaboration (ZCS) before 10.1.20 when the optional zimbra-snmp package is installed and SNMP notifications are enabled. Due to improper sanitization of untrusted input during SNMP notification processing, an unauthenticated attacker can send specially crafted SMTP requests that may result in execution of arbitrary operating system commands as the Zimbra user."
+                  }
+                ],
+                "affected": [
+                  {
+                    "source": "cve@mitre.org",
+                    "affectedData": [
+                      {
+                        "vendor": "Zimbra",
+                        "product": "Collaboration",
+                        "defaultStatus": "unaffected",
+                        "versions": [
+                          {
+                            "version": "0",
+                            "lessThan": "10.1.20",
+                            "versionType": "custom",
+                            "status": "affected"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "metrics": {
+                  "cvssMetricV31": [
+                    {
+                      "source": "cve@mitre.org",
+                      "type": "Secondary",
+                      "cvssData": {
+                        "version": "3.1",
+                        "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:L",
+                        "baseScore": 8.9,
+                        "baseSeverity": "HIGH",
+                        "attackVector": "NETWORK",
+                        "attackComplexity": "HIGH",
+                        "privilegesRequired": "NONE",
+                        "userInteraction": "NONE",
+                        "scope": "CHANGED",
+                        "confidentialityImpact": "HIGH",
+                        "integrityImpact": "HIGH",
+                        "availabilityImpact": "LOW"
+                      },
+                      "exploitabilityScore": 2.2,
+                      "impactScore": 6.0
+                    }
+                  ],
+                  "ssvcV203": [
+                    {
+                      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                      "ssvcData": {
+                        "timestamp": "2026-08-22T03:55:17.911879Z",
+                        "id": "CVE-2026-73570",
+                        "options": [
+                          {
+                            "exploitation": "active"
+                          },
+                          {
+                            "automatable": "no"
+                          },
+                          {
+                            "technicalImpact": "total"
+                          }
+                        ],
+                        "role": "CISA Coordinator",
+                        "version": "2.0.3"
+                      }
+                    }
+                  ]
+                },
+                "cisaExploitAdd": "2026-08-21",
+                "cisaActionDue": "2026-08-24",
+                "cisaRequiredAction": "Apply mitigations in accordance with vendor instructions, ensuring compliance with CISA’s BOD 26-04 Prioritizing Security Updates Based on Risk (see URL in Notes) guidance and CISA’s “Forensics Triage Requirements” (see URL in Notes). Follow applicable BOD 26-04 guidance for cloud services or discontinue use of the product if mitigations are unavailable. Stakeholders are responsible for evaluating each asset's internet exposure and ensuring adherence to BOD 26-04 patching guidelines.",
+                "cisaVulnerabilityName": "Zimbra Collaboration Suite (ZCS) OS Command Injection Vulnerability",
+                "weaknesses": [
+                  {
+                    "source": "cve@mitre.org",
+                    "type": "Secondary",
+                    "description": [
+                      {
+                        "lang": "en",
+                        "value": "CWE-78"
+                      }
+                    ]
+                  }
+                ],
+                "configurations": [
+                  {
+                    "nodes": [
+                      {
+                        "operator": "OR",
+                        "negate": false,
+                        "cpeMatch": [
+                          {
+                            "vulnerable": true,
+                            "criteria": "cpe:2.3:a:synacor:zimbra_collaboration_suite:*:*:*:*:*:*:*:*",
+                            "versionEndExcluding": "10.1.20",
+                            "matchCriteriaId": "2DA7AB29-C275-4B2D-AC7F-288B3121779F"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "references": [
+                  {
+                    "url": "https://wiki.zimbra.com/wiki/Security_Center",
+                    "source": "cve@mitre.org",
+                    "tags": [
+                      "Release Notes"
+                    ]
+                  },
+                  {
+                    "url": "https://wiki.zimbra.com/wiki/Zimbra_Security_Advisories",
+                    "source": "cve@mitre.org",
+                    "tags": [
+                      "Vendor Advisory"
+                    ]
+                  },
+                  {
+                    "url": "https://moje.cert.pl/komunikaty/2026/145/aktywnie-wykorzystywana-podatnosc-w-zimbra-collaboration-suite/",
+                    "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                    "tags": [
+                      "Third Party Advisory"
+                    ]
+                  },
+                  {
+                    "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2026-73570",
+                    "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                    "tags": [
+                      "US Government Resource"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "epss": {
+        "http_status": 200,
+        "data": {
+          "status": "OK",
+          "status-code": 200,
+          "version": "1.0",
+          "access": "public",
+          "total": 1,
+          "offset": 0,
+          "limit": 100,
+          "data": [
+            {
+              "cve": "CVE-2026-73570",
+              "epss": "0.015060000",
+              "percentile": "0.723980000",
+              "date": "2026-08-24"
+            }
+          ]
+        }
+      },
+      "abuseipdb": "not_queried_no_api_credential",
+      "virustotal": "not_queried_no_api_credential",
+      "otx": "not_queried_no_api_credential"
+    },
+    "CVE-2026-15981": {
+      "cisa_kev": null,
+      "nvd": {
+        "http_status": 200,
+        "data": {
+          "resultsPerPage": 1,
+          "startIndex": 0,
+          "totalResults": 1,
+          "format": "NVD_CVE",
+          "version": "2.0",
+          "timestamp": "2026-08-25T13:05:20.257",
+          "vulnerabilities": [
+            {
+              "cve": {
+                "id": "CVE-2026-15981",
+                "sourceIdentifier": "security@wordfence.com",
+                "published": "2026-07-23T21:17:03.220",
+                "lastModified": "2026-07-24T23:16:50.257",
+                "vulnStatus": "Awaiting Analysis",
+                "cveTags": [],
+                "descriptions": [
+                  {
+                    "lang": "en",
+                    "value": "The SAML Single Sign On – SSO Login plugin for WordPress is vulnerable to Authentication Bypass in all versions up to, and including, 5.4.4. This is due to the mo_saml_validate_signature() function performing a loose boolean check on the raw tri-state integer returned by PHP's openssl_verify(), causing an error return value of -1 to be evaluated as truthy and therefore treated as a successful signature verification. This makes it possible for unauthenticated attackers to log in as any existing WordPress user, including administrators, by submitting a crafted SAMLResponse containing an attacker-controlled NameID and a deliberately malformed signature value that triggers an OpenSSL processing error — bypassing verification entirely and resulting in wp_set_auth_cookie() being called for the targeted account."
+                  }
+                ],
+                "affected": [
+                  {
+                    "source": "security@wordfence.com",
+                    "affectedData": [
+                      {
+                        "vendor": "cyberlord92",
+                        "product": "SAML Single Sign On – SSO Login",
+                        "defaultStatus": "unaffected",
+                        "versions": [
+                          {
+                            "version": "0",
+                            "lessThanOrEqual": "5.4.4",
+                            "versionType": "semver",
+                            "status": "affected"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "metrics": {
+                  "cvssMetricV31": [
+                    {
+                      "source": "security@wordfence.com",
+                      "type": "Secondary",
+                      "cvssData": {
+                        "version": "3.1",
+                        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                        "baseScore": 9.8,
+                        "baseSeverity": "CRITICAL",
+                        "attackVector": "NETWORK",
+                        "attackComplexity": "LOW",
+                        "privilegesRequired": "NONE",
+                        "userInteraction": "NONE",
+                        "scope": "UNCHANGED",
+                        "confidentialityImpact": "HIGH",
+                        "integrityImpact": "HIGH",
+                        "availabilityImpact": "HIGH"
+                      },
+                      "exploitabilityScore": 3.9,
+                      "impactScore": 5.9
+                    }
+                  ],
+                  "ssvcV203": [
+                    {
+                      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                      "ssvcData": {
+                        "timestamp": "2026-07-24T22:05:57.054951Z",
+                        "id": "CVE-2026-15981",
+                        "options": [
+                          {
+                            "exploitation": "none"
+                          },
+                          {
+                            "automatable": "yes"
+                          },
+                          {
+                            "technicalImpact": "total"
+                          }
+                        ],
+                        "role": "CISA Coordinator",
+                        "version": "2.0.3"
+                      }
+                    }
+                  ]
+                },
+                "weaknesses": [
+                  {
+                    "source": "security@wordfence.com",
+                    "type": "Secondary",
+                    "description": [
+                      {
+                        "lang": "en",
+                        "value": "CWE-287"
+                      }
+                    ]
+                  }
+                ],
+                "references": [
+                  {
+                    "url": "https://plugins.trac.wordpress.org/browser/miniorange-saml-20-single-sign-on/tags/5.4.4/class-mo-saml-login-validate.php#L118",
+                    "source": "security@wordfence.com"
+                  },
+                  {
+                    "url": "https://plugins.trac.wordpress.org/browser/miniorange-saml-20-single-sign-on/tags/5.4.4/class-mo-saml-login-validate.php#L541",
+                    "source": "security@wordfence.com"
+                  },
+                  {
+                    "url": "https://plugins.trac.wordpress.org/browser/miniorange-saml-20-single-sign-on/tags/5.4.4/class-mo-saml-utilities.php#L403",
+                    "source": "security@wordfence.com"
+                  },
+                  {
+                    "url": "https://plugins.trac.wordpress.org/browser/miniorange-saml-20-single-sign-on/tags/5.4.4/includes/lib/SAML2Core/class-mo-saml-xml-security-dsig.php#L938",
+                    "source": "security@wordfence.com"
+                  },
+                  {
+                    "url": "https://plugins.trac.wordpress.org/browser/miniorange-saml-20-single-sign-on/tags/5.4.4/includes/lib/SAML2Core/class-mo-saml-xml-security-key.php#L621",
+                    "source": "security@wordfence.com"
+                  },
+                  {
+                    "url": "https://plugins.trac.wordpress.org/changeset/3611421/miniorange-saml-20-single-sign-on",
+                    "source": "security@wordfence.com"
+                  },
+                  {
+                    "url": "https://www.wordfence.com/threat-intel/vulnerabilities/id/b412f60f-61ea-47b1-a3ef-17275f7951df?source=cve",
+                    "source": "security@wordfence.com"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "epss": {
+        "http_status": 200,
+        "data": {
+          "status": "OK",
+          "status-code": 200,
+          "version": "1.0",
+          "access": "public",
+          "total": 1,
+          "offset": 0,
+          "limit": 100,
+          "data": [
+            {
+              "cve": "CVE-2026-15981",
+              "epss": "0.007960000",
+              "percentile": "0.536600000",
+              "date": "2026-08-24"
+            }
+          ]
+        }
+      },
+      "abuseipdb": "not_queried_no_api_credential",
+      "virustotal": "not_queried_no_api_credential",
+      "otx": "not_queried_no_api_credential"
+    },
+    "CVE-2026-61979": {
+      "cisa_kev": null,
+      "nvd": {
+        "http_status": 200,
+        "data": {
+          "resultsPerPage": 1,
+          "startIndex": 0,
+          "totalResults": 1,
+          "format": "NVD_CVE",
+          "version": "2.0",
+          "timestamp": "2026-08-25T13:05:20.539",
+          "vulnerabilities": [
+            {
+              "cve": {
+                "id": "CVE-2026-61979",
+                "sourceIdentifier": "audit@patchstack.com",
+                "published": "2026-08-13T14:17:03.463",
+                "lastModified": "2026-08-14T19:09:20.713",
+                "vulnStatus": "Deferred",
+                "cveTags": [],
+                "descriptions": [
+                  {
+                    "lang": "en",
+                    "value": "Unauthenticated Privilege Escalation in SAML SP Single Sign On <= 5.4.3 versions."
+                  }
+                ],
+                "affected": [
+                  {
+                    "source": "audit@patchstack.com",
+                    "affectedData": [
+                      {
+                        "vendor": "miniOrange",
+                        "product": "SAML SP Single Sign On",
+                        "defaultStatus": "unaffected",
+                        "collectionURL": "https://wordpress.org/plugins",
+                        "packageName": "miniorange-saml-20-single-sign-on",
+                        "versions": [
+                          {
+                            "version": "n/a",
+                            "lessThanOrEqual": "5.4.3",
+                            "versionType": "custom",
+                            "status": "affected",
+                            "changes": [
+                              {
+                                "at": "5.4.4",
+                                "status": "unaffected"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "metrics": {
+                  "cvssMetricV31": [
+                    {
+                      "source": "audit@patchstack.com",
+                      "type": "Secondary",
+                      "cvssData": {
+                        "version": "3.1",
+                        "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                        "baseScore": 8.1,
+                        "baseSeverity": "HIGH",
+                        "attackVector": "NETWORK",
+                        "attackComplexity": "HIGH",
+                        "privilegesRequired": "NONE",
+                        "userInteraction": "NONE",
+                        "scope": "UNCHANGED",
+                        "confidentialityImpact": "HIGH",
+                        "integrityImpact": "HIGH",
+                        "availabilityImpact": "HIGH"
+                      },
+                      "exploitabilityScore": 2.2,
+                      "impactScore": 5.9
+                    }
+                  ],
+                  "ssvcV203": [
+                    {
+                      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                      "ssvcData": {
+                        "timestamp": "2026-08-13T14:28:53.764184Z",
+                        "id": "CVE-2026-61979",
+                        "options": [
+                          {
+                            "exploitation": "none"
+                          },
+                          {
+                            "automatable": "no"
+                          },
+                          {
+                            "technicalImpact": "total"
+                          }
+                        ],
+                        "role": "CISA Coordinator",
+                        "version": "2.0.3"
+                      }
+                    }
+                  ]
+                },
+                "weaknesses": [
+                  {
+                    "source": "audit@patchstack.com",
+                    "type": "Secondary",
+                    "description": [
+                      {
+                        "lang": "en",
+                        "value": "CWE-266"
+                      }
+                    ]
+                  }
+                ],
+                "references": [
+                  {
+                    "url": "https://patchstack.com/database/wordpress/plugin/miniorange-saml-20-single-sign-on/vulnerability/wordpress-saml-sp-single-sign-on-plugin-5-4-3-privilege-escalation-vulnerability?_s_id=cve",
+                    "source": "audit@patchstack.com"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "epss": {
+        "http_status": 200,
+        "data": {
+          "status": "OK",
+          "status-code": 200,
+          "version": "1.0",
+          "access": "public",
+          "total": 1,
+          "offset": 0,
+          "limit": 100,
+          "data": [
+            {
+              "cve": "CVE-2026-61979",
+              "epss": "0.002640000",
+              "percentile": "0.177840000",
+              "date": "2026-08-24"
+            }
+          ]
+        }
+      },
+      "abuseipdb": "not_queried_no_api_credential",
+      "virustotal": "not_queried_no_api_credential",
+      "otx": "not_queried_no_api_credential"
+    }
+  }
+}

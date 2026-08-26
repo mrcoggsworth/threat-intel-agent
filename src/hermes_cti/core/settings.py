@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     portal_output_dir: str = "./portal"
     secret_key: SecretStr | None = None
     admin_token: SecretStr | None = None
+    analyst_token: SecretStr | None = None
     enrichment_enabled: bool = True
     enrichment_cache_ttl_seconds: int = 86_400
     enrichment_stale_if_error_seconds: int = 604_800

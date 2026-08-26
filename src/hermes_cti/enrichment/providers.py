@@ -448,6 +448,7 @@ class NVDProvider(BaseProvider):
             else None
         )
         cvss_score: float | None = None
+        cvss_version: str | None = None
         vector: str | None = None
         metrics = cve.get("metrics", {})
         if isinstance(metrics, dict):
@@ -497,6 +498,7 @@ class NVDProvider(BaseProvider):
             "published_at": cve.get("published"),
             "modified_at": cve.get("lastModified"),
             "cvss_score": cvss_score,
+            "cvss_version": cvss_version,
             "cvss_vector": vector,
             "cwe_ids": cwes,
             "known_exploited": bool(

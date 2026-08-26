@@ -17,6 +17,7 @@ from hermes_cti.correlation.repository import CorrelationRepository
 from hermes_cti.db.migrations import run_migrations
 from hermes_cti.db.models import Vulnerability
 from hermes_cti.db.pipeline import DailyPipeline
+from hermes_cti.db.query_plans import verify_query_plans
 from hermes_cti.db.repositories import PersistenceRepository, RunRepository
 from hermes_cti.db.session import Database
 from hermes_cti.enrichment import EnrichmentCache, EnrichmentService, build_providers
@@ -100,6 +101,61 @@ def status() -> None:
     finally:
         asyncio.run(database.dispose())
     typer.echo(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+
+
+@database_app.command("verify-query-plans")
+def verify_query_plan_indexes(
+    output: Path | None = typer.Option(  # noqa: B008
+        None,
+        "--output",
+        help="Optional path for the full JSON deployment evidence artifact.",
+    ),
+    dataset_label: str = typer.Option(  # noqa: B008
+        "unspecified",
+        "--dataset-label",
+        help="Human-readable dataset/fixture label recorded in the evidence.",
+    ),
+) -> None:
+    """Verify indexes and optionally retain full PostgreSQL EXPLAIN evidence."""
+
+    settings = load_settings()
+    database = Database(settings)
+
+    async def query() -> dict[str, object]:
+        try:
+            async with database.session() as session:
+                results = await verify_query_plans(session)
+                checks = tuple(
+                    {
+                        "name": result.name,
+                        "expected_indexes": result.expected_indexes,
+                        "used_indexes": result.used_indexes,
+                        "passed": result.passed,
+                        "has_sequential_scan": result.has_sequential_scan,
+                        "plan": result.plan,
+                    }
+                    for result in results
+                )
+                return {
+                    "schema_version": "query-plan-evidence-v1",
+                    "generated_at": datetime.now(UTC).isoformat(),
+                    "dataset_label": dataset_label,
+                    "checks": checks,
+                }
+        finally:
+            await database.dispose()
+
+    payload = asyncio.run(query())
+    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(serialized + "\n", encoding="utf-8")
+    typer.echo(serialized)
+    checks = payload["checks"]
+    if not isinstance(checks, tuple):
+        raise RuntimeError("query-plan verifier returned an invalid check payload")
+    if any(not item["passed"] for item in checks):
+        raise typer.Exit(code=1)
 
 
 @database_app.command("retry-failed")

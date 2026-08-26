@@ -1,0 +1,515 @@
+{
+  "collection_time": "2026-08-25T13:01:37+00:00",
+  "window_start": "2026-08-24T13:01:37+00:00",
+  "window_hours": 24,
+  "sources": [
+    {
+      "source": "CISA Known Exploited Vulnerabilities",
+      "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "type": "json",
+      "category": "vulnerabilities",
+      "status": "ok",
+      "entries": [
+        {
+          "cveID": "CVE-2026-21962",
+          "vendorProject": "Oracle",
+          "product": "HTTP Server and Oracle Weblogic Server Proxy Plug-in",
+          "vulnerabilityName": "Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in Improper Access Control Vulnerability",
+          "dateAdded": "2026-08-24",
+          "dueDate": "2026-08-27",
+          "shortDescription": "Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in contain an improper access control vulnerability that can result in unauthorized creation, deletion or modification access to critical data as well as unauthorized access to accessible data.",
+          "requiredAction": "Apply mitigations per vendor instructions.",
+          "knownRansomwareCampaignUse": "Unknown"
+        }
+      ],
+      "http_status": 200,
+      "content_type": "application/json",
+      "collector_note": "Entry restored from direct CISA KEV JSON validation; the generic collector date filter returned an empty list."
+    },
+    {
+      "source": "CISA Cybersecurity Advisories",
+      "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+      "type": "rss",
+      "category": "cert_advisories",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=utf-8"
+    },
+    {
+      "source": "The DFIR Report",
+      "url": "https://thedfirreport.com/feed/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "Cisco Talos Intelligence",
+      "url": "https://blog.talosintelligence.com/rss/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [
+        {
+          "title": "The safety penalty: Reclaiming operational sovereignty in the age of AI",
+          "link": "https://blog.talosintelligence.com/the-safety-penalty-reclaiming-operational-sovereignty-in-the-age-of-ai/",
+          "published_raw": "Tue, 25 Aug 2026 10:00:22 GMT",
+          "published": "2026-08-25T10:00:22+00:00",
+          "summary": "As frontier AI models become increasingly restrictive, security teams are facing a \"safety penalty\" that hampers real-time incident response. Discover how organizations can move toward operational sovereignty to ensure their defensive AI keeps pace with unconstrained adversaries."
+        }
+      ],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=utf-8"
+    },
+    {
+      "source": "Palo Alto Unit 42",
+      "url": "https://unit42.paloaltonetworks.com/feed/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [
+        {
+          "title": "The State of AI-Enabled Malware August 2026: From Brand Abuse to Agentic Execution",
+          "link": "https://unit42.paloaltonetworks.com/ai-enabled-malware-analysis/",
+          "published_raw": "Tue, 25 Aug 2026 10:00:57 +0000",
+          "published": "2026-08-25T10:00:57+00:00",
+          "summary": "<p>Explore Unit 42 research on AI-enabled malware. Learn how existing behavioral detection and endpoint analytics stop AI-authored code before execution.</p>\n<p>The post <a href=\"https://unit42.paloaltonetworks.com/ai-enabled-malware-analysis/\">The State of AI-Enabled Malware August 2026: From Brand Abuse to Agentic Execution</a> appeared first on <a href=\"https://unit42.paloaltonetworks.com\">Unit 42</a>.</p>"
+        }
+      ],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "Google Threat Analysis Group",
+      "url": "https://blog.google/threat-analysis-group/rss/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "error",
+      "entries": [],
+      "error": "HTTPError: HTTP Error 404: Not Found"
+    },
+    {
+      "source": "Microsoft Threat Intelligence",
+      "url": "https://www.microsoft.com/en-us/security/blog/topic/threat-intelligence/feed/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "SentinelLabs",
+      "url": "https://www.sentinelone.com/labs/feed/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "Red Canary Threat Research",
+      "url": "https://redcanary.com/blog/feed/",
+      "type": "rss",
+      "category": "threat_research",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "SANS ISC InfoSec Diaries",
+      "url": "https://isc.sans.edu/rssfeed_full.xml",
+      "type": "rss",
+      "category": "incident_response",
+      "status": "parse_error",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "text/xml; charset=utf-8",
+      "error": "ParseError: syntax error: line 1, column 0"
+    },
+    {
+      "source": "Trend Micro Zero Day Initiative",
+      "url": "https://www.zerodayinitiative.com/blog?format=rss",
+      "type": "rss",
+      "category": "vulnerabilities",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "application/rss+xml; charset=UTF-8"
+    },
+    {
+      "source": "Krebs on Security",
+      "url": "https://krebsonsecurity.com/feed/",
+      "type": "rss",
+      "category": "news",
+      "status": "ok",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "text/html; charset=UTF-8"
+    },
+    {
+      "source": "BleepingComputer",
+      "url": "https://www.bleepingcomputer.com/feed/",
+      "type": "rss",
+      "category": "news",
+      "status": "ok",
+      "entries": [
+        {
+          "title": "Hackers breached over 270 Zimbra servers in ongoing attacks",
+          "link": "https://www.bleepingcomputer.com/news/security/hackers-breached-over-270-zimbra-servers-in-ongoing-attacks/",
+          "published_raw": "Tue, 25 Aug 2026 08:04:02 -0400",
+          "published": "2026-08-25T12:04:02+00:00",
+          "summary": "Threat actors have already compromised over 270 Zimbra instances in remote code execution attacks targeting a high-severity Zimbra Collaboration Suite (ZCS) vulnerability. [...]"
+        },
+        {
+          "title": "Police arrests dozens of suspects in global cybercrime crackdown",
+          "link": "https://www.bleepingcomputer.com/news/security/police-arrests-dozens-of-suspects-in-global-cybercrime-crackdown/",
+          "published_raw": "Tue, 25 Aug 2026 06:53:20 -0400",
+          "published": "2026-08-25T10:53:20+00:00",
+          "summary": "Law enforcement agencies from 22 countries helped identify 263 suspects and arrested 58 individuals linked to cybercrime networks coordinated by African crime groups. [...]"
+        },
+        {
+          "title": "Unpatched Calix flaw lets hackers bypass NAT to expose internal devices",
+          "link": "https://www.bleepingcomputer.com/news/security/unpatched-calix-flaw-lets-hackers-bypass-nat-to-expose-internal-devices/",
+          "published_raw": "Mon, 24 Aug 2026 17:14:30 -0400",
+          "published": "2026-08-24T21:14:30+00:00",
+          "summary": "An unpatched vulnerability in Calix GS7 XGS (GS5239XG) residential routers used by multiple U.S. broadband providers allows remote, unauthenticated attackers to create port-forwarding rules that can expose local network devices to the public internet. [...]"
+        },
+        {
+          "title": "Hackers target WordPress sites in miniOrange auth bypass attacks",
+          "link": "https://www.bleepingcomputer.com/news/security/hackers-target-wordpress-sites-in-miniorange-auth-bypass-attacks/",
+          "published_raw": "Mon, 24 Aug 2026 15:26:32 -0400",
+          "published": "2026-08-24T19:26:32+00:00",
+          "summary": "Hackers are attempting to exploit two critical authentication bypass vulnerabilities in the miniOrange SAML 2.0 Single Sign On plugin for WordPress that can be used to forge SAML responses and log in as administrators. [...]"
+        },
+        {
+          "title": "TikTok reaches $400M settlement with US over COPPA violations",
+          "link": "https://www.bleepingcomputer.com/news/legal/tiktok-reaches-400m-settlement-with-us-over-coppa-violations/",
+          "published_raw": "Mon, 24 Aug 2026 13:56:24 -0400",
+          "published": "2026-08-24T17:56:24+00:00",
+          "summary": "The U.S. Department of Justice announced a $400 million settlement with TikTok, ByteDance, and affiliated companies over allegations that they violated the Children's Online Privacy Protection Act (COPPA). [...]"
+        },
+        {
+          "title": "ReliaQuest confirms failed data-theft attack after ShinyHunters breach",
+          "link": "https://www.bleepingcomputer.com/news/security/reliaquest-confirms-failed-data-theft-attack-after-shinyhunters-breach/",
+          "published_raw": "Mon, 24 Aug 2026 11:17:16 -0400",
+          "published": "2026-08-24T15:17:16+00:00",
+          "summary": "Cybersecurity company ReliaQuest has confirmed that one of its employees was targeted in a social engineering attack after hackers impersonated a member of the security team. [...]"
+        },
+        {
+          "title": "Microsoft Teams now lets admins block external bots from meetings",
+          "link": "https://www.bleepingcomputer.com/news/security/microsoft-teams-now-lets-admins-block-external-bots-from-meetings/",
+          "published_raw": "Mon, 24 Aug 2026 10:00:19 -0400",
+          "published": "2026-08-24T14:00:19+00:00",
+          "summary": "Microsoft is rolling out a new Teams meeting protection policy that allows administrators to automatically block all identified external bots from joining Teams meetings. [...]"
+        },
+        {
+          "title": "South Korean startup platform breach exposes key management failures",
+          "link": "https://www.bleepingcomputer.com/news/security/south-korean-startup-platform-breach-exposes-key-management-failures/",
+          "published_raw": "Mon, 24 Aug 2026 10:00:10 -0400",
+          "published": "2026-08-24T14:00:10+00:00",
+          "summary": "A breach at South Korea's government-backed startup platform exposed encrypted personal data after an encryption key was included in an API. Penta Security explains why encryption keys must be securely managed and kept separate from the data they protect. [...]"
+        }
+      ],
+      "http_status": 200,
+      "content_type": "text/xml; charset=utf-8"
+    },
+    {
+      "source": "Microsoft Security Response Center",
+      "url": "https://msrc.microsoft.com/blog/feed",
+      "type": "rss",
+      "category": "vendor_advisories",
+      "status": "parse_error",
+      "entries": [],
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "error": "ParseError: not well-formed (invalid token): line 124, column 158"
+    },
+    {
+      "source": "The Hacker News (supplemental)",
+      "url": "https://feeds.feedburner.com/TheHackersNews",
+      "type": "rss",
+      "category": "supplemental",
+      "status": "ok",
+      "entries": [
+        {
+          "title": "Mirage2FA Surge Hits 4,500 US and EU Companies, Abusing Microsoft 365 Login Flows",
+          "link": "https://thehackernews.com/2026/08/mirage2fa-surge-hits-4500-us-and-eu.html",
+          "published_raw": "Tue, 25 Aug 2026 17:26:15 +0530",
+          "published": "2026-08-25T11:56:15+00:00",
+          "summary": "Thousands of companies have been affected by the Mirage2FA campaign from 2024 to 2026. The commercial phishing-as-a-service toolkit targets Microsoft 365 accounts by abusing legitimate login flows and bypassing two-factor authentication.\n\nAccording to ANY.RUN research, 48% of targeted email addresses were potentially compromised. Most of the affected companies are US-based.\n\nMirage2FA Campaign"
+        },
+        {
+          "title": "24 npm Packages Abuse unpkg Mirrors to Host Fake Cloudflare CAPTCHA Pages",
+          "link": "https://thehackernews.com/2026/08/24-npm-packages-abuse-unpkg-mirrors-to.html",
+          "published_raw": "Tue, 25 Aug 2026 17:22:43 +0530",
+          "published": "2026-08-25T11:52:43+00:00",
+          "summary": "Cybersecurity researchers have disclosed details of a new campaign that uses a cluster of 24 npm packages as free phishing infrastructure for redirecting to ClickFix-style fake CAPTCHA pages.\n\n\"While the malware is simply a single HTML page inside the npm package, and while downloading it wouldn't do harm, the threat actor’s use of npm isn't to infect developers who install it, but to use the"
+        },
+        {
+          "title": "E4del and PINHOLE RATs Turn FTP Banners Into Dead Drops for Malware Commands",
+          "link": "https://thehackernews.com/2026/08/e4del-and-pinhole-rats-turn-ftp-banners.html",
+          "published_raw": "Tue, 25 Aug 2026 17:03:44 +0530",
+          "published": "2026-08-25T11:33:44+00:00",
+          "summary": "Cybersecurity researchers are calling attention to a new campaign that employs FTP banners as dead drop resolvers (DDRs) to deliver two previously unreported remote access trojans (RATs) tracked as E4del and PINHOLE.\n\nWhile threat actors are known to abuse legitimate services to point to additional command-and-control (C2) infrastructure and blend in with regular network traffic, the development"
+        },
+        {
+          "title": "Frontier AI: Vulnerability Management's Systemic Revolution",
+          "link": "https://thehackernews.com/2026/08/frontier-ai-vulnerability-managements.html",
+          "published_raw": "Tue, 25 Aug 2026 16:44:07 +0530",
+          "published": "2026-08-25T11:14:07+00:00",
+          "summary": "Vulnerability management has been a staple of security programs since the dawn of the cybersecurity discipline. The symbiotic relationship between vulnerability and patch management teams has also existed for that time and has gone through waves of contention and thankfulness. While this relationship required thoughtful care and feeding from both sides, both sides were aiming to work toward a"
+        },
+        {
+          "title": "Attackers Target miniOrange SAML Flaws That Can Grant WordPress Admin Access",
+          "link": "https://thehackernews.com/2026/08/attackers-target-miniorange-saml-flaws.html",
+          "published_raw": "Tue, 25 Aug 2026 14:04:07 +0530",
+          "published": "2026-08-25T08:34:07+00:00",
+          "summary": "Bad actors are attempting to exploit two severe unauthenticated authentication bypasses in the Xecurify miniOrange SAML 2.0 Single Sign On plugin that make it possible for an attacker to sign in as any WordPress user, including administrators.\n\nThe vulnerabilities, as disclosed by Patchstack, are listed below -\n\n\n  CVE-2026-61979 (CVSS score: 8.1) - An unauthenticated privilege escalation"
+        },
+        {
+          "title": "Actively Exploited Oracle WebLogic Flaw Lets Unauthenticated Attackers Access Critical Data",
+          "link": "https://thehackernews.com/2026/08/actively-exploited-oracle-weblogic-flaw.html",
+          "published_raw": "Tue, 25 Aug 2026 11:42:35 +0530",
+          "published": "2026-08-25T06:12:35+00:00",
+          "summary": "The U.S. Cybersecurity and Infrastructure Security Agency (CISA) on Monday added a maximum-severity security flaw impacting Oracle HTTP Server and Oracle WebLogic Server to its Known Exploited Vulnerabilities (KEV) catalog, citing evidence of active exploitation.\n\nThe vulnerability, tracked as CVE-2026-21962 (CVSS score: 10.0), allows an unauthenticated attacker with network access via HTTP to"
+        },
+        {
+          "title": "Shipping More AI Code Than You Can Secure? Watch How to Control Remediation Debt",
+          "link": "https://thehackernews.com/2026/08/shipping-more-ai-code-than-you-can.html",
+          "published_raw": "Mon, 24 Aug 2026 23:11:30 +0530",
+          "published": "2026-08-24T17:41:30+00:00",
+          "summary": "If your developers are using AI coding tools, you are probably already seeing the upside: faster development, more code, and less time spent on routine work.\n\nThe harder part is what comes after. AI can also introduce open-source packages at a pace your security team was never built to handle. More dependencies mean more vulnerabilities to review, more remediation work, and a backlog that can"
+        },
+        {
+          "title": "Weedhack Malware Spreads via Fake Minecraft Clients and SEO Poisoning",
+          "link": "https://thehackernews.com/2026/08/weedhack-malware-spreads-via-fake.html",
+          "published_raw": "Mon, 24 Aug 2026 23:11:11 +0530",
+          "published": "2026-08-24T17:41:11+00:00",
+          "summary": "Cybersecurity researchers have found that several websites are still actively distributing a malware family known as Weedhack to gamers by masquerading as Minecraft clients.\n\nMcAfee Labs said it detected and blocked more than 6,300 attempts to access malicious sites, adding that it found lookalike gaming websites designed to mimic legitimate projects, including branding, feature lists, FAQs,"
+        },
+        {
+          "title": "⚡ Weekly Recap: AI-Powered PLC Attacks, GitLab Attacks, Stripe Key Leaks and More",
+          "link": "https://thehackernews.com/2026/08/weekly-recap-ai-powered-plc-attacks.html",
+          "published_raw": "Mon, 24 Aug 2026 20:02:10 +0530",
+          "published": "2026-08-24T14:32:10+00:00",
+          "summary": "A package gets installed. A login prompt opens. A box sits exposed to the internet. Nothing looks unusual yet.\n\nThat’s roughly the mood this week. Trusted tools turn hostile, old weak spots get fresh attention, AI makes exploit work cheaper, and researchers keep finding attacks that sound harder than they actually are.\n\nPlenty to clean up. Here’s the short version.\n\n⚡ Threat of the Week\n\nU.S."
+        }
+      ],
+      "http_status": 200,
+      "content_type": "text/xml; charset=utf-8"
+    }
+  ],
+  "qualifying_entry_count": 20,
+  "qualifying_entries": [
+    {
+      "title": "The safety penalty: Reclaiming operational sovereignty in the age of AI",
+      "link": "https://blog.talosintelligence.com/the-safety-penalty-reclaiming-operational-sovereignty-in-the-age-of-ai/",
+      "published_raw": "Tue, 25 Aug 2026 10:00:22 GMT",
+      "published": "2026-08-25T10:00:22+00:00",
+      "summary": "As frontier AI models become increasingly restrictive, security teams are facing a \"safety penalty\" that hampers real-time incident response. Discover how organizations can move toward operational sovereignty to ensure their defensive AI keeps pace with unconstrained adversaries.",
+      "source": "Cisco Talos Intelligence",
+      "source_url": "https://blog.talosintelligence.com/rss/",
+      "category": "threat_research"
+    },
+    {
+      "title": "The State of AI-Enabled Malware August 2026: From Brand Abuse to Agentic Execution",
+      "link": "https://unit42.paloaltonetworks.com/ai-enabled-malware-analysis/",
+      "published_raw": "Tue, 25 Aug 2026 10:00:57 +0000",
+      "published": "2026-08-25T10:00:57+00:00",
+      "summary": "<p>Explore Unit 42 research on AI-enabled malware. Learn how existing behavioral detection and endpoint analytics stop AI-authored code before execution.</p>\n<p>The post <a href=\"https://unit42.paloaltonetworks.com/ai-enabled-malware-analysis/\">The State of AI-Enabled Malware August 2026: From Brand Abuse to Agentic Execution</a> appeared first on <a href=\"https://unit42.paloaltonetworks.com\">Unit 42</a>.</p>",
+      "source": "Palo Alto Unit 42",
+      "source_url": "https://unit42.paloaltonetworks.com/feed/",
+      "category": "threat_research"
+    },
+    {
+      "title": "Hackers breached over 270 Zimbra servers in ongoing attacks",
+      "link": "https://www.bleepingcomputer.com/news/security/hackers-breached-over-270-zimbra-servers-in-ongoing-attacks/",
+      "published_raw": "Tue, 25 Aug 2026 08:04:02 -0400",
+      "published": "2026-08-25T12:04:02+00:00",
+      "summary": "Threat actors have already compromised over 270 Zimbra instances in remote code execution attacks targeting a high-severity Zimbra Collaboration Suite (ZCS) vulnerability. [...]",
+      "source": "BleepingComputer",
+      "source_url": "https://www.bleepingcomputer.com/feed/",
+      "category": "news"
+    },
+    {
+      "title": "Police arrests dozens of suspects in global cybercrime crackdown",
+      "link": "https://www.bleepingcomputer.com/news/security/police-arrests-dozens-of-suspects-in-global-cybercrime-crackdown/",
+      "published_raw": "Tue, 25 Aug 2026 06:53:20 -0400",
+      "published": "2026-08-25T10:53:20+00:00",
+      "summary": "Law enforcement agencies from 22 countries helped identify 263 suspects and arrested 58 individuals linked to cybercrime networks coordinated by African crime groups. [...]",
+      "source": "BleepingComputer",
+      "source_url": "https://www.bleepingcomputer.com/feed/",
+      "category": "news"
+    },
+    {
+      "title": "Unpatched Calix flaw lets hackers bypass NAT to expose internal devices",
+      "link": "https://www.bleepingcomputer.com/news/security/unpatched-calix-flaw-lets-hackers-bypass-nat-to-expose-internal-devices/",
+      "published_raw": "Mon, 24 Aug 2026 17:14:30 -0400",
+      "published": "2026-08-24T21:14:30+00:00",
+      "summary": "An unpatched vulnerability in Calix GS7 XGS (GS5239XG) residential routers used by multiple U.S. broadband providers allows remote, unauthenticated attackers to create port-forwarding rules that can expose local network devices to the public internet. [...]",
+      "source": "BleepingComputer",
+      "source_url": "https://www.bleepingcomputer.com/feed/",
+      "category": "news"
+    },
+    {
+      "title": "Hackers target WordPress sites in miniOrange auth bypass attacks",
+      "link": "https://www.bleepingcomputer.com/news/security/hackers-target-wordpress-sites-in-miniorange-auth-bypass-attacks/",
+      "published_raw": "Mon, 24 Aug 2026 15:26:32 -0400",
+      "published": "2026-08-24T19:26:32+00:00",
+      "summary": "Hackers are attempting to exploit two critical authentication bypass vulnerabilities in the miniOrange SAML 2.0 Single Sign On plugin for WordPress that can be used to forge SAML responses and log in as administrators. [...]",
+      "source": "BleepingComputer",
+      "source_url": "https://www.bleepingcomputer.com/feed/",
+      "category": "news"
+    },
+    {
+      "title": "TikTok reaches $400M settlement with US over COPPA violations",
+      "link": "https://www.bleepingcomputer.com/news/legal/tiktok-reaches-400m-settlement-with-us-over-coppa-violations/",
+      "published_raw": "Mon, 24 Aug 2026 13:56:24 -0400",
+      "published": "2026-08-24T17:56:24+00:00",
+      "summary": "The U.S. Department of Justice announced a $400 million settlement with TikTok, ByteDance, and affiliated companies over allegations that they violated the Children's Online Privacy Protection Act (COPPA). [...]",
+      "source": "BleepingComputer",
+      "source_url": "https://www.bleepingcomputer.com/feed/",
+      "category": "news"
+    },
+    {
+      "title": "ReliaQuest confirms failed data-theft attack after ShinyHunters breach",
+      "link": "https://www.bleepingcomputer.com/news/security/reliaquest-confirms-failed-data-theft-attack-after-shinyhunters-breach/",
+      "published_raw": "Mon, 24 Aug 2026 11:17:16 -0400",
+      "published": "2026-08-24T15:17:16+00:00",
+      "summary": "Cybersecurity company ReliaQuest has confirmed that one of its employees was targeted in a social engineering attack after hackers impersonated a member of the security team. [...]",
+      "source": "BleepingComputer",
+      "source_url": "https://www.bleepingcomputer.com/feed/",
+      "category": "news"
+    },
+    {
+      "title": "Microsoft Teams now lets admins block external bots from meetings",
+      "link": "https://www.bleepingcomputer.com/news/security/microsoft-teams-now-lets-admins-block-external-bots-from-meetings/",
+      "published_raw": "Mon, 24 Aug 2026 10:00:19 -0400",
+      "published": "2026-08-24T14:00:19+00:00",
+      "summary": "Microsoft is rolling out a new Teams meeting protection policy that allows administrators to automatically block all identified external bots from joining Teams meetings. [...]",
+      "source": "BleepingComputer",
+      "source_url": "https://www.bleepingcomputer.com/feed/",
+      "category": "news"
+    },
+    {
+      "title": "South Korean startup platform breach exposes key management failures",
+      "link": "https://www.bleepingcomputer.com/news/security/south-korean-startup-platform-breach-exposes-key-management-failures/",
+      "published_raw": "Mon, 24 Aug 2026 10:00:10 -0400",
+      "published": "2026-08-24T14:00:10+00:00",
+      "summary": "A breach at South Korea's government-backed startup platform exposed encrypted personal data after an encryption key was included in an API. Penta Security explains why encryption keys must be securely managed and kept separate from the data they protect. [...]",
+      "source": "BleepingComputer",
+      "source_url": "https://www.bleepingcomputer.com/feed/",
+      "category": "news"
+    },
+    {
+      "title": "Mirage2FA Surge Hits 4,500 US and EU Companies, Abusing Microsoft 365 Login Flows",
+      "link": "https://thehackernews.com/2026/08/mirage2fa-surge-hits-4500-us-and-eu.html",
+      "published_raw": "Tue, 25 Aug 2026 17:26:15 +0530",
+      "published": "2026-08-25T11:56:15+00:00",
+      "summary": "Thousands of companies have been affected by the Mirage2FA campaign from 2024 to 2026. The commercial phishing-as-a-service toolkit targets Microsoft 365 accounts by abusing legitimate login flows and bypassing two-factor authentication.\n\nAccording to ANY.RUN research, 48% of targeted email addresses were potentially compromised. Most of the affected companies are US-based.\n\nMirage2FA Campaign",
+      "source": "The Hacker News (supplemental)",
+      "source_url": "https://feeds.feedburner.com/TheHackersNews",
+      "category": "supplemental"
+    },
+    {
+      "title": "24 npm Packages Abuse unpkg Mirrors to Host Fake Cloudflare CAPTCHA Pages",
+      "link": "https://thehackernews.com/2026/08/24-npm-packages-abuse-unpkg-mirrors-to.html",
+      "published_raw": "Tue, 25 Aug 2026 17:22:43 +0530",
+      "published": "2026-08-25T11:52:43+00:00",
+      "summary": "Cybersecurity researchers have disclosed details of a new campaign that uses a cluster of 24 npm packages as free phishing infrastructure for redirecting to ClickFix-style fake CAPTCHA pages.\n\n\"While the malware is simply a single HTML page inside the npm package, and while downloading it wouldn't do harm, the threat actor’s use of npm isn't to infect developers who install it, but to use the",
+      "source": "The Hacker News (supplemental)",
+      "source_url": "https://feeds.feedburner.com/TheHackersNews",
+      "category": "supplemental"
+    },
+    {
+      "title": "E4del and PINHOLE RATs Turn FTP Banners Into Dead Drops for Malware Commands",
+      "link": "https://thehackernews.com/2026/08/e4del-and-pinhole-rats-turn-ftp-banners.html",
+      "published_raw": "Tue, 25 Aug 2026 17:03:44 +0530",
+      "published": "2026-08-25T11:33:44+00:00",
+      "summary": "Cybersecurity researchers are calling attention to a new campaign that employs FTP banners as dead drop resolvers (DDRs) to deliver two previously unreported remote access trojans (RATs) tracked as E4del and PINHOLE.\n\nWhile threat actors are known to abuse legitimate services to point to additional command-and-control (C2) infrastructure and blend in with regular network traffic, the development",
+      "source": "The Hacker News (supplemental)",
+      "source_url": "https://feeds.feedburner.com/TheHackersNews",
+      "category": "supplemental"
+    },
+    {
+      "title": "Frontier AI: Vulnerability Management's Systemic Revolution",
+      "link": "https://thehackernews.com/2026/08/frontier-ai-vulnerability-managements.html",
+      "published_raw": "Tue, 25 Aug 2026 16:44:07 +0530",
+      "published": "2026-08-25T11:14:07+00:00",
+      "summary": "Vulnerability management has been a staple of security programs since the dawn of the cybersecurity discipline. The symbiotic relationship between vulnerability and patch management teams has also existed for that time and has gone through waves of contention and thankfulness. While this relationship required thoughtful care and feeding from both sides, both sides were aiming to work toward a",
+      "source": "The Hacker News (supplemental)",
+      "source_url": "https://feeds.feedburner.com/TheHackersNews",
+      "category": "supplemental"
+    },
+    {
+      "title": "Attackers Target miniOrange SAML Flaws That Can Grant WordPress Admin Access",
+      "link": "https://thehackernews.com/2026/08/attackers-target-miniorange-saml-flaws.html",
+      "published_raw": "Tue, 25 Aug 2026 14:04:07 +0530",
+      "published": "2026-08-25T08:34:07+00:00",
+      "summary": "Bad actors are attempting to exploit two severe unauthenticated authentication bypasses in the Xecurify miniOrange SAML 2.0 Single Sign On plugin that make it possible for an attacker to sign in as any WordPress user, including administrators.\n\nThe vulnerabilities, as disclosed by Patchstack, are listed below -\n\n\n  CVE-2026-61979 (CVSS score: 8.1) - An unauthenticated privilege escalation",
+      "source": "The Hacker News (supplemental)",
+      "source_url": "https://feeds.feedburner.com/TheHackersNews",
+      "category": "supplemental"
+    },
+    {
+      "title": "Actively Exploited Oracle WebLogic Flaw Lets Unauthenticated Attackers Access Critical Data",
+      "link": "https://thehackernews.com/2026/08/actively-exploited-oracle-weblogic-flaw.html",
+      "published_raw": "Tue, 25 Aug 2026 11:42:35 +0530",
+      "published": "2026-08-25T06:12:35+00:00",
+      "summary": "The U.S. Cybersecurity and Infrastructure Security Agency (CISA) on Monday added a maximum-severity security flaw impacting Oracle HTTP Server and Oracle WebLogic Server to its Known Exploited Vulnerabilities (KEV) catalog, citing evidence of active exploitation.\n\nThe vulnerability, tracked as CVE-2026-21962 (CVSS score: 10.0), allows an unauthenticated attacker with network access via HTTP to",
+      "source": "The Hacker News (supplemental)",
+      "source_url": "https://feeds.feedburner.com/TheHackersNews",
+      "category": "supplemental"
+    },
+    {
+      "title": "Shipping More AI Code Than You Can Secure? Watch How to Control Remediation Debt",
+      "link": "https://thehackernews.com/2026/08/shipping-more-ai-code-than-you-can.html",
+      "published_raw": "Mon, 24 Aug 2026 23:11:30 +0530",
+      "published": "2026-08-24T17:41:30+00:00",
+      "summary": "If your developers are using AI coding tools, you are probably already seeing the upside: faster development, more code, and less time spent on routine work.\n\nThe harder part is what comes after. AI can also introduce open-source packages at a pace your security team was never built to handle. More dependencies mean more vulnerabilities to review, more remediation work, and a backlog that can",
+      "source": "The Hacker News (supplemental)",
+      "source_url": "https://feeds.feedburner.com/TheHackersNews",
+      "category": "supplemental"
+    },
+    {
+      "title": "Weedhack Malware Spreads via Fake Minecraft Clients and SEO Poisoning",
+      "link": "https://thehackernews.com/2026/08/weedhack-malware-spreads-via-fake.html",
+      "published_raw": "Mon, 24 Aug 2026 23:11:11 +0530",
+      "published": "2026-08-24T17:41:11+00:00",
+      "summary": "Cybersecurity researchers have found that several websites are still actively distributing a malware family known as Weedhack to gamers by masquerading as Minecraft clients.\n\nMcAfee Labs said it detected and blocked more than 6,300 attempts to access malicious sites, adding that it found lookalike gaming websites designed to mimic legitimate projects, including branding, feature lists, FAQs,",
+      "source": "The Hacker News (supplemental)",
+      "source_url": "https://feeds.feedburner.com/TheHackersNews",
+      "category": "supplemental"
+    },
+    {
+      "title": "⚡ Weekly Recap: AI-Powered PLC Attacks, GitLab Attacks, Stripe Key Leaks and More",
+      "link": "https://thehackernews.com/2026/08/weekly-recap-ai-powered-plc-attacks.html",
+      "published_raw": "Mon, 24 Aug 2026 20:02:10 +0530",
+      "published": "2026-08-24T14:32:10+00:00",
+      "summary": "A package gets installed. A login prompt opens. A box sits exposed to the internet. Nothing looks unusual yet.\n\nThat’s roughly the mood this week. Trusted tools turn hostile, old weak spots get fresh attention, AI makes exploit work cheaper, and researchers keep finding attacks that sound harder than they actually are.\n\nPlenty to clean up. Here’s the short version.\n\n⚡ Threat of the Week\n\nU.S.",
+      "source": "The Hacker News (supplemental)",
+      "source_url": "https://feeds.feedburner.com/TheHackersNews",
+      "category": "supplemental"
+    },
+    {
+      "cveID": "CVE-2026-21962",
+      "vendorProject": "Oracle",
+      "product": "HTTP Server and Oracle Weblogic Server Proxy Plug-in",
+      "vulnerabilityName": "Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in Improper Access Control Vulnerability",
+      "dateAdded": "2026-08-24",
+      "dueDate": "2026-08-27",
+      "shortDescription": "Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in contain an improper access control vulnerability that can result in unauthorized creation, deletion or modification access to critical data as well as unauthorized access to accessible data.",
+      "requiredAction": "Apply mitigations per vendor instructions.",
+      "knownRansomwareCampaignUse": "Unknown",
+      "source": "CISA Known Exploited Vulnerabilities",
+      "source_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "category": "vulnerabilities"
+    }
+  ]
+}

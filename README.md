@@ -91,6 +91,7 @@ uv run hermes-cti collect-once --sources config/sources.json --output ingestion-
 uv run hermes-cti db migrate
 uv run hermes-cti db run-daily
 uv run hermes-cti db status
+uv run hermes-cti db verify-query-plans --dataset-label production-sized --output evidence/query-plans.json
 uv run hermes-cti db enrich --cve CVE-2021-40438
 uv run hermes-cti extract report.txt --format json --output extraction.json
 cat report.txt | uv run hermes-cti extract - --format csv
@@ -123,8 +124,10 @@ docker compose --file deploy/docker-compose.dev.yml up --build
 
 The development Compose file includes web, PostgreSQL, and a dedicated scheduler.
 Migrations remain explicit via `uv run hermes-cti db migrate`; web workers do not
-run migrations automatically. Proxy, backup, monitoring, authentication, and
-production deployment operations remain planned.
+run migrations automatically. The authenticated analyst API is exposed at
+`/api/v1/analyst/*`; production host Nginx serves it at
+`https://matrix-1.taild27e3c.ts.net:9443` and forwards to the loopback-only web
+port.
 
 ## Configuration and source policy
 
@@ -150,4 +153,4 @@ See the supplied architecture and implementation-plan documents under
 
 ## Hermes profile installation
 
-The two profile staging trees, migration plan, and portable installer are documented in [docs/HERMES_PROFILE_MIGRATION.md](docs/HERMES_PROFILE_MIGRATION.md). Run `scripts/install-hermes-profiles.sh --guided` to prepare separate analyst and maintainer homes on a local setup. The installer never copies repository secrets and does not overwrite an existing runtime home by default.
+The two profile staging trees, migration plan, and portable installer are documented in [docs/HERMES_PROFILE_MIGRATION.md](docs/HERMES_PROFILE_MIGRATION.md). Run `scripts/install-hermes-profiles.sh --guided` to prepare native Hermes profiles under `$HOME/.hermes/profiles/` on a local setup. The installer never copies repository secrets and does not overwrite an existing runtime home by default.

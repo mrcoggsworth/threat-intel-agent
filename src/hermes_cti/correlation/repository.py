@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID, uuid5
 
@@ -16,6 +18,7 @@ from hermes_cti.correlation.contracts import (
     CorrelationResult,
     ResurfacingEvent,
 )
+from hermes_cti.db.model_run_repository import ModelRunRepository
 from hermes_cti.db.models import (
     CorrelationCandidateRecord,
     CorrelationContradictionRecord,
@@ -240,6 +243,24 @@ class CorrelationRepository:
 
         if proposal.origin.value != "model_inference":
             raise ValueError("repository accepts only model-inference proposals")
+        now = datetime.now(UTC)
+        await ModelRunRepository().persist(
+            session,
+            model_run_id=uuid5(proposal.proposal_id, "model-run"),
+            purpose="relationship_proposal",
+            model_provider=proposal.model_identifier or "unspecified",
+            prompt_name="relationship_proposal",
+            prompt_version=proposal.prompt_version or "unknown",
+            input_evidence_ids=proposal.evidence_ids,
+            output_hash=hashlib.sha256(proposal.stable_json().encode()).hexdigest(),
+            triggering_run_id=proposal.triggering_run_id,
+            system_prompt_hash=proposal.system_prompt_hash,
+            skill_version_hashes=proposal.skill_version_hashes,
+            token_metadata=proposal.token_metadata,
+            cost_metadata=proposal.cost_metadata,
+            started_at=now,
+            completed_at=now,
+        )
         origin_rule = f"model_proposal@phase6-v1:{proposal.proposal_id}"
         relationship = CorrelationRelationship(
             relationship_id=proposal.proposal_id,

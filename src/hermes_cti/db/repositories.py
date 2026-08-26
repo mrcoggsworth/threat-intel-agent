@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID, uuid5
@@ -11,6 +13,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from hermes_cti import __version__
+from hermes_cti.db.entity_models import EntityEvidence
 from hermes_cti.db.models import (
     EnrichmentResult as EnrichmentResultRecord,
 )
@@ -23,12 +26,14 @@ from hermes_cti.db.models import (
     Report,
     RiskAssessment,
     Source,
+    SourceConfigurationHistory,
     SourceRun,
     Vulnerability,
 )
 from hermes_cti.db.models import (
     SourceDocument as SourceDocumentRecord,
 )
+from hermes_cti.db.vulnerability_repository import VulnerabilityRepository
 from hermes_cti.extraction.contracts import ExtractionResult
 from hermes_cti.ingestion.service import CollectionResult
 from hermes_cti.models.contracts import (
@@ -47,6 +52,14 @@ def _utc(value: datetime) -> datetime:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("database timestamps must be timezone-aware")
     return value.astimezone(UTC)
+
+
+def _source_configuration_snapshot(
+    source: SourceConfig,
+) -> tuple[dict[str, Any], str]:
+    payload = source.model_dump(mode="json")
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return payload, hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 def _document_identity(document: SourceDocument) -> str:
@@ -79,7 +92,13 @@ class RunRepository:
         result = await session.execute(
             select(IngestionRun)
             .where(
-                IngestionRun.status == RunStatus.COMPLETED.value,
+                (
+                    (IngestionRun.status == RunStatus.COMPLETED.value)
+                    | (
+                        (IngestionRun.status == RunStatus.FAILED.value)
+                        & (IngestionRun.successful_sources > 0)
+                    )
+                ),
                 IngestionRun.completed_at.is_not(None),
             )
             .order_by(desc(IngestionRun.completed_at))
@@ -159,6 +178,21 @@ class PersistenceRepository:
     async def upsert_source(
         self, session: AsyncSession, source: SourceConfig
     ) -> Source:
+        configuration, configuration_hash = _source_configuration_snapshot(source)
+        existing = await session.scalar(
+            select(Source).where(Source.source_id == source.source_id)
+        )
+        history = await session.scalar(
+            select(SourceConfigurationHistory).where(
+                SourceConfigurationHistory.source_id == source.source_id,
+                SourceConfigurationHistory.configuration_hash == configuration_hash,
+            )
+        )
+        configuration_version = (
+            history.configuration_version
+            if history is not None
+            else (existing.configuration_version + 1 if existing is not None else 1)
+        )
         values = {
             "source_id": source.source_id,
             "name": source.name,
@@ -171,6 +205,7 @@ class PersistenceRepository:
             "timeout_seconds": source.timeout_seconds,
             "max_response_bytes": source.max_response_bytes,
             "tags": list(source.tags),
+            "configuration_version": configuration_version,
         }
         statement = insert(Source).values(values)
         statement = statement.on_conflict_do_update(
@@ -178,11 +213,32 @@ class PersistenceRepository:
             set_={key: value for key, value in values.items() if key != "source_id"},
         )
         await session.execute(statement)
+        if history is None:
+            history_id = uuid5(
+                UUID("6ba7b812-9dad-11d1-80b4-00c04fd430c8"),
+                f"source-config:{source.source_id}:{configuration_hash}",
+            )
+            await session.execute(
+                insert(SourceConfigurationHistory)
+                .values(
+                    id=history_id,
+                    source_id=source.source_id,
+                    configuration_version=configuration_version,
+                    configuration_hash=configuration_hash,
+                    configuration=configuration,
+                    recorded_at=datetime.now(UTC),
+                )
+                .on_conflict_do_nothing(
+                    index_elements=[
+                        SourceConfigurationHistory.source_id,
+                        SourceConfigurationHistory.configuration_hash,
+                    ]
+                )
+            )
         result = await session.execute(
             select(Source).where(Source.source_id == source.source_id)
         )
-        record = result.scalar_one()
-        return record
+        return result.scalar_one()
 
     async def create_or_get_run(
         self, session: AsyncSession, manifest: IngestionRunManifest
@@ -225,11 +281,7 @@ class PersistenceRepository:
         manifest = collection.manifest
         run = await self.create_or_get_run(session, manifest)
         if (
-            run.status
-            in {
-                RunStatus.COMPLETED.value,
-                RunStatus.FAILED.value,
-            }
+            run.status == RunStatus.COMPLETED.value
             and run.completed_at is not None
         ):
             return run
@@ -286,6 +338,9 @@ class PersistenceRepository:
             "content_hash": artifact.content_hash,
             "byte_length": artifact.byte_length,
             "storage_locator": artifact.storage_locator,
+            "retention_policy": artifact.retention_policy,
+            "retention_expires_at": artifact.retention_expires_at,
+            "storage_state": artifact.storage_state,
             "payload": payload,
             "ingestion_run_id": artifact.ingestion_run_id,
         }
@@ -410,6 +465,19 @@ class PersistenceRepository:
         )
         record = result.scalar_one_or_none()
         if record is not None:
+            await session.execute(
+                insert(EntityEvidence)
+                .values(
+                    id=uuid5(record.id, "provider-evidence"),
+                    entity_type=response.request.entity.entity_type.value,
+                    entity_id=response.request.entity.entity_id,
+                    provider_result_id=record.id,
+                    confidence=1.0,
+                    origin_type="provider_enrichment",
+                    content_hash=response.payload_hash,
+                )
+                .on_conflict_do_nothing(index_elements=[EntityEvidence.id])
+            )
             return record
         record = await session.scalar(
             select(EnrichmentResultRecord)
@@ -423,6 +491,19 @@ class PersistenceRepository:
         )
         if record is None:
             raise RuntimeError("enrichment result was not persisted")
+        await session.execute(
+            insert(EntityEvidence)
+            .values(
+                id=uuid5(record.id, "provider-evidence"),
+                entity_type=response.request.entity.entity_type.value,
+                entity_id=response.request.entity.entity_id,
+                provider_result_id=record.id,
+                confidence=1.0,
+                origin_type="provider_enrichment",
+                content_hash=response.payload_hash,
+            )
+            .on_conflict_do_nothing(index_elements=[EntityEvidence.id])
+        )
         return cast(EnrichmentResultRecord, record)
 
     async def persist_risk_assessment(
@@ -471,11 +552,33 @@ class PersistenceRepository:
                 str(value) for value in evidence_ids or priority.evidence_ids
             ],
             origin=origin,
+            priority_explanation="; ".join(
+                f"{component.name}: {component.rationale}"
+                for component in priority.components
+            ),
             review_state="proposed",
             supersedes_id=latest.id if latest else None,
         )
         session.add(record)
         await session.flush()
+        for evidence_id in set(evidence_ids or priority.evidence_ids):
+            claim_exists = await session.scalar(
+                select(EvidenceClaim.id).where(EvidenceClaim.id == evidence_id)
+            )
+            if claim_exists is None:
+                continue
+            await session.execute(
+                insert(EntityEvidence)
+                .values(
+                    id=uuid5(record.id, f"evidence:{evidence_id}"),
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    evidence_claim_id=evidence_id,
+                    confidence=priority.confidence,
+                    origin_type=origin,
+                )
+                .on_conflict_do_nothing(index_elements=[EntityEvidence.id])
+            )
         return record
 
     async def persist_enrichment_run(
@@ -494,6 +597,13 @@ class PersistenceRepository:
                 for response in provider_responses
             ]
         )
+        if entity_type == "vulnerability":
+            await VulnerabilityRepository().persist_enrichment(
+                session,
+                entity_id=entity_id,
+                provider_responses=provider_responses,
+                provider_records=records,
+            )
         assessment = (
             await self.persist_risk_assessment(
                 session,
@@ -563,6 +673,28 @@ class PersistenceRepository:
                     ]
                 )
             )
+            await session.execute(
+                insert(EntityEvidence)
+                .values(
+                    id=uuid5(
+                        UUID("6ba7b814-9dad-11d1-80b4-00c04fd430c8"),
+                        f"indicator-evidence:{observation.observation_id}",
+                    ),
+                    entity_type="indicator",
+                    entity_id=indicator_id,
+                    source_document_id=observation.source_document_id,
+                    evidence_span={
+                        "start_offset": observation.start_offset,
+                        "end_offset": observation.end_offset,
+                        "text": observation.original_display_value,
+                    },
+                    first_seen_at=observed,
+                    last_seen_at=observed,
+                    confidence=1.0,
+                    origin_type="deterministic_extraction",
+                )
+                .on_conflict_do_nothing(index_elements=[EntityEvidence.id])
+            )
         for candidate in result.cve_candidates:
             vulnerability_id = uuid5(
                 UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8"),
@@ -590,6 +722,29 @@ class PersistenceRepository:
                     confidence=1.0,
                 )
                 .on_conflict_do_nothing(index_elements=[EvidenceClaim.id])
+            )
+            await session.execute(
+                insert(EntityEvidence)
+                .values(
+                    id=uuid5(
+                        UUID("6ba7b815-9dad-11d1-80b4-00c04fd430c8"),
+                        f"vulnerability-evidence:{candidate.candidate_id}",
+                    ),
+                    entity_type="vulnerability",
+                    entity_id=vulnerability_id,
+                    source_document_id=candidate.source_document_id,
+                    evidence_claim_id=candidate.candidate_id,
+                    evidence_span={
+                        "start_offset": candidate.start_offset,
+                        "end_offset": candidate.end_offset,
+                        "text": candidate.original_display_value,
+                    },
+                    first_seen_at=observed,
+                    last_seen_at=observed,
+                    confidence=1.0,
+                    origin_type="deterministic_extraction",
+                )
+                .on_conflict_do_nothing(index_elements=[EntityEvidence.id])
             )
 
 

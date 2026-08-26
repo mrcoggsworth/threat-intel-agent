@@ -1,0 +1,22 @@
+// Oracle WebLogic / CVE-2026-21962
+DeviceWebApplicationLogs
+| where Url has_any ("/console/", "/weblogic")
+| where HttpMethod in~ ("GET", "POST", "PUT", "DELETE")
+| summarize RequestCount=count(), Statuses=make_set(HttpStatusCode), Paths=make_set(Url) by SrcIpAddr, DstIpAddr, DeviceName, bin(TimeGenerated, 10m)
+| where RequestCount >= 5
+
+// miniOrange SAML / CVE-2026-15981 / CVE-2026-61979
+W3CIISLog
+| where csUriStem has_any ("mo_saml", "SAMLResponse", "/sso")
+| summarize Requests=count(), Statuses=make_set(scStatus) by cIp, csHost, csUriStem, bin(TimeGenerated, 10m)
+
+// Zimbra / CVE-2026-73570
+Syslog
+| where SyslogMessage has_any ("zimbra-snmp", "/opt/zimbra", "SNMP")
+| summarize Events=count(), Samples=make_set(SyslogMessage, 10) by Computer, HostIP, bin(TimeGenerated, 10m)
+
+// E4del / PINHOLE
+DeviceProcessEvents
+| where FileName in~ ("powershell.exe", "cmd.exe")
+| where ProcessCommandLine has_any ("MSXML2.XMLHTTP", "cloudflare.milicare.in", "u.cmd", "ftp")
+| project Timestamp, DeviceName, AccountName, InitiatingProcessFileName, FileName, ProcessCommandLine, RemoteIP

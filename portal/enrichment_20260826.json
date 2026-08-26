@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "queried_at": "2026-08-26T13:03:11Z",
+  "providers": {
+    "cisa_kev": {"status": "queried", "catalog_version": "2026.08.25", "catalog_released": "2026-08-25T17:43:58.4301Z"},
+    "nvd": {"status": "queried"},
+    "epss": {"status": "queried"},
+    "abuseipdb": {"status": "not_queried", "reason": "no IPv4/IPv6 indicators and no API credential"},
+    "virustotal": {"status": "not_queried", "reason": "no hashes/URLs and no API credential"},
+    "otx": {"status": "not_queried", "reason": "no network/hash indicators and no API credential"}
+  },
+  "cves": {
+    "CVE-2026-60004": {
+      "cisa_kev": {"listed": true, "vendor": "Gitea", "product": "Gitea", "date_added": "2026-08-25", "due_date": "2026-08-28", "known_ransomware_campaign_use": "Unknown", "cwe": "CWE-94", "required_action": "Apply vendor mitigations; follow BOD 26-04 and perform forensics where applicable."},
+      "nvd": {"status": "no_record_returned_at_2026-08-26T13:03Z"},
+      "cvss": {"score": 9.8, "severity": "CRITICAL", "source": "The Hacker News reporting citing the Gitea advisory/CISA context; NVD record not yet returned"},
+      "epss": {"status": "no_record_returned_at_2026-08-26T13:03Z"},
+      "risk": "CRITICAL",
+      "confidence": "HIGH: CISA KEV alert plus independent reporting of active exploitation"
+    },
+    "CVE-2026-65105": {
+      "cisa_kev": {"listed": false, "catalog_checked": "2026.08.25"},
+      "nvd": {"status": "Received", "published": "2026-08-25T21:17:29.933Z", "vendor": "NVIDIA", "product": "NemoClaw", "affected": "Linux versions 0 through 0.0.25", "cwe": "CWE-306", "cvss": 8.1, "severity": "HIGH", "vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:H"},
+      "epss": {"status": "no_record_returned_at_2026-08-26T13:03Z"},
+      "risk": "HIGH",
+      "confidence": "HIGH for vulnerability existence and affected scope; exploitation not reported by the primary disclosure"
+    }
+  },
+  "non_cve_findings": {
+    "SLEEPWALKER": {"risk": "HIGH", "epss": "not applicable", "exploitation": "not established", "attribution": "not established", "victimology": "unknown"},
+    "Mirage2FA": {"risk": "HIGH", "epss": "not applicable", "exploitation": "reported campaign activity", "attribution": "commercial phishing-as-a-service; no actor attribution claimed", "victimology": "4,532 organization email domains potentially linked; 9,000+ potential compromise events reported by ANY.RUN"}
+  }
+}

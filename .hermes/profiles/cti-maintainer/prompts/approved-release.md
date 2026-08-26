@@ -3,7 +3,7 @@ an immutable commit or image.
 
 Project root: /home/$USER/code/threat-intel-agent/
 Approved repository: mrcoggsworth/threat-intel-agent
-Private service base URL: https://ops.cti-hermes.local
+Private service base URL: https://ops.cti-hermes.home.arpa
 Approved release/image: __REQUIRED_APPROVED_RELEASE__
 Compose file: deploy/docker-compose.yml
 Production environment file: /opt/cti-hermes/env/production.env

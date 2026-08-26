@@ -1,0 +1,54 @@
+[
+  {
+    "id": "cti-maintainer-weekly-maintenance",
+    "schedule": "0 6 * * 1",
+    "description": "Diagnose repository, service, CI, dependency, and backup issues",
+    "prompt_file": ".hermes/profiles/cti-maintainer/prompts/weekly-maintenance.md",
+    "workdir": "/home/$USER/code/threat-intel-agent/",
+    "model": "__SET_AND_PIN_MODEL__",
+    "provider": "__SET_AND_PIN_PROVIDER__",
+    "toolsets": ["repository_read_write_branch", "github_issue_and_draft_pr", "test_lint_type_build_security", "read_only_production_logs"],
+    "preflight": "verify_repo_and_branch_state",
+    "wakeAgent": true,
+    "wakeAgentWhenPreflightEmpty": false,
+    "success_output": "SILENT"
+  },
+  {
+    "id": "cti-maintainer-approved-release",
+    "schedule": "0 7 * * 1",
+    "description": "Run only if an explicit approved immutable release is present",
+    "prompt_file": ".hermes/profiles/cti-maintainer/prompts/approved-release.md",
+    "workdir": "/home/$USER/code/threat-intel-agent/",
+    "model": "__SET_AND_PIN_MODEL__",
+    "provider": "__SET_AND_PIN_PROVIDER__",
+    "toolsets": ["private_operations_api", "docker_compose_approved_workflows", "one_shot_migration_deployment_with_approval"],
+    "preflight": "require_explicit_approval_and_immutable_release",
+    "wakeAgent": true,
+    "wakeAgentWhenPreflightEmpty": false,
+    "success_output": "SILENT"
+  },
+  {
+    "id": "cti-maintainer-recovery",
+    "schedule": "*/15 * * * *",
+    "description": "Diagnose health failures and perform only safe reversible recovery",
+    "prompt_file": ".hermes/profiles/cti-maintainer/prompts/recovery.md",
+    "workdir": "/home/$USER/code/threat-intel-agent/",
+    "model": "__SET_AND_PIN_MODEL__",
+    "provider": "__SET_AND_PIN_PROVIDER__",
+    "toolsets": ["private_operations_api", "read_only_production_logs", "docker_compose_approved_workflows"],
+    "preflight": "check_watchdog_event",
+    "wakeAgent": true,
+    "wakeAgentWhenPreflightEmpty": false,
+    "success_output": "SILENT"
+  },
+  {
+    "id": "cti-maintainer-health-watchdog",
+    "schedule": "*/5 * * * *",
+    "description": "Script-only health checks; no model invocation",
+    "command": "/home/$USER/code/threat-intel-agent/.hermes/profiles/cti-maintainer/scripts/health-watchdog.sh",
+    "workdir": "/home/$USER/code/threat-intel-agent/",
+    "toolsets": [],
+    "wakeAgent": false,
+    "success_output": "SILENT"
+  }
+]

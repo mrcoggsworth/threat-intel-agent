@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from hermes_cti import __version__
+from hermes_cti.analyst.routes import router as analyst_router
 from hermes_cti.api.routes import router
 from hermes_cti.core.logging import (
     configure_logging,
@@ -46,11 +47,15 @@ def create_app(
         resolved_settings
     )
     app.state.enrichment_service = enrichment_service
-    app.state.portal_service = portal_service or PortalService(
-        database=Database(resolved_settings)
+    database = (
+        Database(resolved_settings)
         if resolved_settings.database_url is not None
         else None
     )
+    app.state.database = database
+    app.state.portal_service = portal_service or PortalService(database=database)
+    if portal_service is not None and database is None:
+        app.state.database = getattr(portal_service, "database", None)
     app.add_middleware(PortalSecurityHeadersMiddleware)
     app.mount(
         "/assets",
@@ -60,6 +65,7 @@ def create_app(
         name="portal-assets",
     )
     app.include_router(router)
+    app.include_router(analyst_router)
     app.include_router(portal_router)
 
     @app.exception_handler(PortalUnavailableError)
