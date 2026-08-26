@@ -67,6 +67,8 @@ class SqlPortalReadRepository:
             statement = statement.where(
                 or_(
                     Report.headline.ilike(term),
+                    Report.slug.ilike(term),
+                    Report.public_id.ilike(term),
                     cast(ReportVersion.structured_content, String).ilike(term),
                 )
             )

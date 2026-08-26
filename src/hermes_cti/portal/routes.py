@@ -11,8 +11,10 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import ValidationError
 
 from hermes_cti.api.dependencies import get_portal_service, require_admin_token
 from hermes_cti.models.contracts import Remediation, Severity, ThreatHunt
@@ -35,26 +37,39 @@ templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templat
 
 def _query(
     q: str | None = Query(default=None, max_length=200),
-    severity: Annotated[list[Severity] | None, Query()] = None,
-    confidence_min: float | None = Query(default=None, ge=0, le=1),
-    date_from: date | None = None,
-    date_to: date | None = None,
-    change_state: Annotated[list[ReportChangeState] | None, Query()] = None,
-    sort: ReportSort = ReportSort.PRIORITY,
-    page: int = Query(default=1, ge=1, le=10_000),
-    page_size: int = Query(default=20, ge=1, le=100),
+    severity: Annotated[list[Severity | str] | None, Query()] = None,
+    confidence_min: float | str | None = Query(default=None),
+    date_from: date | str | None = Query(default=None),
+    date_to: date | str | None = Query(default=None),
+    change_state: Annotated[list[ReportChangeState | str] | None, Query()] = None,
+    sort: ReportSort | str = Query(default=ReportSort.PRIORITY),
+    page: int | str = Query(default=1),
+    page_size: int | str = Query(default=20),
 ) -> PortalQuery:
-    return PortalQuery(
-        search=q,
-        severities=tuple(severity or ()),
-        confidence_min=confidence_min,
-        date_from=date_from,
-        date_to=date_to,
-        change_states=tuple(change_state or ()),
-        sort=sort,
-        page=page,
-        page_size=page_size,
-    )
+    try:
+        return PortalQuery(
+            search=q,
+            severities=severity,
+            confidence_min=confidence_min,
+            date_from=date_from,
+            date_to=date_to,
+            change_states=change_state,
+            sort=sort,
+            page=page,
+            page_size=page_size,
+        )
+    except ValidationError as exc:
+        errors: list[Any] = []
+        for err in exc.errors():
+            err_dict = dict(err)
+            raw_loc: tuple[str | int, ...] = err_dict.get("loc", ())  # type: ignore[assignment]
+            err_dict["loc"] = ("query", *raw_loc)
+            errors.append(err_dict)
+        raise RequestValidationError(errors=errors) from exc
+    except ValueError as exc:
+        raise RequestValidationError(
+            errors=[{"loc": ("query",), "msg": str(exc), "type": "value_error"}]
+        ) from exc
 
 
 def _etag_payload(payload: Any) -> str:

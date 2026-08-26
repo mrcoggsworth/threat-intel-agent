@@ -238,3 +238,80 @@ def test_query_contract_rejects_reversed_dates() -> None:
         assert "date_from" in str(exc)
     else:
         raise AssertionError("reversed date range was accepted")
+
+
+def test_search_works_with_empty_optional_filters() -> None:
+    """Empty string filter values from HTML forms must not cause 422 errors."""
+    c = client()
+    # The original bug: searching with an empty confidence_min field.
+    response = c.get(
+        "/api/v1/public/reports?q=exploitation&confidence_min=&sort=priority"
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["query"]["confidence_min"] is None
+    assert body["query"]["search"] == "exploitation"
+
+    # All empty optional strings (browser submits these on a blank form).
+    response = c.get(
+        "/api/v1/public/reports"
+        "?q=&confidence_min=&date_from=&date_to="
+        "&severity=&change_state=&sort=priority"
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["query"]["search"] is None
+    assert body["query"]["confidence_min"] is None
+    assert body["query"]["date_from"] is None
+    assert body["query"]["date_to"] is None
+
+
+def test_search_works_with_single_filter_only() -> None:
+    """Each filter should work independently without requiring other fields."""
+    c = client()
+
+    # Search bar only
+    assert c.get("/api/v1/public/reports?q=exploitation").status_code == 200
+
+    # Severity only
+    assert c.get("/api/v1/public/reports?severity=high").status_code == 200
+
+    # Confidence only
+    r = c.get("/api/v1/public/reports?confidence_min=0.5")
+    assert r.status_code == 200
+    assert r.json()["query"]["confidence_min"] == 0.5
+
+    # Sort only
+    r = c.get("/api/v1/public/reports?sort=newest")
+    assert r.status_code == 200
+    assert r.json()["query"]["sort"] == "newest"
+
+
+def test_empty_filters_work_on_html_and_htmx_routes() -> None:
+    """The HTML page and HTMX partial must also tolerate empty filter strings."""
+    c = client()
+    assert c.get("/reports?q=CVE&confidence_min=").status_code == 200
+    assert c.get("/partials/reports?q=CVE&confidence_min=").status_code == 200
+    assert c.get(
+        "/api/v1/public/search?q=CVE&confidence_min="
+    ).status_code == 200
+
+
+def test_query_contract_cleans_empty_strings() -> None:
+    """PortalQuery field validators should coerce empty strings to defaults."""
+    q = PortalQuery(
+        search="  ",
+        confidence_min="",  # type: ignore[arg-type]
+        date_from="",  # type: ignore[arg-type]
+        date_to="",  # type: ignore[arg-type]
+        sort="",  # type: ignore[arg-type]
+        page="",  # type: ignore[arg-type]
+        page_size="",  # type: ignore[arg-type]
+    )
+    assert q.search is None
+    assert q.confidence_min is None
+    assert q.date_from is None
+    assert q.date_to is None
+    assert q.sort.value == "priority"
+    assert q.page == 1
+    assert q.page_size == 20

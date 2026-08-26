@@ -264,7 +264,10 @@ async def evidence(
                 )
             )
         indicator_result = await session.execute(
-            ind_query.order_by(IndicatorObservation.source_document_id, IndicatorObservation.id).limit(limit * 20)
+            ind_query.order_by(
+                IndicatorObservation.source_document_id,
+                IndicatorObservation.id,
+            ).limit(limit * 20)
         )
 
     document_payload = tuple(

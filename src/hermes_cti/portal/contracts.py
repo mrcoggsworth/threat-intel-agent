@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from datetime import date
 from enum import StrEnum
+from typing import Any
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from hermes_cti.correlation.contracts import CorrelationRelationship
 from hermes_cti.models.contracts import (
@@ -57,6 +58,67 @@ class PortalQuery(ContractModel):
     sort: ReportSort = ReportSort.PRIORITY
     page: int = Field(default=1, ge=1, le=10_000)
     page_size: int = Field(default=20, ge=1, le=100)
+
+    @field_validator("search", mode="before")
+    @classmethod
+    def _clean_search(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            v = v.strip()
+            return v if v else None
+        return v
+
+    @field_validator("confidence_min", mode="before")
+    @classmethod
+    def _clean_confidence_min(cls, v: Any) -> Any:
+        if v is None or v == "" or (isinstance(v, str) and not v.strip()):
+            return None
+        return v
+
+    @field_validator("date_from", "date_to", mode="before")
+    @classmethod
+    def _clean_dates(cls, v: Any) -> Any:
+        if v is None or v == "" or (isinstance(v, str) and not v.strip()):
+            return None
+        return v
+
+    @field_validator("severities", mode="before")
+    @classmethod
+    def _clean_severities(cls, v: Any) -> Any:
+        if v is None or v == "":
+            return ()
+        if isinstance(v, (list, tuple)):
+            return tuple(item for item in v if item != "" and item is not None)
+        return v
+
+    @field_validator("change_states", mode="before")
+    @classmethod
+    def _clean_change_states(cls, v: Any) -> Any:
+        if v is None or v == "":
+            return ()
+        if isinstance(v, (list, tuple)):
+            return tuple(item for item in v if item != "" and item is not None)
+        return v
+
+    @field_validator("sort", mode="before")
+    @classmethod
+    def _clean_sort(cls, v: Any) -> Any:
+        if v is None or v == "" or (isinstance(v, str) and not v.strip()):
+            return ReportSort.PRIORITY
+        return v
+
+    @field_validator("page", mode="before")
+    @classmethod
+    def _clean_page(cls, v: Any) -> Any:
+        if v is None or v == "" or (isinstance(v, str) and not v.strip()):
+            return 1
+        return v
+
+    @field_validator("page_size", mode="before")
+    @classmethod
+    def _clean_page_size(cls, v: Any) -> Any:
+        if v is None or v == "" or (isinstance(v, str) and not v.strip()):
+            return 20
+        return v
 
     @model_validator(mode="after")
     def validate_dates(self) -> PortalQuery:
