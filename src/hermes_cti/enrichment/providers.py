@@ -528,6 +528,16 @@ class VirusTotalProvider(BaseProvider):
         "sha256": "files",
     }
 
+    _gui_kind_map = {
+        "ipv4": "ip-address",
+        "ipv6": "ip-address",
+        "domain": "domain",
+        "url": "url",
+        "md5": "file",
+        "sha1": "file",
+        "sha256": "file",
+    }
+
     def __init__(self, url: str, **kwargs: Any) -> None:
         super().__init__("virustotal", **kwargs)
         self.url = url.rstrip("/")
@@ -538,6 +548,7 @@ class VirusTotalProvider(BaseProvider):
         if request.query_kind not in self._kinds:
             raise ProviderSchemaError("VirusTotal requires an approved indicator kind")
         vt_kind = self._kind_map.get(request.query_kind, request.query_kind)
+        vt_gui_kind = self._gui_kind_map.get(request.query_kind, request.query_kind)
         if request.query_kind == "url":
             target = base64.urlsafe_b64encode(request.query_key.encode()).decode().rstrip("=")
         else:
@@ -561,7 +572,7 @@ class VirusTotalProvider(BaseProvider):
                     },
                     "tags": [],
                     "popular_threat_classification": None,
-                    "graph_url": f"https://www.virustotal.com/gui/{request.query_kind}/{target}",
+                    "graph_url": f"https://www.virustotal.com/gui/search/{quote(request.query_key, safe='')}",
                     "hunting_available": False,
                 }, FetchResult(
                     url=f"{self.url}/{vt_kind}/{target}",
@@ -584,7 +595,7 @@ class VirusTotalProvider(BaseProvider):
                 str(tag) for tag in attrs.get("tags", []) if isinstance(tag, str)
             ),
             "popular_threat_classification": attrs.get("popular_threat_classification"),
-            "graph_url": f"https://www.virustotal.com/gui/{request.query_kind}/{target}",
+            "graph_url": f"https://www.virustotal.com/gui/{vt_gui_kind}/{target}",
             "hunting_available": True,
         }, fetch
 
