@@ -14,7 +14,10 @@ document.addEventListener("click", (event) => {
       shell.setAttribute("aria-hidden", "false");
       const noHistory = link.getAttribute("data-no-history") === "true";
       if (!noHistory && link.href && link.href !== window.location.href && !link.href.startsWith("javascript:")) {
+        (window as any)._setModalHistoryPushed?.(true);
         history.pushState({ report: link.href }, "", link.href);
+      } else {
+        (window as any)._setModalHistoryPushed?.(false);
       }
       shell.querySelector<HTMLElement>("[data-dialog]")?.focus();
     })

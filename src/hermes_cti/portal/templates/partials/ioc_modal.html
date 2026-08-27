@@ -148,9 +148,10 @@
             <span class="font-bold text-sm text-slate-900">AlienVault OTX</span>
             <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">v1 Indicators</span>
           </div>
+          {% set otx_data = otx_data or ot_data or (otx_result.normalized_result if otx_result else None) %}
           {% if otx_result and otx_result.status.value in ('success', 'stale') %}
-            <span class="text-xs font-semibold uppercase px-2 py-0.5 rounded {% if ot_data and (ot_data.pulse_count or 0) > 0 %}bg-rose-50 text-rose-700 border border-rose-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
-              {{ ot_data.pulse_count or 0 if ot_data else 0 }} Pulses
+            <span class="text-xs font-semibold uppercase px-2 py-0.5 rounded {% if otx_data and (otx_data.pulse_count or 0) > 0 %}bg-rose-50 text-rose-700 border border-rose-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+              {{ otx_data.pulse_count or 0 if otx_data else 0 }} Pulses
             </span>
           {% elif otx_result and otx_result.status.value == 'disabled' %}
             <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">Not Configured</span>
@@ -159,24 +160,24 @@
           {% endif %}
         </div>
 
-        {% if ot_data and otx_result and otx_result.status.value in ('success', 'stale') %}
+        {% if otx_data and otx_result and otx_result.status.value in ('success', 'stale') %}
           <div class="space-y-2">
-            <p class="text-xs text-slate-700 font-medium">Found in <strong class="text-slate-900">{{ ot_data.pulse_count or 0 }}</strong> threat intelligence pulses.</p>
-            {% if ot_data.pulse_names %}
+            <p class="text-xs text-slate-700 font-medium">Found in <strong class="text-slate-900">{{ otx_data.pulse_count or 0 }}</strong> threat intelligence pulses.</p>
+            {% if otx_data.pulse_names %}
             <div class="space-y-1">
               <span class="text-xs font-semibold text-slate-700">Recent Pulses:</span>
               <ul class="text-xs text-slate-600 space-y-1 list-inside list-disc">
-                {% for name in ot_data.pulse_names[:5] %}
-                <li class="truncate">{{ name }}</li>
+                {% for pulse in otx_data.pulse_names[:5] %}
+                <li class="truncate">{{ pulse }}</li>
                 {% endfor %}
               </ul>
             </div>
             {% endif %}
           </div>
         {% elif otx_result and otx_result.status.value == 'disabled' %}
-          <p class="text-xs text-slate-500 italic">AlienVault OTX enrichment is disabled. Set OTX_API_KEY to enable live indicator pulse lookup.</p>
+          <p class="text-xs text-slate-500 italic">AlienVault OTX enrichment is disabled. Set OTX_API_KEY to enable pulse correlation.</p>
         {% else %}
-          <p class="text-xs text-slate-500 italic">{{ otx_result.error_detail or 'No OTX pulse response available.' if otx_result else 'Indicator kind not queried.' }}</p>
+          <p class="text-xs text-slate-500 italic">{{ otx_result.error_detail or 'No OTX pulse response available.' if otx_result else 'Not queried.' }}</p>
         {% endif %}
       </div>
 

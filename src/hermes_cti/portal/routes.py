@@ -347,7 +347,7 @@ async def report_ioc_modal_partial(
             "abuse_result": abuse_result,
             "abuse_data": abuse_result.normalized_result if abuse_result else None,
             "otx_result": otx_result,
-            "ot_data": otx_result.normalized_result if otx_result else None,
+            "otx_data": otx_result.normalized_result if otx_result else None,
         },
     )
 

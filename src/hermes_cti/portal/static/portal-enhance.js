@@ -19,7 +19,10 @@
         shell.setAttribute("aria-hidden", "false");
         var noHistory = link.getAttribute("data-no-history") === "true";
         if (!noHistory && link.href && link.href !== window.location.href && !link.href.startsWith("javascript:")) {
+          if (window._setModalHistoryPushed) window._setModalHistoryPushed(true);
           history.pushState({ report: link.href }, "", link.href);
+        } else {
+          if (window._setModalHistoryPushed) window._setModalHistoryPushed(false);
         }
         var dialog = shell.querySelector("[data-dialog]");
         if (dialog) dialog.focus();

@@ -235,6 +235,7 @@ class AsyncHTTPClient:
                             "http_error",
                             f"HTTP {response.status_code}",
                             attempt,
+                            status_code=response.status_code,
                         )
                     length = response.headers.get("content-length")
                     if length is not None and int(length) > max_response_bytes:

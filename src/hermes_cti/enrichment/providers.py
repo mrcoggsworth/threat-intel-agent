@@ -559,7 +559,7 @@ class VirusTotalProvider(BaseProvider):
                 headers={"x-apikey": self._api_key or ""},
             )
         except FetchError as exc:
-            if exc.status_code == 404:
+            if exc.status_code == 404 or "404" in exc.detail:
                 return {
                     "indicator": request.query_key,
                     "not_found": True,
@@ -631,7 +631,7 @@ class OTXProvider(BaseProvider):
                 headers={"X-OTX-API-KEY": self._api_key or ""},
             )
         except FetchError as exc:
-            if exc.status_code == 404:
+            if exc.status_code == 404 or "404" in exc.detail:
                 return {
                     "indicator": request.query_key,
                     "not_found": True,
