@@ -10,6 +10,7 @@
   "scripts": {
     "build:css": "tailwindcss -i src/hermes_cti/portal/static/input.css -o src/hermes_cti/portal/static/portal.css --minify",
     "watch:css": "tailwindcss -i src/hermes_cti/portal/static/input.css -o src/hermes_cti/portal/static/portal.css --watch",
+    "update": "./scripts/update-app.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
