@@ -141,3 +141,10 @@ Thumbs.db
 # Git worktrees
 .worktrees/
 
+# Local test outputs, analyst runs, and scratch artifacts
+portal/
+evidence/
+*.dump.enc
+ingestion-manifest*.json
+extraction*.json
+
