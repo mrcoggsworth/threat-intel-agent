@@ -26,7 +26,12 @@ from hermes_cti.enrichment.cache import EnrichmentCache
 from hermes_cti.enrichment.providers import build_providers
 from hermes_cti.enrichment.service import EnrichmentService
 from hermes_cti.extraction.pipeline import refang_text
-from hermes_cti.models.contracts import Remediation, Severity, ThreatHunt
+from hermes_cti.models.contracts import (
+    AttackTechniqueMapping,
+    Remediation,
+    Severity,
+    ThreatHunt,
+)
 from hermes_cti.portal.contracts import (
     PortalQuery,
     PrivateDraftPage,
@@ -352,6 +357,73 @@ async def report_ioc_modal_partial(
     )
 
 
+def _mitre_attack_url(attack_id: str) -> str:
+    """Build the official canonical MITRE ATT&CK reference URL."""
+    clean = attack_id.strip().upper()
+    if "." in clean:
+        parts = clean.split(".", 1)
+        return f"https://attack.mitre.org/techniques/{parts[0]}/{parts[1]}/"
+    return f"https://attack.mitre.org/techniques/{clean}/"
+
+
+@router.get("/partials/reports/{identifier}/attack-modal", response_class=HTMLResponse)
+@router.get("/partials/attack-modal", response_class=HTMLResponse)
+async def report_attack_modal_partial(
+    request: Request,
+    attack_id: str = Query(..., min_length=1, max_length=64),
+    identifier: str | None = None,
+    service: PortalService = Depends(get_portal_service),
+) -> HTMLResponse:  # noqa: B008
+    normalized_id = attack_id.strip().upper()
+    headline = None
+    report_slug = None
+    mapping: AttackTechniqueMapping | None = None
+
+    if identifier is not None:
+        detail = await _public_detail(service, identifier)
+        headline = detail.summary.headline
+        report_slug = detail.summary.slug
+        mapping = next(
+            (m for m in detail.attack_mappings if m.attack_id.upper() == normalized_id),
+            None,
+        )
+
+    mitre_url = (
+        str(mapping.description_reference)
+        if mapping and mapping.description_reference
+        else _mitre_attack_url(normalized_id)
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/attack_modal.html",
+        context={
+            "request": request,
+            "attack_id": normalized_id,
+            "mapping": mapping,
+            "report_headline": headline,
+            "report_slug": report_slug,
+            "mitre_url": mitre_url,
+        },
+    )
+
+
+@router.get("/techniques/{attack_id}", response_class=HTMLResponse)
+async def technique_page(
+    request: Request,
+    attack_id: str,
+    service: PortalService = Depends(get_portal_service),
+) -> HTMLResponse:  # noqa: B008
+    normalized_id = attack_id.strip().upper()
+    query = PortalQuery(search=normalized_id, page_size=20)
+    page = await service.list_reports(query)
+    return templates.TemplateResponse(
+        request=request,
+        name="reports.html",
+        context=_context(request, page=page),
+    )
+
+
 @router.get(
     "/partials/reports/{identifier}/section/{section}", response_class=HTMLResponse
 )
@@ -361,13 +433,25 @@ async def report_section_partial(
     section: str,
     service: PortalService = Depends(get_portal_service),
 ) -> HTMLResponse:  # noqa: B008
+    detail = await _public_detail(service, identifier)
     value = await service.get_section(identifier, section)
     if value is None:
         raise HTTPException(status_code=404, detail="report section not found")
+    template_map = {
+        "iocs": "partials/iocs.html",
+        "attack": "partials/attack.html",
+        "evidence": "partials/evidence.html",
+        "cves": "partials/vulnerabilities.html",
+        "vulnerabilities": "partials/vulnerabilities.html",
+        "hunt": "partials/hunt.html",
+        "remediation": "partials/remediation.html",
+        "detections": "partials/detections.html",
+    }
+    template_name = template_map.get(section, "partials/section.html")
     return templates.TemplateResponse(
         request=request,
-        name="partials/section.html",
-        context={"request": request, "section": section, "value": value},
+        name=template_name,
+        context={"request": request, "detail": detail, "section": section, "value": value},
     )
 
 
