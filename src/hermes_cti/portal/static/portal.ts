@@ -1,11 +1,6 @@
 /** Progressive enhancement only: dialog focus, history, and HTMX-compatible links. */
 const dialogShell = document.querySelector<HTMLElement>("#report-dialog");
 let returnFocus: HTMLElement | null = null;
-let historyPushed = false;
-
-(window as any)._setModalHistoryPushed = (pushed: boolean) => {
-  historyPushed = pushed;
-};
 
 function closeDialog(): void {
   if (!dialogShell) return;
@@ -14,10 +9,6 @@ function closeDialog(): void {
   dialogShell.replaceChildren();
   returnFocus?.focus();
   returnFocus = null;
-  if (historyPushed) {
-    historyPushed = false;
-    history.back();
-  }
 }
 
 function openDialog(link: HTMLElement): void {
@@ -25,10 +16,8 @@ function openDialog(link: HTMLElement): void {
   returnFocus = link;
   dialogShell.hidden = false;
   dialogShell.setAttribute("aria-hidden", "false");
-  const noHistory = link.getAttribute("data-no-history") === "true";
   const href = link.getAttribute("href");
-  if (!noHistory && href && href !== window.location.href && !href.startsWith("javascript:")) {
-    historyPushed = true;
+  if (href && href !== window.location.href && !href.startsWith("javascript:")) {
     history.pushState({ report: href }, "", href);
   }
   dialogShell.querySelector<HTMLElement>("[data-dialog]")?.focus();
@@ -39,18 +28,22 @@ document.addEventListener("click", (event) => {
   const link = target.closest<HTMLElement>("[data-report-link]");
   if (link && dialogShell && !dialogShell.hidden) return;
   if (link && dialogShell) openDialog(link);
-  if (target.closest("[data-dialog-close]")) {
+  if (target.closest("[data-dialog-close]") || target.classList.contains("dialog-backdrop")) {
     event.preventDefault();
     closeDialog();
+    history.back();
   }
 });
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && dialogShell && !dialogShell.hidden) {
     closeDialog();
+    history.back();
   }
 });
 
 window.addEventListener("popstate", () => {
-  if (dialogShell && !location.pathname.startsWith("/reports/")) closeDialog();
+  if (dialogShell && !dialogShell.hidden) {
+    closeDialog();
+  }
 });

@@ -17,12 +17,8 @@
         shell.innerHTML = html;
         shell.hidden = false;
         shell.setAttribute("aria-hidden", "false");
-        var noHistory = link.getAttribute("data-no-history") === "true";
-        if (!noHistory && link.href && link.href !== window.location.href && !link.href.startsWith("javascript:")) {
-          if (window._setModalHistoryPushed) window._setModalHistoryPushed(true);
+        if (link.href && link.href !== window.location.href && !link.href.startsWith("javascript:")) {
           history.pushState({ report: link.href }, "", link.href);
-        } else {
-          if (window._setModalHistoryPushed) window._setModalHistoryPushed(false);
         }
         var dialog = shell.querySelector("[data-dialog]");
         if (dialog) dialog.focus();
@@ -33,13 +29,5 @@
           window.location.assign(link.href);
         }
       });
-  });
-
-  document.addEventListener("click", function (event) {
-    var target = event.target;
-    if (target.closest("[data-dialog-close]")) {
-      shell.hidden = true;
-      shell.setAttribute("aria-hidden", "true");
-    }
   });
 }());

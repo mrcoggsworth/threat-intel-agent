@@ -1,7 +1,7 @@
 {% if detail.iocs %}
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
   {% for item in detail.iocs %}
-  <a role="button" tabindex="0" class="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 hover:shadow-xs transition-all duration-150 cursor-pointer group no-underline text-inherit" data-report-link data-hx-get="/partials/reports/{{ detail.summary.slug }}/ioc-modal?type={{ item.indicator_type }}&value={{ item.display_value|urlencode }}" href="javascript:void(0)" data-no-history="true">
+  <a role="button" tabindex="0" class="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 hover:shadow-xs transition-all duration-150 cursor-pointer group no-underline text-inherit" data-report-link data-hx-get="/partials/reports/{{ detail.summary.slug }}/ioc-modal?type={{ item.indicator_type }}&value={{ item.display_value|urlencode }}" href="{{ detail.summary.canonical_url }}?ioc={{ item.display_value|urlencode }}">
     <div class="flex items-center gap-2 min-w-0">
       <span class="w-1.5 h-1.5 rounded-full bg-sky-500 group-hover:scale-125 transition-transform shrink-0"></span>
       <code class="font-mono text-xs text-sky-900 break-all select-all font-semibold group-hover:text-sky-700">{{ item.display_value }}</code>

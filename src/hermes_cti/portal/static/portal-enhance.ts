@@ -12,12 +12,8 @@ document.addEventListener("click", (event) => {
       shell.innerHTML = html;
       shell.hidden = false;
       shell.setAttribute("aria-hidden", "false");
-      const noHistory = link.getAttribute("data-no-history") === "true";
-      if (!noHistory && link.href && link.href !== window.location.href && !link.href.startsWith("javascript:")) {
-        (window as any)._setModalHistoryPushed?.(true);
+      if (link.href && link.href !== window.location.href && !link.href.startsWith("javascript:")) {
         history.pushState({ report: link.href }, "", link.href);
-      } else {
-        (window as any)._setModalHistoryPushed?.(false);
       }
       shell.querySelector<HTMLElement>("[data-dialog]")?.focus();
     })
@@ -27,14 +23,4 @@ document.addEventListener("click", (event) => {
         window.location.assign(link.href);
       }
     });
-});
-
-document.addEventListener("click", (event) => {
-  const target = event.target as HTMLElement;
-  const shell = document.querySelector<HTMLElement>("#report-dialog");
-  if (!shell) return;
-  if (target.closest("[data-dialog-close]")) {
-    shell.hidden = true;
-    shell.setAttribute("aria-hidden", "true");
-  }
 });
