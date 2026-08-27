@@ -1,4 +1,4 @@
-/* Progressive enhancement: dialog lifecycle, backdrop dismissal, keyboard shortcuts, history popstate, and theme switching. */
+/* Progressive enhancement: dialog lifecycle, backdrop dismissal, keyboard shortcuts, history popstate, theme switching, and clipboard copying. */
 (function () {
   var validThemes = [
     "traditional-light",
@@ -75,10 +75,67 @@
     initThemeSelector();
   }
 
+  // Copy text to clipboard with fallback
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).then(
+        function () {
+          return true;
+        },
+        function () {
+          return false;
+        }
+      );
+    }
+
+    try {
+      var textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return Promise.resolve(ok);
+    } catch (e) {
+      return Promise.resolve(false);
+    }
+  }
+
   document.addEventListener("click", function (event) {
     var target = event.target;
     if (!target) return;
 
+    // Handle copy-to-clipboard button
+    var copyBtn = target.closest("[data-copy-target]");
+    if (copyBtn) {
+      event.preventDefault();
+      var card = copyBtn.closest(".detection");
+      var codeEl = card ? card.querySelector("pre code") : null;
+      var textToCopy = codeEl ? codeEl.textContent || "" : "";
+
+      if (!textToCopy) return;
+
+      copyText(textToCopy).then(function (success) {
+        if (success) {
+          var labelEl = copyBtn.querySelector(".copy-label");
+          var prevLabel = labelEl ? labelEl.textContent : "Copy";
+          var prevClass = copyBtn.className;
+
+          if (labelEl) labelEl.textContent = "Copied!";
+          copyBtn.classList.add("bg-emerald-800", "text-emerald-200", "border-emerald-600");
+
+          setTimeout(function () {
+            if (labelEl) labelEl.textContent = prevLabel;
+            copyBtn.className = prevClass;
+          }, 2000);
+        }
+      });
+      return;
+    }
+
+    // Handle dialog close button and backdrop
     if (target.closest("[data-dialog-close]") || target.classList.contains("dialog-backdrop")) {
       event.preventDefault();
       closeDialog();
