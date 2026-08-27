@@ -1,5 +1,30 @@
-/** Progressive enhancement: dialog lifecycle, backdrop dismissal, keyboard shortcuts, and history popstate. */
+/** Progressive enhancement: dialog lifecycle, backdrop dismissal, keyboard shortcuts, history popstate, and theme switching. */
 (function () {
+  const validThemes = [
+    "traditional-light",
+    "traditional-dark",
+    "cyberpunk",
+    "synthwave",
+    "tokyo-night",
+    "darcula",
+    "monokai",
+    "synthwave-metal"
+  ];
+
+  function applySavedTheme(): void {
+    try {
+      const saved = localStorage.getItem("hermes-theme");
+      if (saved && validThemes.includes(saved)) {
+        document.documentElement.setAttribute("data-theme", saved);
+      }
+    } catch {
+      // Ignore localStorage access errors
+    }
+  }
+
+  // Apply theme immediately on script execution
+  applySavedTheme();
+
   const shell = document.querySelector<HTMLElement>("#report-dialog");
   let returnFocus: HTMLElement | null = null;
 
@@ -19,6 +44,38 @@
   (window as unknown as Record<string, unknown>).__hermesSetReturnFocus = function (el: HTMLElement | null) {
     returnFocus = el;
   };
+
+  // Initialize theme selector
+  function initThemeSelector(): void {
+    const selector = document.querySelector<HTMLSelectElement>("#theme-selector");
+    if (!selector) return;
+
+    try {
+      const saved = localStorage.getItem("hermes-theme") || "traditional-light";
+      if (validThemes.includes(saved)) {
+        selector.value = saved;
+        document.documentElement.setAttribute("data-theme", saved);
+      }
+    } catch {
+      // Ignore
+    }
+
+    selector.addEventListener("change", () => {
+      const theme = selector.value;
+      document.documentElement.setAttribute("data-theme", theme);
+      try {
+        localStorage.setItem("hermes-theme", theme);
+      } catch {
+        // Ignore
+      }
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initThemeSelector);
+  } else {
+    initThemeSelector();
+  }
 
   document.addEventListener("click", (event: MouseEvent) => {
     const target = event.target as HTMLElement | null;
