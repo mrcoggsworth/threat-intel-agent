@@ -550,7 +550,11 @@ class VirusTotalProvider(BaseProvider):
         vt_kind = self._kind_map.get(request.query_kind, request.query_kind)
         vt_gui_kind = self._gui_kind_map.get(request.query_kind, request.query_kind)
         if request.query_kind == "url":
-            target = base64.urlsafe_b64encode(request.query_key.encode()).decode().rstrip("=")
+            target = (
+                base64.urlsafe_b64encode(request.query_key.encode())
+                .decode()
+                .rstrip("=")
+            )
         else:
             target = quote(request.query_key, safe="")
         try:
@@ -572,7 +576,10 @@ class VirusTotalProvider(BaseProvider):
                     },
                     "tags": [],
                     "popular_threat_classification": None,
-                    "graph_url": f"https://www.virustotal.com/gui/search/{quote(request.query_key, safe='')}",
+                    "graph_url": (
+                        "https://www.virustotal.com/gui/search/"
+                        f"{quote(request.query_key, safe='')}"
+                    ),
                     "hunting_available": False,
                 }, FetchResult(
                     url=f"{self.url}/{vt_kind}/{target}",

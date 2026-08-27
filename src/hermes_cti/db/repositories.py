@@ -280,10 +280,7 @@ class PersistenceRepository:
 
         manifest = collection.manifest
         run = await self.create_or_get_run(session, manifest)
-        if (
-            run.status == RunStatus.COMPLETED.value
-            and run.completed_at is not None
-        ):
+        if run.status == RunStatus.COMPLETED.value and run.completed_at is not None:
             return run
         for source_config in registry.sources:
             await self.upsert_source(session, source_config)

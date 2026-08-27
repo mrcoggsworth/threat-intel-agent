@@ -137,3 +137,7 @@ dmypy.json
 .DS_Store?
 ehthumbs.db
 Thumbs.db
+
+# Git worktrees
+.worktrees/
+

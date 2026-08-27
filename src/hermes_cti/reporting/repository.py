@@ -315,9 +315,7 @@ class ReportRepository:
                     if evidence.source_document_id in existing_source_doc_ids
                     else None
                 )
-                links.add(
-                    (doc_id, evidence_id, tuple(sorted(set(urls))))
-                )
+                links.add((doc_id, evidence_id, tuple(sorted(set(urls)))))
             if supporting_urls:
                 links.add((None, None, tuple(sorted(set(supporting_urls)))))
             if not links and content_hash is not None:

@@ -1,49 +1,50 @@
-/** Progressive enhancement only: dialog focus, history, and HTMX-compatible links. */
-const dialogShell = document.querySelector<HTMLElement>("#report-dialog");
-let returnFocus: HTMLElement | null = null;
+/** Progressive enhancement: dialog lifecycle, backdrop dismissal, keyboard shortcuts, and history popstate. */
+(function () {
+  const shell = document.querySelector<HTMLElement>("#report-dialog");
+  let returnFocus: HTMLElement | null = null;
 
-function closeDialog(): void {
-  if (!dialogShell) return;
-  dialogShell.hidden = true;
-  dialogShell.setAttribute("aria-hidden", "true");
-  dialogShell.replaceChildren();
-  returnFocus?.focus();
-  returnFocus = null;
-}
-
-function openDialog(link: HTMLElement): void {
-  if (!dialogShell) return;
-  returnFocus = link;
-  dialogShell.hidden = false;
-  dialogShell.setAttribute("aria-hidden", "false");
-  const href = link.getAttribute("href");
-  if (href && href !== window.location.href && !href.startsWith("javascript:")) {
-    history.pushState({ report: href }, "", href);
+  function closeDialog(): void {
+    if (!shell) return;
+    shell.hidden = true;
+    shell.setAttribute("aria-hidden", "true");
+    shell.replaceChildren();
+    if (returnFocus) {
+      returnFocus.focus();
+      returnFocus = null;
+    }
   }
-  dialogShell.querySelector<HTMLElement>("[data-dialog]")?.focus();
-}
 
-document.addEventListener("click", (event) => {
-  const target = event.target as HTMLElement;
-  const link = target.closest<HTMLElement>("[data-report-link]");
-  if (link && dialogShell && !dialogShell.hidden) return;
-  if (link && dialogShell) openDialog(link);
-  if (target.closest("[data-dialog-close]") || target.classList.contains("dialog-backdrop")) {
-    event.preventDefault();
-    closeDialog();
-    history.back();
-  }
-});
+  // Expose global helpers for coordination with portal-enhance
+  (window as unknown as Record<string, unknown>).__hermesCloseDialog = closeDialog;
+  (window as unknown as Record<string, unknown>).__hermesSetReturnFocus = function (el: HTMLElement | null) {
+    returnFocus = el;
+  };
 
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && dialogShell && !dialogShell.hidden) {
-    closeDialog();
-    history.back();
-  }
-});
+  document.addEventListener("click", (event: MouseEvent) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
 
-window.addEventListener("popstate", () => {
-  if (dialogShell && !dialogShell.hidden) {
-    closeDialog();
-  }
-});
+    if (target.closest("[data-dialog-close]") || target.classList.contains("dialog-backdrop")) {
+      event.preventDefault();
+      closeDialog();
+      if (window.location.search.includes("ioc=") || window.location.search.includes("attack=") || window.location.pathname.match(/\/(hunt|remediation|detections)$/)) {
+        history.back();
+      }
+    }
+  });
+
+  document.addEventListener("keydown", (event: KeyboardEvent) => {
+    if (event.key === "Escape" && shell && !shell.hidden) {
+      closeDialog();
+      if (window.location.search.includes("ioc=") || window.location.search.includes("attack=") || window.location.pathname.match(/\/(hunt|remediation|detections)$/)) {
+        history.back();
+      }
+    }
+  });
+
+  window.addEventListener("popstate", () => {
+    if (shell && !shell.hidden) {
+      closeDialog();
+    }
+  });
+})();

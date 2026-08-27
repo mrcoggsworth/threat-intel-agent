@@ -113,7 +113,24 @@ class MemoryPortalService(PortalService):
 
     async def get_section(self, identifier: str, section: str):  # type: ignore[no-untyped-def]
         detail = await self.get_report(identifier)
-        return getattr(detail, section, None) if detail else None
+        if detail is None:
+            return None
+        sections = {
+            "executive-summary": detail.executive_summary,
+            "technical-analysis": detail.technical_analysis,
+            "evidence": detail.evidence,
+            "iocs": detail.iocs,
+            "cves": detail.vulnerabilities,
+            "vulnerabilities": detail.vulnerabilities,
+            "attack": detail.attack_mappings,
+            "detections": detail.detections,
+            "hunt": detail.hunt,
+            "remediation": detail.remediation,
+            "relationships": detail.historical_relationships,
+            "timeline": detail.timeline,
+            "confidence": {"confidence": detail.confidence, "caveats": detail.caveats},
+        }
+        return sections.get(section, getattr(detail, section, None))
 
     async def related(self, entity_type: str, entity_id: str) -> PublicRelatedReports:
         return PublicRelatedReports(
@@ -292,9 +309,7 @@ def test_empty_filters_work_on_html_and_htmx_routes() -> None:
     c = client()
     assert c.get("/reports?q=CVE&confidence_min=").status_code == 200
     assert c.get("/partials/reports?q=CVE&confidence_min=").status_code == 200
-    assert c.get(
-        "/api/v1/public/search?q=CVE&confidence_min="
-    ).status_code == 200
+    assert c.get("/api/v1/public/search?q=CVE&confidence_min=").status_code == 200
 
 
 def test_query_contract_cleans_empty_strings() -> None:
@@ -343,4 +358,3 @@ def test_component_modal_partials_and_action_pills() -> None:
         direct_res = c.get(f"/partials/reports/{slug}/{comp}")
         assert direct_res.status_code == 200
         assert 'role="dialog"' in direct_res.text
-
