@@ -157,3 +157,32 @@ def test_portal_ioc_modal_disabled_providers() -> None:
         html = response.text
         assert "198.51.100.22" in html
         assert "Not Configured" in html
+
+
+def test_portal_iocs_partial_rendering() -> None:
+    from hermes_cti.portal.routes import templates
+    from hermes_cti.models.contracts import EntityReference
+    from hermes_cti.reporting.contracts import ReportIOC
+    from uuid import uuid4
+
+    ioc_id = uuid4()
+    ioc = ReportIOC(
+        indicator=EntityReference(entity_type="indicator", entity_id=ioc_id),
+        display_value="198.51.100.22",
+        indicator_type="ipv4",
+        evidence_ids=(uuid4(),),
+    )
+
+
+    detail = {
+        "summary": {"slug": "test-slug", "canonical_url": "/reports/test-slug"},
+        "iocs": (ioc,),
+    }
+    
+    rendered = templates.get_template("partials/iocs.html").render(detail=detail)
+    assert "data-ioc-type=\"ipv4\"" in rendered
+    assert "data-ioc-value=\"198.51.100.22\"" in rendered
+    assert "select-none" in rendered
+    assert "pointer-events-none" in rendered
+
+
