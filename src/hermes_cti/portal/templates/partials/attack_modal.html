@@ -1,0 +1,104 @@
+<div class="dialog-backdrop" data-dialog-close></div>
+<section class="dialog" role="dialog" aria-modal="true" aria-labelledby="attack-modal-title" tabindex="-1" data-dialog>
+  <button class="dialog-close" type="button" data-dialog-close aria-label="Close dialog">×</button>
+  <div class="dialog-body space-y-5 pr-6">
+    <!-- Header -->
+    <div class="border-b border-slate-200 pb-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-sky-700 px-2 py-0.5 rounded bg-sky-50 border border-sky-200">MITRE ATT&amp;CK</span>
+        {% if mapping and mapping.tactic %}
+        <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-50 text-indigo-800 border border-indigo-200">{{ mapping.tactic }}</span>
+        {% endif %}
+        {% if mapping and mapping.confidence is not none %}
+        <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{{ "%.0f"|format(mapping.confidence * 100) }}% Confidence</span>
+        {% endif %}
+      </div>
+      <h1 id="attack-modal-title" class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 mt-2 flex flex-wrap items-center gap-2 select-all">
+        <span class="font-mono text-sky-700 font-extrabold">{{ attack_id }}</span>
+        {% if mapping and mapping.name %}
+        <span class="text-slate-800 font-sans text-lg font-semibold">· {{ mapping.name }}</span>
+        {% endif %}
+      </h1>
+      {% if report_headline %}
+      <p class="text-xs text-slate-500 mt-1">Observed in: <span class="font-medium text-slate-700">{{ report_headline }}</span></p>
+      {% endif %}
+    </div>
+
+    <!-- TTP Details Grid -->
+    <div class="space-y-4">
+      <!-- Technique Overview Card -->
+      <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm text-slate-900">Technique Profile</span>
+            <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">{{ mapping.framework_version if mapping and mapping.framework_version else 'Enterprise Matrix' }}</span>
+          </div>
+          {% if mitre_url %}
+          <a class="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 hover:text-sky-900 transition-colors" href="{{ mitre_url }}" target="_blank" rel="noopener noreferrer">
+            Official MITRE Spec ↗
+          </a>
+          {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+          <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+            <span class="block text-slate-500 font-medium">Tactic</span>
+            <span class="block font-bold text-slate-900 mt-0.5 text-sm">{{ mapping.tactic if mapping and mapping.tactic else 'Unassigned' }}</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+            <span class="block text-slate-500 font-medium">Framework</span>
+            <span class="block font-bold text-slate-900 mt-0.5 text-sm">{{ mapping.framework_version if mapping and mapping.framework_version else 'ATT&CK v14+' }}</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+            <span class="block text-slate-500 font-medium">Mapping Confidence</span>
+            <span class="block font-bold text-emerald-700 mt-0.5 text-sm">{{ "%.0f"|format(mapping.confidence * 100) if mapping and mapping.confidence is not none else '100' }}%</span>
+          </div>
+        </div>
+
+        {% if mapping and mapping.platforms %}
+        <div class="pt-1">
+          <span class="text-xs font-semibold text-slate-500 mr-1.5">Platforms:</span>
+          <div class="inline-flex flex-wrap items-center gap-1 mt-1">
+            {% for platform in mapping.platforms %}
+            <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">{{ platform }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Associated Report & Intelligence Context -->
+      {% if report_slug %}
+      <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 shadow-xs space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-sm text-slate-900">Intelligence Context</span>
+          <span class="text-xs font-medium text-slate-500">Report Artifacts</span>
+        </div>
+        <p class="text-xs text-slate-600">
+          This ATT&amp;CK technique is mapped to actionable detection engineering artifacts and threat hunt playbooks in this report.
+        </p>
+        <div class="flex flex-wrap items-center gap-2 pt-1">
+          <a class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-sky-700 text-white hover:bg-sky-800 transition" href="/reports/{{ report_slug }}">
+            View Full Report →
+          </a>
+          <a class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 transition" href="/reports/{{ report_slug }}/hunt">
+            Hunt Playbook
+          </a>
+          <a class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 transition" href="/reports/{{ report_slug }}/detections">
+            Detections
+          </a>
+          <a class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 transition" href="/reports/{{ report_slug }}/remediation">
+            Remediation
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer flex items-center justify-between pt-4 border-t border-slate-200">
+      <span class="text-xs text-slate-500">Hermes CTI ATT&amp;CK TTP Explorer</span>
+      <button class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition cursor-pointer" type="button" data-dialog-close>Close</button>
+    </div>
+  </div>
+</section>
