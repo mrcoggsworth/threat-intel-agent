@@ -205,9 +205,8 @@ async def evidence(
         return AnalystEvidenceResponse()
 
     async with database.session() as session:
-        doc_query = (
-            select(SourceDocument)
-            .join(RawArtifact, RawArtifact.id == SourceDocument.raw_artifact_id)
+        doc_query = select(SourceDocument).join(
+            RawArtifact, RawArtifact.id == SourceDocument.raw_artifact_id
         )
         if selected_run is not None:
             active_sources = select(SourceRun.source_id).where(
@@ -236,9 +235,8 @@ async def evidence(
             .order_by(EvidenceClaim.source_document_id, EvidenceClaim.id)
             .limit(limit * 20)
         )
-        ind_query = (
-            select(IndicatorObservation, Indicator)
-            .join(Indicator, Indicator.id == IndicatorObservation.indicator_id)
+        ind_query = select(IndicatorObservation, Indicator).join(
+            Indicator, Indicator.id == IndicatorObservation.indicator_id
         )
         if selected_run is not None:
             active_sources = select(SourceRun.source_id).where(

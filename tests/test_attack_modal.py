@@ -25,9 +25,7 @@ def test_portal_attack_modal_endpoint_with_report_attack_mapping() -> None:
         description_reference="https://attack.mitre.org/techniques/T1059/001/",
         confidence=0.9,
     )
-    bundle = portal_service.bundle.model_copy(
-        update={"attack_mappings": (mapping,)}
-    )
+    bundle = portal_service.bundle.model_copy(update={"attack_mappings": (mapping,)})
     portal_service.bundle = bundle
     portal_service.version.structured_content = json.loads(bundle.stable_json())
 
@@ -101,9 +99,7 @@ def test_portal_report_list_and_attack_section_triggers() -> None:
         description_reference="https://attack.mitre.org/techniques/T1059/001/",
         confidence=0.9,
     )
-    bundle = portal_service.bundle.model_copy(
-        update={"attack_mappings": (mapping,)}
-    )
+    bundle = portal_service.bundle.model_copy(update={"attack_mappings": (mapping,)})
     portal_service.bundle = bundle
     portal_service.version.structured_content = json.loads(bundle.stable_json())
 

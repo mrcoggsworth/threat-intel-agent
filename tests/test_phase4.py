@@ -1007,7 +1007,7 @@ async def test_publish_bundle_with_unmatched_source_document_id(
         ReportEvidenceType,
         ReportPipeline,
     )
-    from tests.test_phase7 import _fixture, EVIDENCE_ID
+    from tests.test_phase7 import EVIDENCE_ID, _fixture
 
     bundle = _fixture()
     evidence_with_unmatched_source = ReportEvidence(
@@ -1024,5 +1024,3 @@ async def test_publish_bundle_with_unmatched_source_document_id(
     async with database.transaction() as session:
         report = await pipeline.publish(session, bundle_with_source_doc)
         assert getattr(report, "state", None) == "published"
-
-

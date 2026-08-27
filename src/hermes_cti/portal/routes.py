@@ -334,9 +334,15 @@ async def report_ioc_modal_partial(
         indicator_value=refanged_value,
     )
 
-    vt_result = next((r for r in run_result.provider_results if r.provider == "virustotal"), None)
-    abuse_result = next((r for r in run_result.provider_results if r.provider == "abuseipdb"), None)
-    otx_result = next((r for r in run_result.provider_results if r.provider == "otx"), None)
+    vt_result = next(
+        (r for r in run_result.provider_results if r.provider == "virustotal"), None
+    )
+    abuse_result = next(
+        (r for r in run_result.provider_results if r.provider == "abuseipdb"), None
+    )
+    otx_result = next(
+        (r for r in run_result.provider_results if r.provider == "otx"), None
+    )
 
     return templates.TemplateResponse(
         request=request,
@@ -451,7 +457,12 @@ async def report_section_partial(
     return templates.TemplateResponse(
         request=request,
         name=template_name,
-        context={"request": request, "detail": detail, "section": section, "value": value},
+        context={
+            "request": request,
+            "detail": detail,
+            "section": section,
+            "value": value,
+        },
     )
 
 
