@@ -1,0 +1,185 @@
+<div class="dialog-backdrop"></div>
+<section class="dialog" role="dialog" aria-modal="true" aria-labelledby="ioc-modal-title" tabindex="-1" data-dialog>
+  <button class="dialog-close" type="button" data-dialog-close aria-label="Close dialog">×</button>
+  <div class="dialog-body space-y-5 pr-6">
+    <!-- Header -->
+    <div class="border-b border-slate-200 pb-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-sky-700 px-2 py-0.5 rounded bg-sky-50 border border-sky-200">{{ ioc_type }}</span>
+        <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded {% if result.status.value == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% elif result.status.value == 'partial' %}bg-amber-50 text-amber-700 border border-amber-200{% elif result.status.value == 'stale' %}bg-purple-50 text-purple-700 border border-purple-200{% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">{{ result.status.value }}</span>
+      </div>
+      <h1 id="ioc-modal-title" class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 mt-2 font-mono break-all select-all">{{ ioc_value }}</h1>
+      {% if report_headline %}
+      <p class="text-xs text-slate-500 mt-1">Observed in: <span class="font-medium text-slate-700">{{ report_headline }}</span></p>
+      {% endif %}
+    </div>
+
+    <!-- Provider Results Grid -->
+    <div class="space-y-4">
+      
+      <!-- VirusTotal Card -->
+      <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm text-slate-900">VirusTotal</span>
+            <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">v3 API</span>
+          </div>
+          {% if vt_result and vt_result.status.value in ('success', 'stale') %}
+            <span class="text-xs font-semibold uppercase px-2 py-0.5 rounded {% if vt_data and vt_data.last_analysis_stats and (vt_data.last_analysis_stats.malicious or 0) > 0 %}bg-rose-50 text-rose-700 border border-rose-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+              {% if vt_data and vt_data.last_analysis_stats and (vt_data.last_analysis_stats.malicious or 0) > 0 %}
+                {{ vt_data.last_analysis_stats.malicious }} Detections
+              {% else %}
+                Clean / Harmless
+              {% endif %}
+            </span>
+          {% elif vt_result and vt_result.status.value == 'disabled' %}
+            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">Not Configured</span>
+          {% else %}
+            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Unavailable</span>
+          {% endif %}
+        </div>
+
+        {% if vt_data and vt_result and vt_result.status.value in ('success', 'stale') %}
+          {% set stats = vt_data.last_analysis_stats or {} %}
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div class="p-2 rounded-lg bg-rose-50 border border-rose-100 text-center">
+              <span class="block font-bold text-rose-700 text-lg">{{ stats.malicious or 0 }}</span>
+              <span class="text-rose-600 font-medium">Malicious</span>
+            </div>
+            <div class="p-2 rounded-lg bg-amber-50 border border-amber-100 text-center">
+              <span class="block font-bold text-amber-700 text-lg">{{ stats.suspicious or 0 }}</span>
+              <span class="text-amber-600 font-medium">Suspicious</span>
+            </div>
+            <div class="p-2 rounded-lg bg-emerald-50 border border-emerald-100 text-center">
+              <span class="block font-bold text-emerald-700 text-lg">{{ stats.harmless or 0 }}</span>
+              <span class="text-emerald-600 font-medium">Harmless</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center">
+              <span class="block font-bold text-slate-700 text-lg">{{ stats.undetected or 0 }}</span>
+              <span class="text-slate-500 font-medium">Undetected</span>
+            </div>
+          </div>
+
+          {% if vt_data.reputation is defined and vt_data.reputation is not none %}
+          <p class="text-xs text-slate-600">Community Reputation Score: <strong class="text-slate-900 font-mono">{{ vt_data.reputation }}</strong></p>
+          {% endif %}
+
+          {% if vt_data.tags %}
+          <div class="flex flex-wrap items-center gap-1.5 pt-1">
+            <span class="text-xs text-slate-500 font-medium">Tags:</span>
+            {% for tag in vt_data.tags %}
+            <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700">{{ tag }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if vt_data.graph_url %}
+          <div class="pt-1">
+            <a class="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 hover:text-sky-900 transition-colors" href="{{ vt_data.graph_url }}" target="_blank" rel="noopener noreferrer">
+              View on VirusTotal GUI ↗
+            </a>
+          </div>
+          {% endif %}
+        {% elif vt_result and vt_result.status.value == 'disabled' %}
+          <p class="text-xs text-slate-500 italic">VirusTotal enrichment is disabled. Set VIRUSTOTAL_API_KEY to enable live query lookups.</p>
+        {% else %}
+          <p class="text-xs text-slate-500 italic">{{ vt_result.error_detail or 'No VirusTotal response available for this indicator kind.' if vt_result else 'Indicator kind not queried.' }}</p>
+        {% endif %}
+      </div>
+
+      <!-- AbuseIPDB Card -->
+      <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm text-slate-900">AbuseIPDB</span>
+            <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">v2 Check</span>
+          </div>
+          {% if abuse_result and abuse_result.status.value in ('success', 'stale') %}
+            {% set conf = abuse_data.abuse_confidence_score if abuse_data else 0 %}
+            <span class="text-xs font-semibold uppercase px-2 py-0.5 rounded {% if (conf or 0) > 50 %}bg-rose-50 text-rose-700 border border-rose-200{% elif (conf or 0) > 0 %}bg-amber-50 text-amber-700 border border-amber-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+              {{ conf or 0 }}% Abuse Confidence
+            </span>
+          {% elif abuse_result and abuse_result.status.value == 'disabled' %}
+            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">Not Configured</span>
+          {% else %}
+            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+              {% if ioc_type not in ('ipv4', 'ipv6') %}IP Indicators Only{% else %}Unavailable{% endif %}
+            </span>
+          {% endif %}
+        </div>
+
+        {% if abuse_data and abuse_result and abuse_result.status.value in ('success', 'stale') %}
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div class="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center">
+              <span class="block font-bold text-slate-900 text-lg">{{ abuse_data.total_reports or 0 }}</span>
+              <span class="text-slate-500 font-medium">Total Reports</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center">
+              <span class="block font-bold text-slate-900 text-lg font-mono">{{ abuse_data.country_code or 'N/A' }}</span>
+              <span class="text-slate-500 font-medium">Country</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center col-span-2">
+              <span class="block font-bold text-slate-900 text-sm truncate">{{ abuse_data.usage_type or 'Unknown' }}</span>
+              <span class="text-slate-500 font-medium">Usage Type</span>
+            </div>
+          </div>
+          {% if abuse_data.last_reported_at %}
+          <p class="text-xs text-slate-600">Last Reported: <time class="font-mono text-slate-700">{{ abuse_data.last_reported_at }}</time></p>
+          {% endif %}
+        {% elif abuse_result and abuse_result.status.value == 'disabled' %}
+          <p class="text-xs text-slate-500 italic">AbuseIPDB enrichment is disabled. Set ABUSEIPDB_API_KEY to enable live IP reputation checks.</p>
+        {% elif ioc_type not in ('ipv4', 'ipv6') %}
+          <p class="text-xs text-slate-500 italic">AbuseIPDB queries are applicable to IPv4 and IPv6 addresses only.</p>
+        {% else %}
+          <p class="text-xs text-slate-500 italic">{{ abuse_result.error_detail or 'No AbuseIPDB response available.' if abuse_result else 'Not queried.' }}</p>
+        {% endif %}
+      </div>
+
+      <!-- AlienVault OTX Card -->
+      <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm text-slate-900">AlienVault OTX</span>
+            <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">v1 Indicators</span>
+          </div>
+          {% if otx_result and otx_result.status.value in ('success', 'stale') %}
+            <span class="text-xs font-semibold uppercase px-2 py-0.5 rounded {% if ot_data and (ot_data.pulse_count or 0) > 0 %}bg-rose-50 text-rose-700 border border-rose-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+              {{ ot_data.pulse_count or 0 if ot_data else 0 }} Pulses
+            </span>
+          {% elif otx_result and otx_result.status.value == 'disabled' %}
+            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">Not Configured</span>
+          {% else %}
+            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Unavailable</span>
+          {% endif %}
+        </div>
+
+        {% if ot_data and otx_result and otx_result.status.value in ('success', 'stale') %}
+          <div class="space-y-2">
+            <p class="text-xs text-slate-700 font-medium">Found in <strong class="text-slate-900">{{ ot_data.pulse_count or 0 }}</strong> threat intelligence pulses.</p>
+            {% if ot_data.pulse_names %}
+            <div class="space-y-1">
+              <span class="text-xs font-semibold text-slate-700">Recent Pulses:</span>
+              <ul class="text-xs text-slate-600 space-y-1 list-inside list-disc">
+                {% for name in ot_data.pulse_names[:5] %}
+                <li class="truncate">{{ name }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+          </div>
+        {% elif otx_result and otx_result.status.value == 'disabled' %}
+          <p class="text-xs text-slate-500 italic">AlienVault OTX enrichment is disabled. Set OTX_API_KEY to enable live indicator pulse lookup.</p>
+        {% else %}
+          <p class="text-xs text-slate-500 italic">{{ otx_result.error_detail or 'No OTX pulse response available.' if otx_result else 'Indicator kind not queried.' }}</p>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer flex items-center justify-between pt-4 border-t border-slate-200">
+      <span class="text-xs text-slate-500">Hermes CTI Provider Orchestration</span>
+      <button class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition cursor-pointer" type="button" data-dialog-close>Close</button>
+    </div>
+  </div>
+</section>

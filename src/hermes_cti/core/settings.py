@@ -178,16 +178,28 @@ def load_settings(config_path: Path | None = None) -> Settings:
         path = _default_config_path()
     values = _yaml_values(path)
     for field_name in Settings.model_fields:
-        env_name = f"HERMES_{field_name.upper()}"
-        file_env_name = f"{env_name}_FILE"
-        if file_env_name in os.environ:
-            secret_path = Path(os.environ[file_env_name])
-            try:
-                values[field_name] = secret_path.read_text(encoding="utf-8").strip()
-            except OSError as exc:
-                raise ValueError(
-                    f"unable to read runtime secret file for {field_name}"
-                ) from exc
-        elif env_name in os.environ:
-            values[field_name] = os.environ[env_name]
+        env_names = [f"HERMES_{field_name.upper()}", field_name.upper()]
+        for env_name in env_names:
+            file_env_name = f"{env_name}_FILE"
+            if file_env_name in os.environ:
+                secret_path = Path(os.environ[file_env_name])
+                try:
+                    values[field_name] = secret_path.read_text(encoding="utf-8").strip()
+                    break
+                except OSError as exc:
+                    raise ValueError(
+                        f"unable to read runtime secret file for {field_name}"
+                    ) from exc
+            elif env_name in os.environ:
+                values[field_name] = os.environ[env_name]
+                break
+
+    # Auto-enable provider flags when corresponding API key is supplied
+    if values.get("virustotal_api_key") and "virustotal_enabled" not in values:
+        values["virustotal_enabled"] = True
+    if values.get("otx_api_key") and "otx_enabled" not in values:
+        values["otx_enabled"] = True
+    if values.get("abuseipdb_api_key") and "abuseipdb_enabled" not in values:
+        values["abuseipdb_enabled"] = True
+
     return Settings.model_validate(values)

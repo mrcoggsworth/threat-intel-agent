@@ -6,19 +6,30 @@
   document.addEventListener("click", function (event) {
     var target = event.target;
     var link = target.closest("[data-report-link]");
-    if (!link || !link.getAttribute("data-hx-get") || !shell.hidden) return;
+    if (!link || !link.getAttribute("data-hx-get")) return;
     event.preventDefault();
     fetch(link.getAttribute("data-hx-get"), { headers: { "HX-Request": "true" } })
-      .then(function (response) { if (!response.ok) throw new Error("modal request failed"); return response.text(); })
+      .then(function (response) {
+        if (!response.ok) throw new Error("modal request failed: " + response.status);
+        return response.text();
+      })
       .then(function (html) {
         shell.innerHTML = html;
         shell.hidden = false;
         shell.setAttribute("aria-hidden", "false");
-        history.pushState({ report: link.href }, "", link.href);
+        var noHistory = link.getAttribute("data-no-history") === "true";
+        if (!noHistory && link.href && link.href !== window.location.href && !link.href.startsWith("javascript:")) {
+          history.pushState({ report: link.href }, "", link.href);
+        }
         var dialog = shell.querySelector("[data-dialog]");
         if (dialog) dialog.focus();
       })
-      .catch(function () { window.location.assign(link.href); });
+      .catch(function (err) {
+        console.error("Modal load error:", err);
+        if (link.href && link.href !== window.location.href && !link.href.startsWith("javascript:")) {
+          window.location.assign(link.href);
+        }
+      });
   });
 
   document.addEventListener("click", function (event) {

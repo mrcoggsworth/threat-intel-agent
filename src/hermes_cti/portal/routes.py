@@ -16,7 +16,16 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
-from hermes_cti.api.dependencies import get_portal_service, require_admin_token
+from hermes_cti.api.dependencies import (
+    get_enrichment_service,
+    get_portal_service,
+    require_admin_token,
+)
+from hermes_cti.core.settings import load_settings
+from hermes_cti.enrichment.cache import EnrichmentCache
+from hermes_cti.enrichment.providers import build_providers
+from hermes_cti.enrichment.service import EnrichmentService
+from hermes_cti.extraction.pipeline import refang_text
 from hermes_cti.models.contracts import Remediation, Severity, ThreatHunt
 from hermes_cti.portal.contracts import (
     PortalQuery,
@@ -283,6 +292,62 @@ async def report_component_modal_partial(
             "detail": detail,
             "component": component,
             "value": value,
+        },
+    )
+
+
+@router.get("/partials/reports/{identifier}/ioc-modal", response_class=HTMLResponse)
+@router.get("/partials/ioc-modal", response_class=HTMLResponse)
+async def report_ioc_modal_partial(
+    request: Request,
+    type: str = Query(..., min_length=1, max_length=64),
+    value: str = Query(..., min_length=1, max_length=1024),
+    identifier: str | None = None,
+    service: PortalService = Depends(get_portal_service),
+    enrichment_service: EnrichmentService | None = Depends(get_enrichment_service),
+) -> HTMLResponse:  # noqa: B008
+    headline = None
+    if identifier is not None:
+        detail = await _public_detail(service, identifier)
+        headline = detail.summary.headline
+
+    refanged_value = refang_text(value)
+    normalized_type = type.lower().strip()
+
+    if enrichment_service is None:
+        settings = getattr(request.app.state, "settings", None) or load_settings()
+        providers = build_providers(settings)
+        enrichment_service = EnrichmentService(
+            providers,
+            cache=EnrichmentCache(
+                stale_if_error_seconds=settings.enrichment_stale_if_error_seconds,
+            ),
+        )
+
+    run_result = await enrichment_service.enrich_indicator(
+        indicator_type=normalized_type,
+        indicator_value=refanged_value,
+    )
+
+    vt_result = next((r for r in run_result.provider_results if r.provider == "virustotal"), None)
+    abuse_result = next((r for r in run_result.provider_results if r.provider == "abuseipdb"), None)
+    otx_result = next((r for r in run_result.provider_results if r.provider == "otx"), None)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/ioc_modal.html",
+        context={
+            "request": request,
+            "ioc_type": normalized_type,
+            "ioc_value": refanged_value,
+            "report_headline": headline,
+            "result": run_result,
+            "vt_result": vt_result,
+            "vt_data": vt_result.normalized_result if vt_result else None,
+            "abuse_result": abuse_result,
+            "abuse_data": abuse_result.normalized_result if abuse_result else None,
+            "otx_result": otx_result,
+            "ot_data": otx_result.normalized_result if otx_result else None,
         },
     )
 

@@ -1,10 +1,16 @@
 {% if detail.iocs %}
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
   {% for item in detail.iocs %}
-  <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-    <code class="font-mono text-xs text-sky-800 break-all select-all font-semibold">{{ item.display_value }}</code>
-    <span class="text-xs font-mono uppercase px-2 py-0.5 rounded bg-slate-200/80 text-slate-700 font-medium shrink-0 ml-2">{{ item.indicator_type }}</span>
-  </div>
+  <a role="button" tabindex="0" class="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 hover:shadow-xs transition-all duration-150 cursor-pointer group no-underline text-inherit" data-report-link data-hx-get="/partials/reports/{{ detail.summary.slug }}/ioc-modal?type={{ item.indicator_type }}&value={{ item.display_value|urlencode }}" href="javascript:void(0)" data-no-history="true">
+    <div class="flex items-center gap-2 min-w-0">
+      <span class="w-1.5 h-1.5 rounded-full bg-sky-500 group-hover:scale-125 transition-transform shrink-0"></span>
+      <code class="font-mono text-xs text-sky-900 break-all select-all font-semibold group-hover:text-sky-700">{{ item.display_value }}</code>
+    </div>
+    <div class="flex items-center gap-1.5 shrink-0 ml-2">
+      <span class="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-slate-200/80 text-slate-700 font-medium">{{ item.indicator_type }}</span>
+      <span class="text-xs text-sky-700 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">🔍</span>
+    </div>
+  </a>
   {% endfor %}
 </div>
 {% else %}

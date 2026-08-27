@@ -6,6 +6,8 @@ from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
+from uuid import UUID, uuid5
+
 from hermes_cti.enrichment.cache import EnrichmentCache
 from hermes_cti.enrichment.providers import EnrichmentProvider
 from hermes_cti.enrichment.scoring import ScoreInputs, calculate_priority_score
@@ -13,6 +15,7 @@ from hermes_cti.models.contracts import (
     EnrichmentRunResult,
     EnrichmentStatus,
     EntityReference,
+    EntityType,
     JSONValue,
     ProviderErrorClassification,
     ProviderHealth,
@@ -101,6 +104,34 @@ class EnrichmentService:
             requested_at=(now or self._now()).astimezone(UTC),
         )
         return await self.enrich(request, score_inputs=score_inputs)
+
+    async def enrich_indicator(
+        self,
+        indicator_type: str,
+        indicator_value: str,
+        entity_id: Any = None,
+        *,
+        now: datetime | None = None,
+    ) -> EnrichmentRunResult:
+        normalized_kind = indicator_type.lower().strip()
+        uid = (
+            entity_id
+            if isinstance(entity_id, UUID)
+            else uuid5(
+                UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8"),
+                f"indicator:{normalized_kind}:{indicator_value}",
+            )
+        )
+        request = ProviderRequest(
+            entity=EntityReference(
+                entity_type=EntityType.INDICATOR,
+                entity_id=uid,
+            ),
+            query_key=indicator_value,
+            query_kind=normalized_kind,
+            requested_at=(now or self._now()).astimezone(UTC),
+        )
+        return await self.enrich(request)
 
     def provider_health(self) -> tuple[ProviderHealth, ...]:
         current = self._now()
