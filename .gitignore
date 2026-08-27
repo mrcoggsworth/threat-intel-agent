@@ -144,6 +144,9 @@ Thumbs.db
 # Local test outputs, analyst runs, and scratch artifacts
 /portal/
 /evidence/
+/incidents/
+/incident/
+incident-*.md
 *.dump.enc
 ingestion-manifest*.json
 extraction*.json
