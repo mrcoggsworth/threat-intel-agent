@@ -1,4 +1,4 @@
-/** Progressive enhancement: dialog lifecycle, backdrop dismissal, keyboard shortcuts, history popstate, and theme switching. */
+/** Progressive enhancement: dialog lifecycle, backdrop dismissal, keyboard shortcuts, history popstate, theme switching, and clipboard copying. */
 (function () {
   const validThemes = [
     "traditional-light",
@@ -77,10 +77,64 @@
     initThemeSelector();
   }
 
-  document.addEventListener("click", (event: MouseEvent) => {
+  // Copy text to clipboard with fallback
+  async function copyText(text: string): Promise<boolean> {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      // Fallback below
+    }
+
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+
+  document.addEventListener("click", async (event: MouseEvent) => {
     const target = event.target as HTMLElement | null;
     if (!target) return;
 
+    // Handle copy-to-clipboard button
+    const copyBtn = target.closest<HTMLButtonElement>("[data-copy-target]");
+    if (copyBtn) {
+      event.preventDefault();
+      const card = copyBtn.closest(".detection");
+      const codeEl = card ? card.querySelector("pre code") : null;
+      const textToCopy = codeEl ? (codeEl.textContent || "") : "";
+
+      if (!textToCopy) return;
+
+      const success = await copyText(textToCopy);
+      if (success) {
+        const labelEl = copyBtn.querySelector<HTMLElement>(".copy-label");
+        const prevLabel = labelEl ? labelEl.textContent : "Copy";
+        const prevClass = copyBtn.className;
+
+        if (labelEl) labelEl.textContent = "Copied!";
+        copyBtn.classList.add("bg-emerald-800", "text-emerald-200", "border-emerald-600");
+
+        setTimeout(() => {
+          if (labelEl) labelEl.textContent = prevLabel;
+          copyBtn.className = prevClass;
+        }, 2000);
+      }
+      return;
+    }
+
+    // Handle dialog close button and backdrop
     if (target.closest("[data-dialog-close]") || target.classList.contains("dialog-backdrop")) {
       event.preventDefault();
       closeDialog();
