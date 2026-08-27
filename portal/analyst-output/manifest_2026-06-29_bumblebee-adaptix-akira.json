@@ -1,0 +1,32 @@
+{
+  "source": "https://thedfirreport.com/2026/06/29/from-bing-search-to-ransomware-bumblebee-and-adaptixc2-deliver-akira-3/",
+  "extraction_counts": {
+    "ipv4": 11,
+    "domains": 79,
+    "urls": 2,
+    "md5": 3,
+    "sha256": 3
+  },
+  "artifacts": [
+    {
+      "path": "/home/cptcoggsworth/code/threat-intel-agent/portal/analyst-output/cti_2026-06-29_bumblebee-adaptix-akira.md",
+      "sha256": "a0948fb1f8144170cbd51d039c3d20fa94f20639039f5c9b6ce45eb4b0984900",
+      "bytes": 4930
+    },
+    {
+      "path": "/home/cptcoggsworth/code/threat-intel-agent/portal/analyst-output/sigma_2026-06-29_bumblebee-adaptix-akira.yml",
+      "sha256": "8fb126f3bfb3f61b9dca110c196e72cc8b30a5a5f8751ae6e706c09e91ab2c23",
+      "bytes": 1328
+    },
+    {
+      "path": "/home/cptcoggsworth/code/threat-intel-agent/portal/analyst-output/spl_2026-06-29_bumblebee-adaptix-akira.txt",
+      "sha256": "aa6ae1fc32ad01a32b0276a5270eca15c8c6b80559f406f4d8f013bb532a72d9",
+      "bytes": 1187
+    },
+    {
+      "path": "/home/cptcoggsworth/code/threat-intel-agent/portal/analyst-output/kql_2026-06-29_bumblebee-adaptix-akira.txt",
+      "sha256": "ee2d87db80d5b2047f2c5d565e9d5945d73a8de003ca7457871d8104e6dfef40",
+      "bytes": 935
+    }
+  ]
+}
