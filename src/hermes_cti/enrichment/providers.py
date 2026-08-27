@@ -542,16 +542,42 @@ class VirusTotalProvider(BaseProvider):
             target = base64.urlsafe_b64encode(request.query_key.encode()).decode().rstrip("=")
         else:
             target = quote(request.query_key, safe="")
-        payload, fetch = await self._fetch_json(
-            f"{self.url}/{vt_kind}/{target}",
-            headers={"x-apikey": self._api_key or ""},
-        )
+        try:
+            payload, fetch = await self._fetch_json(
+                f"{self.url}/{vt_kind}/{target}",
+                headers={"x-apikey": self._api_key or ""},
+            )
+        except FetchError as exc:
+            if exc.status_code == 404:
+                return {
+                    "indicator": request.query_key,
+                    "not_found": True,
+                    "reputation": 0,
+                    "last_analysis_stats": {
+                        "malicious": 0,
+                        "suspicious": 0,
+                        "harmless": 0,
+                        "undetected": 0,
+                    },
+                    "tags": [],
+                    "popular_threat_classification": None,
+                    "graph_url": f"https://www.virustotal.com/gui/{request.query_kind}/{target}",
+                    "hunting_available": False,
+                }, FetchResult(
+                    url=f"{self.url}/{vt_kind}/{target}",
+                    status_code=404,
+                    body=b'{"error": {"code": "NotFoundError"}}',
+                    headers=(("content-type", "application/json"),),
+                    retry_count=0,
+                )
+            raise
         data = payload.get("data")
         attrs = data.get("attributes") if isinstance(data, dict) else None
         if not isinstance(attrs, dict):
             raise ProviderSchemaError("VirusTotal data attributes missing")
         return {
             "indicator": request.query_key,
+            "not_found": False,
             "reputation": attrs.get("reputation"),
             "last_analysis_stats": attrs.get("last_analysis_stats"),
             "tags": sorted(
@@ -588,15 +614,33 @@ class OTXProvider(BaseProvider):
             raise ProviderSchemaError("OTX requires an approved indicator kind")
         otx_kind = self._kind_map.get(request.query_kind, request.query_kind)
         target = quote(request.query_key, safe="")
-        payload, fetch = await self._fetch_json(
-            f"{self.url}/indicators/{otx_kind}/{target}/general",
-            headers={"X-OTX-API-KEY": self._api_key or ""},
-        )
+        try:
+            payload, fetch = await self._fetch_json(
+                f"{self.url}/indicators/{otx_kind}/{target}/general",
+                headers={"X-OTX-API-KEY": self._api_key or ""},
+            )
+        except FetchError as exc:
+            if exc.status_code == 404:
+                return {
+                    "indicator": request.query_key,
+                    "not_found": True,
+                    "pulse_count": 0,
+                    "pulse_names": [],
+                    "sections": [],
+                }, FetchResult(
+                    url=f"{self.url}/indicators/{otx_kind}/{target}/general",
+                    status_code=404,
+                    body=b'{"pulse_info": {"count": 0}}',
+                    headers=(("content-type", "application/json"),),
+                    retry_count=0,
+                )
+            raise
         pulses = payload.get("pulse_info")
         if not isinstance(pulses, dict):
             raise ProviderSchemaError("OTX pulse_info missing")
         return {
             "indicator": request.query_key,
+            "not_found": False,
             "pulse_count": pulses.get("count"),
             "pulse_names": sorted(
                 str(item.get("name"))

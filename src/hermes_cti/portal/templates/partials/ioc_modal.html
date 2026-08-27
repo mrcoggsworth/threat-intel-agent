@@ -25,9 +25,11 @@
             <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">v3 API</span>
           </div>
           {% if vt_result and vt_result.status.value in ('success', 'stale') %}
-            <span class="text-xs font-semibold uppercase px-2 py-0.5 rounded {% if vt_data and vt_data.last_analysis_stats and (vt_data.last_analysis_stats.malicious or 0) > 0 %}bg-rose-50 text-rose-700 border border-rose-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+            <span class="text-xs font-semibold uppercase px-2 py-0.5 rounded {% if vt_data and vt_data.last_analysis_stats and (vt_data.last_analysis_stats.malicious or 0) > 0 %}bg-rose-50 text-rose-700 border border-rose-200{% elif vt_data and vt_data.not_found %}bg-slate-100 text-slate-700 border border-slate-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
               {% if vt_data and vt_data.last_analysis_stats and (vt_data.last_analysis_stats.malicious or 0) > 0 %}
                 {{ vt_data.last_analysis_stats.malicious }} Detections
+              {% elif vt_data and vt_data.not_found %}
+                No Records Found
               {% else %}
                 Clean / Harmless
               {% endif %}
@@ -40,6 +42,9 @@
         </div>
 
         {% if vt_data and vt_result and vt_result.status.value in ('success', 'stale') %}
+          {% if vt_data.not_found %}
+            <p class="text-xs text-slate-500 italic">This indicator has not been submitted or indexed in VirusTotal yet (0 detections).</p>
+          {% else %}
           {% set stats = vt_data.last_analysis_stats or {} %}
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             <div class="p-2 rounded-lg bg-rose-50 border border-rose-100 text-center">
@@ -79,6 +84,7 @@
               View on VirusTotal GUI ↗
             </a>
           </div>
+          {% endif %}
           {% endif %}
         {% elif vt_result and vt_result.status.value == 'disabled' %}
           <p class="text-xs text-slate-500 italic">VirusTotal enrichment is disabled. Set VIRUSTOTAL_API_KEY to enable live query lookups.</p>
