@@ -23,7 +23,7 @@
 
   document.addEventListener("click", function (event) {
     var target = event.target;
-    if (target.closest("[data-dialog-close], [data-dialog-backdrop]")) {
+    if (target.closest("[data-dialog-close]")) {
       shell.hidden = true;
       shell.setAttribute("aria-hidden", "true");
     }

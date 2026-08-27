@@ -315,3 +315,32 @@ def test_query_contract_cleans_empty_strings() -> None:
     assert q.sort.value == "priority"
     assert q.page == 1
     assert q.page_size == 20
+
+
+def test_component_modal_partials_and_action_pills() -> None:
+    c = client()
+    slug = "public-cve-2027-1234"
+
+    # Canonical report page has action-pills
+    report_res = c.get(f"/reports/{slug}")
+    assert report_res.status_code == 200
+    assert "action-pills" in report_res.text
+    assert "pill-button" in report_res.text
+    assert f"/partials/reports/{slug}/component/hunt" in report_res.text
+    assert f"/partials/reports/{slug}/component/remediation" in report_res.text
+    assert f"/partials/reports/{slug}/component/detections" in report_res.text
+
+    # Component modals return dialog markup with close button
+    for comp in ("hunt", "remediation", "detections"):
+        res = c.get(f"/partials/reports/{slug}/component/{comp}")
+        assert res.status_code == 200
+        assert 'role="dialog"' in res.text
+        assert 'aria-modal="true"' in res.text
+        assert "dialog-close" in res.text
+        assert f"Open dedicated {comp} page" in res.text
+
+        # Direct short partial path
+        direct_res = c.get(f"/partials/reports/{slug}/{comp}")
+        assert direct_res.status_code == 200
+        assert 'role="dialog"' in direct_res.text
+

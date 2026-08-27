@@ -1,1 +1,21 @@
-{% if value is defined %}{% set detections = value %}{% else %}{% set detections = detail.detections %}{% endif %}{% for detection in detections %}<section class="detection"><h2>{{ detection.title }}</h2><p>{{ detection.detection_type }} · {{ detection.validation_result or 'validation unavailable' }}</p><pre tabindex="0"><code>{{ detection.content }}</code></pre></section>{% else %}<p>No published detection content is available.</p>{% endfor %}
+{% if value is defined %}{% set detections = value %}{% else %}{% set detections = detail.detections %}{% endif %}
+<div class="space-y-4">
+  {% for detection in detections %}
+  <section class="detection bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-md">
+    <div class="bg-slate-950/80 px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+      <h3 class="text-sm font-bold text-white tracking-wide">{{ detection.title }}</h3>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-mono font-medium px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-800/80 uppercase">{{ detection.detection_type }}</span>
+        <span class="text-xs text-slate-400">· {{ detection.validation_result or 'validation unavailable' }}</span>
+      </div>
+    </div>
+    <div class="p-4 overflow-x-auto">
+      <pre tabindex="0" class="font-mono text-xs text-sky-200 leading-relaxed"><code class="block">{{ detection.content }}</code></pre>
+    </div>
+  </section>
+  {% else %}
+  <div class="bg-slate-50 border border-slate-200 p-6 rounded-xl text-center">
+    <p class="text-sm text-slate-500 italic">No published detection content is available for this report.</p>
+  </div>
+  {% endfor %}
+</div>

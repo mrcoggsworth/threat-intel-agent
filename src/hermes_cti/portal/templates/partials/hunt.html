@@ -1,1 +1,51 @@
-{% if value is defined %}{% set hunt = value %}{% else %}{% set hunt = detail.hunt %}{% endif %}<section class="report-section"><h2>Objective</h2><p>{{ hunt.objective }}</p><h2>Scope and telemetry</h2><p>{{ hunt.scope }}</p><p>{{ hunt.platforms|join(', ') }} · {{ hunt.telemetry_requirements|join(', ') }}</p><h2>Lookback and hypothesis</h2><p>{{ hunt.lookback }} — {{ hunt.hypothesis }}</p><h2>Procedure</h2><ol>{% for step in hunt.procedure %}<li>{{ step }}</li>{% endfor %}</ol><h2>Expected evidence and false positives</h2>{% for item in hunt.expected_evidence %}<p>{{ item }}</p>{% endfor %}{% for item in hunt.false_positives %}<p>Benign possibility: {{ item }}</p>{% endfor %}<h2>Validation</h2>{% for item in hunt.validation_checklist %}<p>{{ item }}</p>{% endfor %}</section>
+{% if value is defined %}{% set hunt = value %}{% else %}{% set hunt = detail.hunt %}{% endif %}
+<div class="space-y-4">
+  <div class="space-y-1">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Objective</h3>
+    <p class="text-sm text-slate-800 font-medium">{{ hunt.objective }}</p>
+  </div>
+
+  <div class="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-200">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Scope &amp; Telemetry</h3>
+    <p class="text-xs text-slate-700">{{ hunt.scope }}</p>
+    <p class="text-xs text-sky-700 font-medium mt-1">{{ hunt.platforms|join(', ') }} · {{ hunt.telemetry_requirements|join(', ') }}</p>
+  </div>
+
+  <div class="space-y-1">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Lookback &amp; Hypothesis</h3>
+    <p class="text-sm text-slate-700"><span class="font-semibold text-slate-900">{{ hunt.lookback }}</span> — {{ hunt.hypothesis }}</p>
+  </div>
+
+  <div class="space-y-2">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Procedure</h3>
+    <ol class="list-decimal list-inside space-y-1 text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-200">
+      {% for step in hunt.procedure %}
+      <li class="leading-relaxed">{{ step }}</li>
+      {% endfor %}
+    </ol>
+  </div>
+
+  <div class="space-y-2">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Expected Evidence &amp; False Positives</h3>
+    <div class="space-y-1 text-xs text-slate-700">
+      {% for item in hunt.expected_evidence %}
+      <p class="text-emerald-700 bg-emerald-50 border border-emerald-200 p-2 rounded">✓ {{ item }}</p>
+      {% endfor %}
+      {% for item in hunt.false_positives %}
+      <p class="text-amber-800 bg-amber-50 border border-amber-200 p-2 rounded">ℹ️ Benign possibility: {{ item }}</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="space-y-2">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Validation Checklist</h3>
+    <div class="space-y-1 text-xs text-slate-700">
+      {% for item in hunt.validation_checklist %}
+      <p class="bg-slate-100 border border-slate-200 p-2 rounded flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+        {{ item }}
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+</div>

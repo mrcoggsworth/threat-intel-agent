@@ -1,17 +1,59 @@
 {% extends "base.html" %}
 {% block title %}Reports · Hermes CTI{% endblock %}
 {% block content %}
-<section class="workspace" aria-labelledby="reports-heading">
-  <div class="intro"><p class="eyebrow">Analyst workspace</p><h1 id="reports-heading">Public threat reports</h1><p>Investigate evidence-backed reports, related entities, hunts, detections, and remediation.</p></div>
-  <form class="filters" method="get" action="/reports" hx-get="/partials/reports" hx-target="#report-list" hx-push-url="true">
-    <label for="q">Search <input id="q" name="q" value="{{ page.query.search or '' }}" maxlength="200" placeholder="CVE, product, threat, or report"></label>
-    <label for="confidence_min">Minimum confidence <input id="confidence_min" name="confidence_min" type="number" min="0" max="1" step="0.05" value="{{ page.query.confidence_min if page.query.confidence_min is not none else '' }}"></label>
-    <label for="sort">Sort <select id="sort" name="sort"><option value="priority"{% if page.query.sort == 'priority' %} selected{% endif %}>Priority</option><option value="newest"{% if page.query.sort == 'newest' %} selected{% endif %}>Newest</option><option value="changed"{% if page.query.sort == 'changed' %} selected{% endif %}>Recently changed</option><option value="confidence"{% if page.query.sort == 'confidence' %} selected{% endif %}>Confidence</option><option value="sources"{% if page.query.sort == 'sources' %} selected{% endif %}>Source count</option></select></label>
-    <fieldset><legend>Severity</legend><label><input type="checkbox" name="severity" value="critical"{% if 'critical' in page.query.severities %} checked{% endif %}> Critical</label><label><input type="checkbox" name="severity" value="high"{% if 'high' in page.query.severities %} checked{% endif %}> High</label><label><input type="checkbox" name="severity" value="medium"{% if 'medium' in page.query.severities %} checked{% endif %}> Medium</label><label><input type="checkbox" name="severity" value="low"{% if 'low' in page.query.severities %} checked{% endif %}> Low</label></fieldset>
-    <fieldset><legend>Change state</legend><label><input type="checkbox" name="change_state" value="new"{% if 'new' in page.query.change_states %} checked{% endif %}> New</label><label><input type="checkbox" name="change_state" value="updated"{% if 'updated' in page.query.change_states %} checked{% endif %}> Updated</label><label><input type="checkbox" name="change_state" value="resurfaced"{% if 'resurfaced' in page.query.change_states %} checked{% endif %}> Resurfaced</label></fieldset>
-    <button type="submit">Apply filters</button><a class="button secondary" href="/reports">Clear all</a>
+<section class="space-y-6" aria-labelledby="reports-heading">
+  <div class="space-y-1.5 border-b border-slate-200 pb-5">
+    <p class="text-xs font-bold uppercase tracking-wider text-sky-700">Analyst Workspace</p>
+    <h1 id="reports-heading" class="text-3xl font-extrabold tracking-tight text-slate-900">Public Threat Reports</h1>
+    <p class="text-sm text-slate-600">Investigate evidence-backed threat reports, IOCs, hunts, detections, and verified remediation guidance.</p>
+  </div>
+
+  <form class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4" method="get" action="/reports" hx-get="/partials/reports" hx-target="#report-list" hx-push-url="true">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="space-y-1 sm:col-span-2">
+        <label for="q" class="block text-xs font-semibold text-slate-700">Search Keywords</label>
+        <input id="q" name="q" value="{{ page.query.search or '' }}" maxlength="200" placeholder="Search CVE, product, threat actor, or keyword..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+      </div>
+      <div class="space-y-1">
+        <label for="confidence_min" class="block text-xs font-semibold text-slate-700">Min Confidence (0–1)</label>
+        <input id="confidence_min" name="confidence_min" type="number" min="0" max="1" step="0.05" value="{{ page.query.confidence_min if page.query.confidence_min is not none else '' }}" placeholder="e.g. 0.8" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+      </div>
+      <div class="space-y-1">
+        <label for="sort" class="block text-xs font-semibold text-slate-700">Sort By</label>
+        <select id="sort" name="sort" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+          <option value="priority"{% if page.query.sort == 'priority' %} selected{% endif %}>Priority (Default)</option>
+          <option value="newest"{% if page.query.sort == 'newest' %} selected{% endif %}>Newest</option>
+          <option value="changed"{% if page.query.sort == 'changed' %} selected{% endif %}>Recently Changed</option>
+          <option value="confidence"{% if page.query.sort == 'confidence' %} selected{% endif %}>Confidence</option>
+          <option value="sources"{% if page.query.sort == 'sources' %} selected{% endif %}>Source Count</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-6 text-xs text-slate-700">
+        <fieldset class="flex items-center gap-3">
+          <legend class="font-semibold text-slate-800 mr-1">Severity:</legend>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="severity" value="critical"{% if 'critical' in page.query.severities %} checked{% endif %} class="rounded text-rose-600 focus:ring-rose-500"> <span class="text-rose-700 font-medium">Critical</span></label>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="severity" value="high"{% if 'high' in page.query.severities %} checked{% endif %} class="rounded text-amber-600 focus:ring-amber-500"> <span class="text-amber-700 font-medium">High</span></label>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="severity" value="medium"{% if 'medium' in page.query.severities %} checked{% endif %} class="rounded text-sky-600 focus:ring-sky-500"> <span class="text-sky-700 font-medium">Medium</span></label>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="severity" value="low"{% if 'low' in page.query.severities %} checked{% endif %} class="rounded text-emerald-600 focus:ring-emerald-500"> <span class="text-emerald-700 font-medium">Low</span></label>
+        </fieldset>
+        <fieldset class="flex items-center gap-3">
+          <legend class="font-semibold text-slate-800 mr-1">Status:</legend>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="change_state" value="new"{% if 'new' in page.query.change_states %} checked{% endif %} class="rounded text-emerald-600 focus:ring-emerald-500"> <span>New</span></label>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="change_state" value="updated"{% if 'updated' in page.query.change_states %} checked{% endif %} class="rounded text-sky-600 focus:ring-sky-500"> <span>Updated</span></label>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="change_state" value="resurfaced"{% if 'resurfaced' in page.query.change_states %} checked{% endif %} class="rounded text-purple-600 focus:ring-purple-500"> <span>Resurfaced</span></label>
+        </fieldset>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button type="submit" class="inline-flex items-center px-4 py-2 text-xs font-semibold rounded-lg bg-sky-700 text-white hover:bg-sky-800 transition-colors shadow-xs cursor-pointer">Apply Filters</button>
+        <a href="/reports" class="inline-flex items-center px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-colors">Clear All</a>
+      </div>
+    </div>
   </form>
+
   <div id="report-list" aria-live="polite">{% include "partials/report_list.html" %}</div>
 </section>
-<div id="report-dialog" class="dialog-shell" hidden aria-hidden="true"></div>
 {% endblock %}

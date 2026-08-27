@@ -25,7 +25,7 @@ document.addEventListener("click", (event) => {
   const link = target.closest<HTMLElement>("[data-report-link]");
   if (link && dialogShell && !dialogShell.hidden) return;
   if (link && dialogShell) openDialog(link);
-  if (target.closest("[data-dialog-close], [data-dialog-backdrop]")) {
+  if (target.closest("[data-dialog-close]")) {
     event.preventDefault();
     closeDialog();
     history.back();

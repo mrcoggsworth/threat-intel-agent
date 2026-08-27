@@ -1,1 +1,65 @@
-{% if value is defined %}{% set remediation = value %}{% else %}{% set remediation = detail.remediation %}{% endif %}<section class="report-section"><h2>Immediate containment</h2>{% for item in remediation.immediate_containment %}<p>{{ item }}</p>{% endfor %}<h2>Exposure reduction and patching</h2>{% for item in remediation.exposure_reduction %}<p>{{ item }}</p>{% endfor %}{% for item in remediation.patching %}<p>{{ item }}</p>{% endfor %}<h2>Configuration and credentials</h2>{% for item in remediation.configuration_changes %}<p>{{ item }}</p>{% endfor %}{% for item in remediation.credential_actions %}<p>{{ item }}</p>{% endfor %}<h2>Evidence preservation</h2>{% for item in remediation.evidence_preservation %}<p>{{ item }}</p>{% endfor %}<h2>Verification and rollback</h2>{% for item in remediation.verification %}<p>{{ item }}</p>{% endfor %}{% for item in remediation.rollback %}<p>{{ item }}</p>{% endfor %}</section>
+{% if value is defined %}{% set remediation = value %}{% else %}{% set remediation = detail.remediation %}{% endif %}
+<div class="space-y-4">
+  {% if remediation.immediate_containment %}
+  <div class="space-y-2">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-rose-700">Immediate Containment</h3>
+    <div class="space-y-1 text-xs text-rose-900">
+      {% for item in remediation.immediate_containment %}
+      <p class="bg-rose-50 border border-rose-200 p-2.5 rounded-lg flex items-start gap-2">
+        <span class="font-bold text-rose-600">!</span>
+        <span>{{ item }}</span>
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="space-y-2">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Exposure Reduction &amp; Patching</h3>
+    <div class="space-y-1 text-xs text-slate-800">
+      {% for item in remediation.exposure_reduction %}
+      <p class="bg-slate-50 border border-slate-200 p-2.5 rounded-lg">🛡️ {{ item }}</p>
+      {% endfor %}
+      {% for item in remediation.patching %}
+      <p class="bg-emerald-50 text-emerald-900 border border-emerald-200 p-2.5 rounded-lg">📦 {{ item }}</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if remediation.configuration_changes or remediation.credential_actions %}
+  <div class="space-y-2">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Configuration &amp; Credentials</h3>
+    <div class="space-y-1 text-xs text-slate-800">
+      {% for item in remediation.configuration_changes %}
+      <p class="bg-slate-50 border border-slate-200 p-2.5 rounded-lg">⚙️ {{ item }}</p>
+      {% endfor %}
+      {% for item in remediation.credential_actions %}
+      <p class="bg-amber-50 text-amber-900 border border-amber-200 p-2.5 rounded-lg">🔑 {{ item }}</p>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if remediation.evidence_preservation %}
+  <div class="space-y-2">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Evidence Preservation</h3>
+    <div class="space-y-1 text-xs text-slate-800">
+      {% for item in remediation.evidence_preservation %}
+      <p class="bg-slate-50 border border-slate-200 p-2.5 rounded-lg">📁 {{ item }}</p>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="space-y-2">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Verification &amp; Rollback</h3>
+    <div class="space-y-1 text-xs text-slate-800">
+      {% for item in remediation.verification %}
+      <p class="bg-slate-50 border border-slate-200 p-2.5 rounded-lg">✓ {{ item }}</p>
+      {% endfor %}
+      {% for item in remediation.rollback %}
+      <p class="bg-slate-50 border border-slate-200 p-2.5 rounded-lg">↩️ Rollback: {{ item }}</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>

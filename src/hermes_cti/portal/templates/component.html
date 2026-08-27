@@ -1,9 +1,21 @@
 {% extends "base.html" %}
 {% block title %}{{ component|title }} · {{ detail.summary.headline }}{% endblock %}
 {% block content %}
-<article class="report-page" aria-labelledby="component-title">
-  <p><a href="{{ detail.summary.canonical_url }}">← Back to canonical report</a></p>
-  <h1 id="component-title">{{ component|title }}</h1><p>{{ detail.summary.headline }}</p>
-  {% if component == "hunt" %}{% include "partials/hunt.html" %}{% elif component == "remediation" %}{% include "partials/remediation.html" %}{% else %}{% include "partials/detections.html" %}{% endif %}
+<article class="space-y-6" aria-labelledby="component-title">
+  <div class="space-y-2">
+    <p><a class="text-xs font-semibold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1 transition-colors" href="{{ detail.summary.canonical_url }}">← Back to canonical report</a></p>
+    <h1 id="component-title" class="text-3xl font-extrabold tracking-tight text-slate-900">{{ component|title }}</h1>
+    <p class="text-sm font-medium text-slate-600">{{ detail.summary.headline }}</p>
+  </div>
+
+  <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs">
+    {% if component == "hunt" %}
+      {% include "partials/hunt.html" %}
+    {% elif component == "remediation" %}
+      {% include "partials/remediation.html" %}
+    {% else %}
+      {% include "partials/detections.html" %}
+    {% endif %}
+  </div>
 </article>
 {% endblock %}

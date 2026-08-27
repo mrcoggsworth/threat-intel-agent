@@ -1,1 +1,12 @@
-{% for item in detail.iocs %}<p><code>{{ item.display_value }}</code> <span class="meta">{{ item.indicator_type }}</span></p>{% else %}<p>No public IOC is available.</p>{% endfor %}
+{% if detail.iocs %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+  {% for item in detail.iocs %}
+  <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+    <code class="font-mono text-xs text-sky-800 break-all select-all font-semibold">{{ item.display_value }}</code>
+    <span class="text-xs font-mono uppercase px-2 py-0.5 rounded bg-slate-200/80 text-slate-700 font-medium shrink-0 ml-2">{{ item.indicator_type }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-sm text-slate-500 italic">No public IOC is available.</p>
+{% endif %}

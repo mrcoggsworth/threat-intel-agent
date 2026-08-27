@@ -1,1 +1,18 @@
-{% for item in detail.evidence %}<div class="evidence"><p>{{ item.statement }}</p>{% if item.source_reference %}<a href="{{ item.source_reference.canonical_url }}" rel="nofollow noreferrer noopener" target="_blank">{{ item.source_reference.name }}</a>{% endif %}</div>{% else %}<p>No public evidence entries are available.</p>{% endfor %}
+{% if detail.evidence %}
+<div class="space-y-2">
+  {% for item in detail.evidence %}
+  <div class="evidence p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+    <p class="text-xs text-slate-800 leading-relaxed">{{ item.statement }}</p>
+    {% if item.source_reference %}
+    <div class="pt-1">
+      <a class="text-xs font-medium text-sky-700 hover:text-sky-900 underline inline-flex items-center gap-1" href="{{ item.source_reference.canonical_url }}" rel="nofollow noreferrer noopener" target="_blank">
+        Source: {{ item.source_reference.name }} ↗
+      </a>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-sm text-slate-500 italic">No public evidence entries are available.</p>
+{% endif %}

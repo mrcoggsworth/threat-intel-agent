@@ -996,3 +996,33 @@ async def test_source_configuration_history_is_idempotent_and_versioned(
     assert [row.configuration_version for row in rows] == [1, 2]
     assert rows[0].configuration_hash != rows[1].configuration_hash
     assert rows[1].configuration["tags"] == ["changed"]
+
+
+@pytest.mark.asyncio
+async def test_publish_bundle_with_unmatched_source_document_id(
+    database: Database,
+) -> None:
+    from hermes_cti.reporting import (
+        ReportEvidence,
+        ReportEvidenceType,
+        ReportPipeline,
+    )
+    from tests.test_phase7 import _fixture, EVIDENCE_ID
+
+    bundle = _fixture()
+    evidence_with_unmatched_source = ReportEvidence(
+        evidence_id=EVIDENCE_ID,
+        evidence_type=ReportEvidenceType.SOURCE_TEXT,
+        statement="Public CVE-2027-1234 exploitation observed in a vendor advisory.",
+        confidence=0.95,
+        source_document_id=UUID("d7a27a68-450a-54b3-968c-183c7d97993a"),
+    )
+    bundle_with_source_doc = bundle.model_copy(
+        update={"evidence": (evidence_with_unmatched_source,)}
+    )
+    pipeline = ReportPipeline()
+    async with database.transaction() as session:
+        report = await pipeline.publish(session, bundle_with_source_doc)
+        assert getattr(report, "state", None) == "published"
+
+

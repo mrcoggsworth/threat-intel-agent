@@ -22,6 +22,7 @@ from hermes_cti.db.models import (
     Report,
     ReportEntity,
     ReportVersion,
+    SourceDocument,
 )
 from hermes_cti.db.models import (
     Remediation as RemediationRecord,
@@ -268,6 +269,22 @@ class ReportRepository:
         evidence_by_id = {item.evidence_id: item for item in bundle.evidence}
         all_evidence_ids = tuple(evidence_by_id)
 
+        existing_source_doc_ids: set[UUID] = set()
+        candidate_source_doc_ids = {
+            item.source_document_id
+            for item in bundle.evidence
+            if item.source_document_id is not None
+        }
+        for mapping in bundle.attack_mappings:
+            candidate_source_doc_ids.update(mapping.source_document_ids)
+        if candidate_source_doc_ids:
+            doc_rows = await session.scalars(
+                select(SourceDocument.id).where(
+                    SourceDocument.id.in_(candidate_source_doc_ids)
+                )
+            )
+            existing_source_doc_ids = set(doc_rows.all())
+
         async def link(
             entity_type: str,
             entity_id: UUID,
@@ -278,7 +295,12 @@ class ReportRepository:
         ) -> None:
             links: set[tuple[UUID | None, UUID | None, tuple[str, ...]]] = set()
             for source_document_id in source_document_ids:
-                links.add((source_document_id, None, ()))
+                doc_id = (
+                    source_document_id
+                    if source_document_id in existing_source_doc_ids
+                    else None
+                )
+                links.add((doc_id, None, ()))
             for evidence_id in evidence_ids:
                 evidence = evidence_by_id.get(evidence_id)
                 if evidence is None:
@@ -288,8 +310,13 @@ class ReportRepository:
                     urls.append(str(evidence.source_url))
                 if evidence.source_reference is not None:
                     urls.append(str(evidence.source_reference.canonical_url))
+                doc_id = (
+                    evidence.source_document_id
+                    if evidence.source_document_id in existing_source_doc_ids
+                    else None
+                )
                 links.add(
-                    (evidence.source_document_id, evidence_id, tuple(sorted(set(urls))))
+                    (doc_id, evidence_id, tuple(sorted(set(urls))))
                 )
             if supporting_urls:
                 links.add((None, None, tuple(sorted(set(supporting_urls)))))

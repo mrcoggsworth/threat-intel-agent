@@ -1,1 +1,43 @@
-<div class="dialog-backdrop" data-dialog-backdrop></div><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1" data-dialog><button class="dialog-close" type="button" data-dialog-close aria-label="Close report">×</button><div class="dialog-body"><h1 id="modal-title">{{ detail.summary.headline }}</h1><p class="meta">{{ detail.summary.severity|upper }} · Confidence {{ "%.0f"|format(detail.summary.confidence * 100) }}% · {{ detail.summary.change_state }}</p><section><h2>Executive summary</h2><p>{{ detail.executive_summary }}</p></section><section><h2>Technical analysis</h2><p>{{ detail.technical_analysis }}</p></section><p><a href="{{ detail.summary.canonical_url }}">Open canonical report</a> · <a href="{{ detail.summary.canonical_url }}/hunt">Hunt</a> · <a href="{{ detail.summary.canonical_url }}/remediation">Remediation</a> · <a href="{{ detail.summary.canonical_url }}/detections">Detections</a></p>{% for section in ('evidence','iocs','cves','attack','timeline','confidence') %}<section><h2>{{ section|title }}</h2><div hx-get="/partials/reports/{{ detail.summary.slug }}/section/{{ section }}" hx-trigger="revealed" hx-swap="innerHTML"><p>Loading section…</p></div></section>{% endfor %}</div></section>
+<div class="dialog-backdrop"></div>
+<section class="dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1" data-dialog>
+  <button class="dialog-close" type="button" data-dialog-close aria-label="Close report">×</button>
+  <div class="dialog-body space-y-5 pr-6">
+    <div class="border-b border-slate-200 pb-3">
+      <h1 id="modal-title" class="text-2xl font-bold tracking-tight text-slate-900 leading-snug">{{ detail.summary.headline }}</h1>
+      <p class="meta mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border {% if detail.summary.severity == 'critical' %}bg-rose-50 text-rose-700 border-rose-200 severity severity-critical{% elif detail.summary.severity == 'high' %}bg-amber-50 text-amber-700 border-amber-200 severity severity-high{% elif detail.summary.severity == 'medium' %}bg-sky-50 text-sky-700 border-sky-200 severity severity-medium{% else %}bg-emerald-50 text-emerald-700 border-emerald-200 severity severity-low{% endif %}">
+          ● {{ detail.summary.severity|upper }}
+        </span>
+        <span>Confidence {{ "%.0f"|format(detail.summary.confidence * 100) }}%</span>
+        <span>·</span>
+        <span class="capitalize">{{ detail.summary.change_state }}</span>
+      </p>
+    </div>
+
+    <section class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-1.5">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Executive Summary</h2>
+      <p class="text-sm text-slate-700 leading-relaxed">{{ detail.executive_summary }}</p>
+    </section>
+
+    <section class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-1.5">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Technical Analysis</h2>
+      <p class="text-sm text-slate-700 leading-relaxed">{{ detail.technical_analysis }}</p>
+    </section>
+
+    <div class="flex flex-wrap items-center gap-2 py-1">
+      <a class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-sky-700 text-white hover:bg-sky-800 transition" href="{{ detail.summary.canonical_url }}">Open canonical report</a>
+      <a class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition" href="{{ detail.summary.canonical_url }}/hunt">Hunt</a>
+      <a class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition" href="{{ detail.summary.canonical_url }}/remediation">Remediation</a>
+      <a class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition" href="{{ detail.summary.canonical_url }}/detections">Detections</a>
+    </div>
+
+    {% for section in ('evidence','iocs','cves','attack','timeline','confidence') %}
+    <section class="pt-2 border-t border-slate-100">
+      <h2 class="text-sm font-bold text-slate-900 mb-2">{{ section|title }}</h2>
+      <div hx-get="/partials/reports/{{ detail.summary.slug }}/section/{{ section }}" hx-trigger="revealed" hx-swap="innerHTML" class="text-sm text-slate-600">
+        <p class="animate-pulse text-xs text-slate-400">Loading section…</p>
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+</section>

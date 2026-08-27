@@ -1,1 +1,35 @@
-<p><a href="/reports">← All reports</a></p><div class="report-heading"><div><p class="eyebrow">{{ detail.summary.report_type }} · {{ detail.summary.change_state }}</p><h1 id="report-title">{{ detail.summary.headline }}</h1><p class="meta"><span class="severity severity-{{ detail.summary.severity }}">{{ detail.summary.severity|upper }}</span> Confidence {{ "%.0f"|format(detail.summary.confidence * 100) }}% · version {{ detail.version }}</p></div><div class="actions"><a class="button" href="{{ detail.summary.canonical_url }}/hunt">Hunt</a><a class="button" href="{{ detail.summary.canonical_url }}/remediation">Remediation</a><a class="button" href="{{ detail.summary.canonical_url }}/detections">Detections</a></div></div>
+<div class="mb-6 space-y-3">
+  <p><a class="text-xs font-semibold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1 transition-colors" href="/reports">← Back to all reports</a></p>
+  <div class="space-y-2">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-xs font-bold uppercase tracking-wider text-sky-700 px-2 py-0.5 rounded bg-sky-50 border border-sky-200">{{ detail.summary.report_type }}</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded {% if detail.summary.change_state == 'new' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% elif detail.summary.change_state == 'resurfaced' %}bg-purple-50 text-purple-700 border border-purple-200{% else %}bg-sky-50 text-sky-700 border border-sky-200{% endif %}">{{ detail.summary.change_state }}</span>
+    </div>
+    
+    <h1 id="report-title" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-snug">{{ detail.summary.headline }}</h1>
+    
+    <div class="action-pills flex flex-wrap items-center gap-2 py-1">
+      <a class="pill-button inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-600 hover:text-white hover:border-sky-600 shadow-xs transition-all duration-150 cursor-pointer" data-report-link data-hx-get="/partials/reports/{{ detail.summary.slug }}/component/hunt" href="{{ detail.summary.canonical_url }}/hunt">
+        <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+        Hunt Playbook
+      </a>
+      <a class="pill-button inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 shadow-xs transition-all duration-150 cursor-pointer" data-report-link data-hx-get="/partials/reports/{{ detail.summary.slug }}/component/remediation" href="{{ detail.summary.canonical_url }}/remediation">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        Remediation
+      </a>
+      <a class="pill-button inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 shadow-xs transition-all duration-150 cursor-pointer" data-report-link data-hx-get="/partials/reports/{{ detail.summary.slug }}/component/detections" href="{{ detail.summary.canonical_url }}/detections">
+        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+        Detections
+      </a>
+    </div>
+
+    <div class="meta flex flex-wrap items-center gap-3 text-xs text-slate-600 pt-1">
+      <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border {% if detail.summary.severity == 'critical' %}bg-rose-50 text-rose-700 border-rose-200 severity severity-critical{% elif detail.summary.severity == 'high' %}bg-amber-50 text-amber-700 border-amber-200 severity severity-high{% elif detail.summary.severity == 'medium' %}bg-sky-50 text-sky-700 border-sky-200 severity severity-medium{% else %}bg-emerald-50 text-emerald-700 border-emerald-200 severity severity-low{% endif %}">
+        ● {{ detail.summary.severity|upper }}
+      </span>
+      <span>Confidence: <strong>{{ "%.0f"|format(detail.summary.confidence * 100) }}%</strong></span>
+      <span>·</span>
+      <span>Version {{ detail.version }}</span>
+    </div>
+  </div>
+</div>

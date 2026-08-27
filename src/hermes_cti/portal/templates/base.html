@@ -1,18 +1,25 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-50">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Hermes CTI{% endblock %}</title>
   <meta name="description" content="Public cyber threat intelligence analyst workspace">
-  <link rel="stylesheet" href="/assets/portal.css">
-  <script defer src="/assets/portal.js"></script><script defer src="/assets/portal-enhance.js"></script>
+  <link rel="stylesheet" href="/assets/portal.css?v={{ request.app.state.settings.app_version if request.app is defined and request.app.state.settings is defined else '2.0' }}">
+  <script defer src="/assets/portal.js"></script>
+  <script defer src="/assets/portal-enhance.js"></script>
 </head>
-<body>
-  <header class="site-header">
-    <a class="brand" href="/reports">Hermes CTI</a>
-    <span class="scope">Public CTI · evidence-centered</span>
+<body class="min-h-full flex flex-col text-slate-900 font-sans antialiased">
+  <header class="bg-[#10243d] text-white border-b border-slate-800 shadow-sm sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <a class="text-xl font-bold tracking-tight text-white hover:text-sky-300 transition-colors flex items-center gap-2" href="/reports">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+        Hermes CTI
+      </a>
+      <span class="text-xs font-medium tracking-wide uppercase px-2.5 py-1 rounded-md bg-slate-800/80 text-sky-200 border border-slate-700/60">Public CTI · Evidence-Centered</span>
+    </div>
   </header>
-  <main id="main-content">{% block content %}{% endblock %}</main>
+  <main id="main-content" class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">{% block content %}{% endblock %}</main>
+  <div id="report-dialog" class="dialog-shell" hidden aria-hidden="true"></div>
 </body>
 </html>

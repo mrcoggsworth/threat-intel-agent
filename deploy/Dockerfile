@@ -1,11 +1,19 @@
 # syntax=docker/dockerfile:1
 
+FROM node:22-alpine AS css-builder
+WORKDIR /build
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY src ./src
+RUN npx @tailwindcss/cli -i src/hermes_cti/portal/static/input.css -o src/hermes_cti/portal/static/portal.css --minify
+
 FROM python:3.12-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.9.5 /uv /uvx /bin/
 WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY src ./src
+COPY --from=css-builder /build/src/hermes_cti/portal/static/portal.css ./src/hermes_cti/portal/static/portal.css
 COPY config ./config
 COPY alembic.ini ./alembic.ini
 COPY scripts ./scripts

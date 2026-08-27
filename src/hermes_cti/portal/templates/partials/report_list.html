@@ -1,13 +1,78 @@
-{% if not page.items %}<div class="empty-state"><h2>No matching reports</h2><p>Try clearing a filter or broadening the search.</p></div>{% else %}
-<div class="report-list" role="list">
-{% for report in page.items %}<article class="report-line" role="listitem" data-report-slug="{{ report.slug }}">
-  <div><span class="severity severity-{{ report.severity }}">{{ report.severity|upper }}</span><span class="confidence">Confidence {{ "%.0f"|format(report.confidence * 100) }}%</span><span class="change change-{{ report.change_state }}">{{ report.change_state|upper }}</span></div>
-  <h2><a href="{{ report.canonical_url }}" hx-get="/partials/reports/{{ report.slug }}/modal" hx-target="#report-dialog" hx-swap="innerHTML" data-report-link="true">{{ report.headline }}</a></h2>
-  <p class="meta"><time datetime="{{ report.last_updated_at }}">Updated {{ report.last_updated_at }}</time> · {{ report.source_count }} source{{ '' if report.source_count == 1 else 's' }} · {% if report.hunt_available %}hunt{% else %}no hunt{% endif %} · {% if report.remediation_available %}remediation{% else %}no remediation{% endif %}</p>
-  {% if report.primary_cves %}<p class="tags">{% for cve in report.primary_cves %}<a href="/api/v1/public/vulnerabilities/{{ cve }}">{{ cve }}</a>{% endfor %}</p>{% endif %}
-  {% if report.products %}<p class="meta">Products: {{ report.products|join(', ') }}</p>{% endif %}
-  {% if report.attack_techniques %}<p class="tags">{% for attack in report.attack_techniques %}<a href="/techniques/{{ attack }}">{{ attack }}</a>{% endfor %}</p>{% endif %}
-</article>{% endfor %}
+{% if not page.items %}
+<div class="bg-white rounded-xl border border-slate-200 p-8 text-center space-y-2">
+  <div class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-2">🔍</div>
+  <h2 class="text-lg font-bold text-slate-800">No matching reports found</h2>
+  <p class="text-sm text-slate-500 max-w-md mx-auto">Try clearing one or more active filters, adjusting the confidence threshold, or broadening your search query.</p>
 </div>
-<nav class="pagination" aria-label="Report pages">{% if page.page > 1 %}<a href="?page={{ page.page - 1 }}&page_size={{ page.page_size }}">Previous</a>{% endif %}<span>Page {{ page.page }}{% if page.total_pages %} of {{ page.total_pages }}{% endif %}</span>{% if page.page < page.total_pages %}<a href="?page={{ page.page + 1 }}&page_size={{ page.page_size }}">Next</a>{% endif %}</nav>
+{% else %}
+<div class="report-list space-y-3.5" role="list">
+  {% for report in page.items %}
+  <article class="report-line bg-white p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all space-y-3" role="listitem" data-report-slug="{{ report.slug }}">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border {% if report.severity == 'critical' %}bg-rose-50 text-rose-700 border-rose-200 severity severity-critical{% elif report.severity == 'high' %}bg-amber-50 text-amber-700 border-amber-200 severity severity-high{% elif report.severity == 'medium' %}bg-sky-50 text-sky-700 border-sky-200 severity severity-medium{% else %}bg-emerald-50 text-emerald-700 border-emerald-200 severity severity-low{% endif %}">
+          ● {{ report.severity|upper }}
+        </span>
+        <span class="text-xs font-medium text-slate-600 px-2 py-0.5 rounded bg-slate-100 border border-slate-200/80">
+          Confidence {{ "%.0f"|format(report.confidence * 100) }}%
+        </span>
+        <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded {% if report.change_state == 'new' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% elif report.change_state == 'resurfaced' %}bg-purple-50 text-purple-700 border border-purple-200{% else %}bg-sky-50 text-sky-700 border border-sky-200{% endif %}">
+          {{ report.change_state }}
+        </span>
+      </div>
+      <span class="text-xs text-slate-500"><time datetime="{{ report.last_updated_at }}">Updated {{ report.last_updated_at }}</time></span>
+    </div>
+
+    <h2 class="text-lg font-bold text-slate-900 leading-snug">
+      <a class="hover:text-sky-700 transition-colors" href="{{ report.canonical_url }}" hx-get="/partials/reports/{{ report.slug }}/modal" hx-target="#report-dialog" hx-swap="innerHTML" data-report-link="true">
+        {{ report.headline }}
+      </a>
+    </h2>
+
+    <div class="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+      <span class="font-medium text-slate-700">{{ report.source_count }} source{{ '' if report.source_count == 1 else 's' }}</span>
+      <span>·</span>
+      <span class="{% if report.hunt_available %}text-sky-700 font-semibold{% else %}text-slate-400{% endif %}">{% if report.hunt_available %}✓ Hunt Available{% else %}No Hunt{% endif %}</span>
+      <span>·</span>
+      <span class="{% if report.remediation_available %}text-emerald-700 font-semibold{% else %}text-slate-400{% endif %}">{% if report.remediation_available %}✓ Remediation Available{% else %}No Remediation{% endif %}</span>
+    </div>
+
+    {% if report.primary_cves %}
+    <div class="flex flex-wrap items-center gap-1.5 pt-1">
+      <span class="text-xs font-semibold text-slate-500 mr-1">CVEs:</span>
+      {% for cve in report.primary_cves %}
+      <a class="px-2 py-0.5 rounded text-xs font-mono font-medium bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition" href="/api/v1/public/vulnerabilities/{{ cve }}">{{ cve }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if report.products %}
+    <p class="text-xs text-slate-600"><span class="font-semibold text-slate-500">Products:</span> {{ report.products|join(', ') }}</p>
+    {% endif %}
+
+    {% if report.attack_techniques %}
+    <div class="flex flex-wrap items-center gap-1.5 pt-1">
+      <span class="text-xs font-semibold text-slate-500 mr-1">ATT&CK:</span>
+      {% for attack in report.attack_techniques %}
+      <a class="px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition" href="/techniques/{{ attack }}">{{ attack }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+
+<nav class="pagination mt-6 flex items-center justify-between text-xs font-semibold text-slate-600 bg-white px-4 py-3 rounded-xl border border-slate-200" aria-label="Report pages">
+  <div>
+    {% if page.page > 1 %}
+    <a class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition" href="?page={{ page.page - 1 }}&page_size={{ page.page_size }}">← Previous</a>
+    {% endif %}
+  </div>
+  <span>Page {{ page.page }}{% if page.total_pages %} of {{ page.total_pages }}{% endif %}</span>
+  <div>
+    {% if page.page < page.total_pages %}
+    <a class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition" href="?page={{ page.page + 1 }}&page_size={{ page.page_size }}">Next →</a>
+    {% endif %}
+  </div>
+</nav>
 {% endif %}

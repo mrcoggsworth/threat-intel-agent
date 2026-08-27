@@ -2,7 +2,7 @@
 document.addEventListener("click", (event) => {
   const target = event.target as HTMLElement;
   const shell = document.querySelector<HTMLElement>("#report-dialog");
-  const link = target.closest<HTMLElement>("[data-report-link]");
+  const link = target.closest<HTMLAnchorElement>("[data-report-link]");
   const url = link?.getAttribute("data-hx-get");
   if (!shell || !link || !url || !shell.hidden) return;
   event.preventDefault();
@@ -16,4 +16,14 @@ document.addEventListener("click", (event) => {
       shell.querySelector<HTMLElement>("[data-dialog]")?.focus();
     })
     .catch(() => window.location.assign(link.href));
+});
+
+document.addEventListener("click", (event) => {
+  const target = event.target as HTMLElement;
+  const shell = document.querySelector<HTMLElement>("#report-dialog");
+  if (!shell) return;
+  if (target.closest("[data-dialog-close]")) {
+    shell.hidden = true;
+    shell.setAttribute("aria-hidden", "true");
+  }
 });

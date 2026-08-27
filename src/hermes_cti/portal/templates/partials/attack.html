@@ -1,1 +1,17 @@
-{% for mapping in detail.attack_mappings %}<p><a href="/techniques/{{ mapping.attack_id }}">{{ mapping.attack_id }}</a> — {{ mapping.name }}{% if mapping.tactic %} · {{ mapping.tactic }}{% endif %}</p>{% else %}<p>No ATT&amp;CK mapping is available.</p>{% endfor %}
+{% if detail.attack_mappings %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+  {% for mapping in detail.attack_mappings %}
+  <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col justify-between">
+    <div>
+      <a class="text-xs font-mono font-bold text-sky-700 hover:text-sky-900 bg-sky-50 px-2 py-0.5 rounded border border-sky-200" href="/techniques/{{ mapping.attack_id }}">{{ mapping.attack_id }}</a>
+      <p class="text-xs font-semibold text-slate-900 mt-1.5">{{ mapping.name }}</p>
+    </div>
+    {% if mapping.tactic %}
+    <p class="text-xs text-slate-500 uppercase tracking-wider mt-2 font-medium">Tactic: {{ mapping.tactic }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-sm text-slate-500 italic">No ATT&amp;CK mapping is available.</p>
+{% endif %}

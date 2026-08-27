@@ -1,0 +1,29 @@
+{
+  "name": "threat-intel-agent",
+  "version": "1.0.0",
+  "description": "CTI-Hermes is an independently deployable service foundation for public cyber threat intelligence. It is being built phase by phase with deterministic processing, immutable evidence, explicit provenance, and a public read-only scope. This repository currently provides Phase 2 ingestion and normalization, Phase 3 deterministic IOC and CVE extraction, Phase 4 PostgreSQL persistence and scheduling, Phase 5 bounded enrichment with explainable priority scoring, Phase 6 historical correlation and resurfacing, Phase 7 evidence-backed detection, hunting, remediation, and report validation, and Phase 8 dynamic analyst portal and public-private API projections.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "build:css": "tailwindcss -i src/hermes_cti/portal/static/input.css -o src/hermes_cti/portal/static/portal.css --minify",
+    "watch:css": "tailwindcss -i src/hermes_cti/portal/static/input.css -o src/hermes_cti/portal/static/portal.css --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrcoggsworth/threat-intel-agent.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mrcoggsworth/threat-intel-agent/issues"
+  },
+  "homepage": "https://github.com/mrcoggsworth/threat-intel-agent#readme",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  }
+}

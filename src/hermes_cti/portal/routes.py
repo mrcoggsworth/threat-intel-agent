@@ -258,6 +258,36 @@ async def report_modal_partial(
 
 
 @router.get(
+    "/partials/reports/{identifier}/component/{component}", response_class=HTMLResponse
+)
+@router.get("/partials/reports/{identifier}/hunt", response_class=HTMLResponse)
+@router.get("/partials/reports/{identifier}/remediation", response_class=HTMLResponse)
+@router.get("/partials/reports/{identifier}/detections", response_class=HTMLResponse)
+async def report_component_modal_partial(
+    request: Request,
+    identifier: str,
+    component: str | None = None,
+    service: PortalService = Depends(get_portal_service),
+) -> HTMLResponse:  # noqa: B008
+    if component is None:
+        component = request.url.path.rsplit("/", 1)[-1]
+    detail = await _public_detail(service, identifier)
+    value = getattr(detail, component, None)
+    if value is None or (isinstance(value, tuple) and not value):
+        raise HTTPException(status_code=404, detail=f"{component} not available")
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/component_modal.html",
+        context={
+            "request": request,
+            "detail": detail,
+            "component": component,
+            "value": value,
+        },
+    )
+
+
+@router.get(
     "/partials/reports/{identifier}/section/{section}", response_class=HTMLResponse
 )
 async def report_section_partial(
