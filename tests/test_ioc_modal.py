@@ -4,23 +4,19 @@ from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient
-from pydantic import SecretStr
 
 from hermes_cti.api.main import create_app
 from hermes_cti.core.settings import Settings
 from hermes_cti.enrichment.providers import (
     AbuseIPDBProvider,
-    EnrichmentProvider,
     OTXProvider,
     ProviderRuntimeConfig,
     VirusTotalProvider,
 )
 from hermes_cti.enrichment.service import EnrichmentService
+from hermes_cti.ingestion.http_client import FetchResult
 from hermes_cti.models.contracts import EnrichmentStatus
 from tests.test_phase8 import MemoryPortalService
-
-
-from hermes_cti.ingestion.http_client import FetchResult
 
 
 def _mock_fetch(url: str = "https://fixture") -> FetchResult:
@@ -35,7 +31,12 @@ def _mock_fetch(url: str = "https://fixture") -> FetchResult:
 
 class FakeVTProvider(VirusTotalProvider):
     def __init__(self) -> None:
-        super().__init__("https://fixture/vt", config=ProviderRuntimeConfig(), enabled=True, api_key="secret-vt")
+        super().__init__(
+            "https://fixture/vt",
+            config=ProviderRuntimeConfig(),
+            enabled=True,
+            api_key="secret-vt",
+        )
 
     async def _retrieve(self, request):
         return {
@@ -56,7 +57,12 @@ class FakeVTProvider(VirusTotalProvider):
 
 class FakeAbuseIPDBProvider(AbuseIPDBProvider):
     def __init__(self) -> None:
-        super().__init__("https://fixture/abuse", config=ProviderRuntimeConfig(), enabled=True, api_key="secret-abuse")
+        super().__init__(
+            "https://fixture/abuse",
+            config=ProviderRuntimeConfig(),
+            enabled=True,
+            api_key="secret-abuse",
+        )
 
     async def _retrieve(self, request):
         return {
@@ -71,7 +77,12 @@ class FakeAbuseIPDBProvider(AbuseIPDBProvider):
 
 class FakeOTXProvider(OTXProvider):
     def __init__(self) -> None:
-        super().__init__("https://fixture/otx", config=ProviderRuntimeConfig(), enabled=True, api_key="secret-otx")
+        super().__init__(
+            "https://fixture/otx",
+            config=ProviderRuntimeConfig(),
+            enabled=True,
+            api_key="secret-otx",
+        )
 
     async def _retrieve(self, request):
         return {
@@ -84,11 +95,13 @@ class FakeOTXProvider(OTXProvider):
 
 @pytest.mark.asyncio
 async def test_enrich_indicator_service() -> None:
-    service = EnrichmentService([
-        FakeVTProvider(),
-        FakeAbuseIPDBProvider(),
-        FakeOTXProvider(),
-    ])
+    service = EnrichmentService(
+        [
+            FakeVTProvider(),
+            FakeAbuseIPDBProvider(),
+            FakeOTXProvider(),
+        ]
+    )
 
     result = await service.enrich_indicator("ipv4", "198.51.100.22")
     assert result.status == EnrichmentStatus.SUCCESS
@@ -108,11 +121,13 @@ async def test_enrich_indicator_service() -> None:
 
 def test_portal_ioc_modal_endpoint() -> None:
     portal_service = MemoryPortalService()
-    enrichment_service = EnrichmentService([
-        FakeVTProvider(),
-        FakeAbuseIPDBProvider(),
-        FakeOTXProvider(),
-    ])
+    enrichment_service = EnrichmentService(
+        [
+            FakeVTProvider(),
+            FakeAbuseIPDBProvider(),
+            FakeOTXProvider(),
+        ]
+    )
 
     app = create_app(
         Settings(database_required=False),
@@ -141,12 +156,20 @@ def test_portal_ioc_modal_endpoint() -> None:
             "/partials/ioc-modal?type=domain&value=evil[.]com"
         )
         assert response_standalone.status_code == 200
-        assert "evil.com" in response_standalone.text or "evil[.]com" in response_standalone.text
+        assert (
+            "evil.com" in response_standalone.text
+            or "evil[.]com" in response_standalone.text
+        )
 
 
 def test_portal_ioc_modal_disabled_providers() -> None:
     portal_service = MemoryPortalService()
-    settings = Settings(database_required=False, virustotal_enabled=False, abuseipdb_enabled=False, otx_enabled=False)
+    settings = Settings(
+        database_required=False,
+        virustotal_enabled=False,
+        abuseipdb_enabled=False,
+        otx_enabled=False,
+    )
     app = create_app(settings, portal_service=portal_service)
 
     with TestClient(app) as client:
@@ -160,10 +183,11 @@ def test_portal_ioc_modal_disabled_providers() -> None:
 
 
 def test_portal_iocs_partial_rendering() -> None:
-    from hermes_cti.portal.routes import templates
-    from hermes_cti.models.contracts import EntityReference
-    from hermes_cti.reporting.contracts import ReportIOC
     from uuid import uuid4
+
+    from hermes_cti.models.contracts import EntityReference
+    from hermes_cti.portal.routes import templates
+    from hermes_cti.reporting.contracts import ReportIOC
 
     ioc_id = uuid4()
     ioc = ReportIOC(
@@ -173,16 +197,13 @@ def test_portal_iocs_partial_rendering() -> None:
         evidence_ids=(uuid4(),),
     )
 
-
     detail = {
         "summary": {"slug": "test-slug", "canonical_url": "/reports/test-slug"},
         "iocs": (ioc,),
     }
-    
+
     rendered = templates.get_template("partials/iocs.html").render(detail=detail)
-    assert "data-ioc-type=\"ipv4\"" in rendered
-    assert "data-ioc-value=\"198.51.100.22\"" in rendered
+    assert 'data-ioc-type="ipv4"' in rendered
+    assert 'data-ioc-value="198.51.100.22"' in rendered
     assert "select-none" in rendered
     assert "pointer-events-none" in rendered
-
-

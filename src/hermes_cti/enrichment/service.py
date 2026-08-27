@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from typing import Any
-
 from uuid import UUID, uuid5
 
 from hermes_cti.enrichment.cache import EnrichmentCache
