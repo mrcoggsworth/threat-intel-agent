@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="h-full bg-slate-50">
+<html lang="en" class="h-full" data-theme="traditional-light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,14 +9,32 @@
   <script defer src="/assets/portal.js"></script>
   <script defer src="/assets/portal-enhance.js"></script>
 </head>
-<body class="min-h-full flex flex-col text-slate-900 font-sans antialiased">
-  <header class="bg-[#10243d] text-white border-b border-slate-800 shadow-sm sticky top-0 z-40">
+<body class="min-h-full flex flex-col font-sans antialiased">
+  <header class="text-white border-b shadow-sm sticky top-0 z-40 transition-colors duration-200">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
       <a class="text-xl font-bold tracking-tight text-white hover:text-sky-300 transition-colors flex items-center gap-2" href="/reports">
         <span class="inline-block w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
         Hermes CTI
       </a>
-      <span class="text-xs font-medium tracking-wide uppercase px-2.5 py-1 rounded-md bg-slate-800/80 text-sky-200 border border-slate-700/60">Public CTI · Evidence-Centered</span>
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-medium tracking-wide uppercase px-2.5 py-1 rounded-md bg-slate-800/80 text-sky-200 border border-slate-700/60 hidden md:inline-block">Public CTI · Evidence-Centered</span>
+        <div class="flex items-center gap-1.5 text-xs">
+          <label for="theme-selector" class="sr-only">Theme</label>
+          <div class="relative inline-flex items-center">
+            <span class="pointer-events-none absolute left-2.5 text-xs text-slate-300">🎨</span>
+            <select id="theme-selector" aria-label="Select Color Theme" class="pl-7 pr-3 py-1 text-xs font-medium rounded-md bg-slate-800/90 text-slate-100 border border-slate-700/80 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer transition shadow-xs">
+              <option value="traditional-light">Traditional Light</option>
+              <option value="traditional-dark">Traditional Dark</option>
+              <option value="cyberpunk">Cyberpunk</option>
+              <option value="synthwave">Synthwave</option>
+              <option value="tokyo-night">Tokyo Night</option>
+              <option value="darcula">Darcula</option>
+              <option value="monokai">Monokai</option>
+              <option value="synthwave-metal">Synthwave Metal / Teal</option>
+            </select>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
   <main id="main-content" class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">{% block content %}{% endblock %}</main>
