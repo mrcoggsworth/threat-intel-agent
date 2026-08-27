@@ -112,6 +112,29 @@ install_secret_file "$temp_dir/analyst-token" "$secret_dir/analyst-token"
 install_secret_file "$temp_dir/application-secret" "$secret_dir/application-secret"
 install_secret_file "$temp_dir/backup-key" "$secret_dir/backup-key"
 
+# Import enrichment keys from profile .env if available, or create placeholders
+analyst_env="${HERMES_PROFILES_DIR:-$user_home/.hermes/profiles}/cti-analyst/.env"
+for key_name in virustotal-api-key otx-api-key abuseipdb-api-key nvd-api-key; do
+    target="$secret_dir/$key_name"
+    if [ ! -f "$target" ]; then
+        extracted=""
+        if [ -f "$analyst_env" ]; then
+            case "$key_name" in
+                virustotal-api-key) extracted=$(grep -E '^HERMES_VIRUSTOTAL_API_KEY=' "$analyst_env" | cut -d= -f2- | tr -d '\r\n"'"'") ;;
+                otx-api-key) extracted=$(grep -E '^HERMES_OTX_API_KEY=' "$analyst_env" | cut -d= -f2- | tr -d '\r\n"'"'") ;;
+                abuseipdb-api-key) extracted=$(grep -E '^HERMES_ABUSEIPDB_API_KEY=' "$analyst_env" | cut -d= -f2- | tr -d '\r\n"'"'") ;;
+                nvd-api-key) extracted=$(grep -E '^HERMES_NVD_API_KEY=' "$analyst_env" | cut -d= -f2- | tr -d '\r\n"'"'") ;;
+            esac
+        fi
+        if [ -n "$extracted" ]; then
+            printf '%s\n' "$extracted" >"$target"
+        else
+            touch "$target"
+        fi
+        chmod 644 "$target"
+    fi
+done
+
 echo "Compose secret files created in: $secret_dir"
 
 if [ "$admin_generated" -eq 1 ]; then

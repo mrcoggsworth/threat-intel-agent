@@ -22,12 +22,20 @@ services:
       HERMES_ADMIN_TOKEN_FILE: /run/secrets/hermes_admin_token
       HERMES_ANALYST_TOKEN_FILE: /run/secrets/hermes_analyst_token
       HERMES_SECRET_KEY_FILE: /run/secrets/hermes_secret_key
+      HERMES_VIRUSTOTAL_API_KEY_FILE: /run/secrets/hermes_virustotal_api_key
+      HERMES_OTX_API_KEY_FILE: /run/secrets/hermes_otx_api_key
+      HERMES_ABUSEIPDB_API_KEY_FILE: /run/secrets/hermes_abuseipdb_api_key
+      HERMES_NVD_API_KEY_FILE: /run/secrets/hermes_nvd_api_key
       HERMES_SCHEDULER_HEARTBEAT_FILE: /runtime/scheduler.heartbeat
     secrets:
       - hermes_database_url
       - hermes_admin_token
       - hermes_analyst_token
       - hermes_secret_key
+      - hermes_virustotal_api_key
+      - hermes_otx_api_key
+      - hermes_abuseipdb_api_key
+      - hermes_nvd_api_key
     networks:
       - edge
       - backend
@@ -210,3 +218,11 @@ secrets:
     file: ${HERMES_SECRET_DIR:?HERMES_SECRET_DIR must point to the protected secret directory}/application-secret
   backup_encryption_key:
     file: ${HERMES_SECRET_DIR:?HERMES_SECRET_DIR must point to the protected secret directory}/backup-key
+  hermes_virustotal_api_key:
+    file: ${HERMES_SECRET_DIR:?HERMES_SECRET_DIR must point to the protected secret directory}/virustotal-api-key
+  hermes_otx_api_key:
+    file: ${HERMES_SECRET_DIR:?HERMES_SECRET_DIR must point to the protected secret directory}/otx-api-key
+  hermes_abuseipdb_api_key:
+    file: ${HERMES_SECRET_DIR:?HERMES_SECRET_DIR must point to the protected secret directory}/abuseipdb-api-key
+  hermes_nvd_api_key:
+    file: ${HERMES_SECRET_DIR:?HERMES_SECRET_DIR must point to the protected secret directory}/nvd-api-key

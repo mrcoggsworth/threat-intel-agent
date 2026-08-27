@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import time
 from dataclasses import dataclass
@@ -100,12 +101,17 @@ class BaseProvider:
         enabled: bool = True,
         config: ProviderRuntimeConfig | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
-        api_key: str | None = None,
+        api_key: Any = None,
     ) -> None:
         self.name = name
         self.enabled = enabled
         self._config = config or ProviderRuntimeConfig()
-        self._api_key = api_key
+        if api_key is not None and hasattr(api_key, "get_secret_value"):
+            self._api_key = api_key.get_secret_value()
+        elif api_key is not None:
+            self._api_key = str(api_key)
+        else:
+            self._api_key = None
         self._transport = transport
         self._client: AsyncHTTPClient | None = None
         self._semaphore = asyncio.Semaphore(max(1, self._config.concurrency))
@@ -512,6 +518,15 @@ class VirusTotalProvider(BaseProvider):
     """Optional VirusTotal indicator client with a narrow normalized projection."""
 
     _kinds = frozenset({"ipv4", "ipv6", "domain", "url", "md5", "sha1", "sha256"})
+    _kind_map = {
+        "ipv4": "ip_addresses",
+        "ipv6": "ip_addresses",
+        "domain": "domains",
+        "url": "urls",
+        "md5": "files",
+        "sha1": "files",
+        "sha256": "files",
+    }
 
     def __init__(self, url: str, **kwargs: Any) -> None:
         super().__init__("virustotal", **kwargs)
@@ -522,9 +537,13 @@ class VirusTotalProvider(BaseProvider):
     ) -> tuple[dict[str, Any], FetchResult]:
         if request.query_kind not in self._kinds:
             raise ProviderSchemaError("VirusTotal requires an approved indicator kind")
-        target = quote(request.query_key, safe="")
+        vt_kind = self._kind_map.get(request.query_kind, request.query_kind)
+        if request.query_kind == "url":
+            target = base64.urlsafe_b64encode(request.query_key.encode()).decode().rstrip("=")
+        else:
+            target = quote(request.query_key, safe="")
         payload, fetch = await self._fetch_json(
-            f"{self.url}/{request.query_kind}/{target}",
+            f"{self.url}/{vt_kind}/{target}",
             headers={"x-apikey": self._api_key or ""},
         )
         data = payload.get("data")
@@ -548,6 +567,15 @@ class OTXProvider(BaseProvider):
     """Optional AlienVault OTX indicator client."""
 
     _kinds = frozenset({"ipv4", "ipv6", "domain", "url", "md5", "sha1", "sha256"})
+    _kind_map = {
+        "ipv4": "IPv4",
+        "ipv6": "IPv6",
+        "domain": "domain",
+        "url": "url",
+        "md5": "file",
+        "sha1": "file",
+        "sha256": "file",
+    }
 
     def __init__(self, url: str, **kwargs: Any) -> None:
         super().__init__("otx", **kwargs)
@@ -558,9 +586,10 @@ class OTXProvider(BaseProvider):
     ) -> tuple[dict[str, Any], FetchResult]:
         if request.query_kind not in self._kinds:
             raise ProviderSchemaError("OTX requires an approved indicator kind")
+        otx_kind = self._kind_map.get(request.query_kind, request.query_kind)
         target = quote(request.query_key, safe="")
         payload, fetch = await self._fetch_json(
-            f"{self.url}/indicators/{request.query_kind}/{target}/general",
+            f"{self.url}/indicators/{otx_kind}/{target}/general",
             headers={"X-OTX-API-KEY": self._api_key or ""},
         )
         pulses = payload.get("pulse_info")
@@ -614,7 +643,13 @@ class AbuseIPDBProvider(BaseProvider):
 
 def _secret(settings: Any, field: str) -> str | None:
     value = getattr(settings, field, None)
-    return value.get_secret_value() if value is not None else None
+    if value is None:
+        return None
+    if hasattr(value, "get_secret_value"):
+        raw = value.get_secret_value()
+        return raw if raw else None
+    s = str(value).strip()
+    return s if s else None
 
 
 def build_providers(
@@ -649,7 +684,8 @@ def build_providers(
         VirusTotalProvider(
             str(settings.virustotal_url),
             enabled=bool(
-                settings.virustotal_enabled and _secret(settings, "virustotal_api_key")
+                (settings.virustotal_enabled or _secret(settings, "virustotal_api_key"))
+                and _secret(settings, "virustotal_api_key")
             ),
             api_key=_secret(settings, "virustotal_api_key"),
             **common,
@@ -658,7 +694,10 @@ def build_providers(
     providers.append(
         OTXProvider(
             str(settings.otx_url),
-            enabled=bool(settings.otx_enabled and _secret(settings, "otx_api_key")),
+            enabled=bool(
+                (settings.otx_enabled or _secret(settings, "otx_api_key"))
+                and _secret(settings, "otx_api_key")
+            ),
             api_key=_secret(settings, "otx_api_key"),
             **common,
         )
@@ -667,7 +706,8 @@ def build_providers(
         AbuseIPDBProvider(
             str(settings.abuseipdb_url),
             enabled=bool(
-                settings.abuseipdb_enabled and _secret(settings, "abuseipdb_api_key")
+                (settings.abuseipdb_enabled or _secret(settings, "abuseipdb_api_key"))
+                and _secret(settings, "abuseipdb_api_key")
             ),
             api_key=_secret(settings, "abuseipdb_api_key"),
             **common,
