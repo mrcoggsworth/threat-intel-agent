@@ -47,15 +47,29 @@ Planned after Phase 8:
 The public CTI scope does not include internal asset inventory or claims about
 an organization’s exposure.
 
+## Installation & Deployment Guide
+
+For a complete, step-by-step walkthrough covering full self-hosting, file-backed secret creation, local LLM inference engines (**llama.cpp** or **Ollama**), host Nginx split-port TLS routing (9443/9444), and **Hermes AI Agent** profiles, see:
+
+👉 **[Comprehensive Self-Hosting & Installation Guide](docs/INSTALLATION_GUIDE.md)**
+
+---
+
 ## Local setup
 
-Prerequisites: Python 3.12+, [uv](https://docs.astral.sh/uv/), and Docker for
-container checks.
+Prerequisites: Python 3.12+, [uv](https://docs.astral.sh/uv/), Node.js 20+, and Docker for container execution.
 
 ```bash
 git clone https://github.com/mrcoggsworth/threat-intel-agent.git
 cd threat-intel-agent
 uv sync --frozen
+npm install
+```
+
+To update an existing deployment after pulling changes or git merges:
+```bash
+./scripts/update-app.sh
+# or: npm run update
 ```
 
 `pyproject.toml` is authoritative. `requirements.txt` is intentionally absent;
