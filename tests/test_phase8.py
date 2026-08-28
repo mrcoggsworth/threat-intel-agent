@@ -86,11 +86,20 @@ class MemoryPortalService(PortalService):
     async def list_reports(self, query: PortalQuery) -> PublicReportPage:
         self.calls += 1
         summary = self.summary(self.row)
+        report_date = (
+            self.report.last_updated_at.date() if self.report.last_updated_at else None
+        )
         if (
             query.search
             and query.search.casefold() not in summary.headline.casefold()
             or query.severities
             and summary.severity not in query.severities
+            or query.confidence_min is not None
+            and summary.confidence < query.confidence_min
+            or query.date_from is not None
+            and (report_date is None or report_date < query.date_from)
+            or query.date_to is not None
+            and (report_date is None or report_date > query.date_to)
         ):
             items = ()
         else:
@@ -358,3 +367,33 @@ def test_component_modal_partials_and_action_pills() -> None:
         direct_res = c.get(f"/partials/reports/{slug}/{comp}")
         assert direct_res.status_code == 200
         assert 'role="dialog"' in direct_res.text
+
+
+def test_search_works_with_date_from_filter() -> None:
+    """Date-from filter should filter reports and render correctly in HTML/HTMX."""
+    c = client()
+
+    # API query with date_from before the report date (2026-08-23)
+    res = c.get("/api/v1/public/reports?date_from=2026-08-01")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["query"]["date_from"] == "2026-08-01"
+    assert len(data["items"]) == 1
+
+    # API query with date_from after the report date
+    res_future = c.get("/api/v1/public/reports?date_from=2026-08-25")
+    assert res_future.status_code == 200
+    assert len(res_future.json()["items"]) == 0
+
+    # HTML page rendering contains date_from input and preserves value
+    html_res = c.get("/reports?date_from=2026-08-01")
+    assert html_res.status_code == 200
+    assert 'name="date_from"' in html_res.text
+    assert 'id="date_from"' in html_res.text
+    assert 'type="date"' in html_res.text
+    assert 'value="2026-08-01"' in html_res.text
+    assert "From Date" in html_res.text
+
+    # HTMX partial route accepts date_from
+    partial_res = c.get("/partials/reports?date_from=2026-08-01")
+    assert partial_res.status_code == 200
