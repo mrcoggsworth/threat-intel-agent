@@ -397,4 +397,3 @@ def test_search_works_with_date_from_filter() -> None:
     # HTMX partial route accepts date_from
     partial_res = c.get("/partials/reports?date_from=2026-08-01")
     assert partial_res.status_code == 200
-
