@@ -284,6 +284,7 @@ header {
     background-color: var(--theme-bg-input) !important;
     border-color: var(--theme-border-input) !important;
     color: var(--theme-text-input) !important;
+    color-scheme: dark;
   }
 
   input:focus,
