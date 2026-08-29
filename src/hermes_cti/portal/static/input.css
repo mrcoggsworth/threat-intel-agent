@@ -219,6 +219,31 @@
   --theme-glow: 0 0 14px rgba(0, 255, 245, 0.25);
 }
 
+[data-theme="matrix"] {
+  --theme-bg-body: #020603;
+  --theme-bg-header: #010a03;
+  --theme-border-header: #00ff41;
+  --theme-bg-card: #050f07;
+  --theme-bg-card-subtle: #091a0d;
+  --theme-bg-input: #020803;
+  --theme-border-input: #00ff41;
+  --theme-text-input: #00ff66;
+  --theme-border: #0d2e14;
+  --theme-border-subtle: #081c0c;
+  --theme-text-primary: #00ff41;
+  --theme-text-secondary: #86efac;
+  --theme-text-muted: #22c55e;
+  --theme-accent-primary: #00ff41;
+  --theme-accent-hover: #00cc33;
+  --theme-accent-text: #000000;
+  --theme-accent-subtle: #04240a;
+  --theme-accent-border: #00ff41;
+  --theme-dialog-bg: #050f07;
+  --theme-dialog-border: #00ff41;
+  --theme-code-bg: #030a04;
+  --theme-glow: 0 0 16px rgba(0, 255, 65, 0.3);
+}
+
 /* Base Body Styles */
 html, body {
   background-color: var(--theme-bg-body);
@@ -577,5 +602,50 @@ header {
     font-weight: 600;
     color: var(--theme-text-primary, #0f172a);
     width: 30%;
+  }
+
+  /* Terminal Session Progress Bar Animations */
+  @keyframes terminal-slide {
+    0% {
+      transform: translateX(-100%);
+    }
+    50% {
+      transform: translateX(40%);
+    }
+    100% {
+      transform: translateX(180%);
+    }
+  }
+
+  @-webkit-keyframes terminal-slide {
+    0% {
+      -webkit-transform: translateX(-100%);
+    }
+    50% {
+      -webkit-transform: translateX(40%);
+    }
+    100% {
+      -webkit-transform: translateX(180%);
+    }
+  }
+
+  .terminal-progress-track {
+    background-color: var(--theme-code-bg, #0f172a) !important;
+    border: 1px solid var(--theme-border-input, #0284c7) !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .terminal-progress-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 50%;
+    background: linear-gradient(90deg, transparent, var(--theme-accent-primary, #0284c7), transparent);
+    animation: terminal-slide 1.4s ease-in-out infinite;
+    -webkit-animation: terminal-slide 1.4s ease-in-out infinite;
+    will-change: transform;
   }
 }

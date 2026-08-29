@@ -19,10 +19,11 @@ EXPECTED_THEMES = [
     "darcula",
     "monokai",
     "synthwave-metal",
+    "matrix",
 ]
 
 
-def test_portal_html_renders_theme_selector_with_all_eight_themes() -> None:
+def test_portal_html_renders_theme_selector_with_all_nine_themes() -> None:
     portal_service = MemoryPortalService()
     app = create_app(Settings(database_required=False), portal_service=portal_service)
 
@@ -35,7 +36,7 @@ def test_portal_html_renders_theme_selector_with_all_eight_themes() -> None:
         assert 'id="theme-selector"' in html
         assert 'data-theme="traditional-light"' in html
 
-        # Verify all 8 themes are available options
+        # Verify all 9 themes are available options
         for theme in EXPECTED_THEMES:
             assert f'value="{theme}"' in html
 
@@ -48,6 +49,7 @@ def test_portal_html_renders_theme_selector_with_all_eight_themes() -> None:
         assert "Darcula" in html
         assert "Monokai" in html
         assert "Synthwave Metal / Teal" in html
+        assert "Matrix Green" in html
 
 
 def test_theme_css_definitions_present_in_input_and_compiled_css() -> None:

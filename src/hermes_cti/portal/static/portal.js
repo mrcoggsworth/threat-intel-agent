@@ -8,7 +8,8 @@
     "tokyo-night",
     "darcula",
     "monokai",
-    "synthwave-metal"
+    "synthwave-metal",
+    "matrix"
   ];
 
   function applySavedTheme() {
