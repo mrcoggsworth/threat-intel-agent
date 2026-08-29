@@ -219,3 +219,40 @@ class PublicAdminDraft(ContractModel):
 class PrivateDraftPage(ContractModel):
     items: tuple[PublicAdminDraft, ...]
     total: int
+
+
+class EvidenceAnalystSummary(ContractModel):
+    """Structured CTI analyst interpretation and takeaway for an evidence claim."""
+
+    core_finding: str = Field(
+        ...,
+        min_length=1,
+        description="Analytical interpretation of what this evidence proves.",
+    )
+    hunt_relevance: str = Field(
+        ...,
+        min_length=1,
+        description="Tactical hunting strategy and query application.",
+    )
+    triage_caveats: str = Field(
+        ...,
+        min_length=1,
+        description="False-positive cautions and verification checklist.",
+    )
+    recommended_pivots: tuple[str, ...] = Field(
+        default=(), description="Telemetry sources and pivot points for verification."
+    )
+
+
+class PublicEvidenceDetail(ContractModel):
+    """Detailed evidence modal payload with source citation and analyst synthesis."""
+
+    evidence_id: UUID
+    evidence_type: str
+    statement: str
+    source_reference: Any | None = None
+    source_url: str | None = None
+    confidence: float
+    report_slug: str
+    report_headline: str
+    analyst_summary: EvidenceAnalystSummary

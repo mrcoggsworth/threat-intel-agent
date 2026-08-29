@@ -296,13 +296,20 @@
 
   <!-- Provenance & Cross-Reference Badges -->
   {% if hunt.evidence_ids or hunt.detection_ids %}
+  {% set current_slug = report.slug if report else (detail.summary.slug if detail else '') %}
   <section class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-2">
     <h4 class="font-bold uppercase tracking-wider text-slate-500 text-[11px]">Traceability &amp; Related Detections</h4>
     <div class="flex flex-wrap items-center gap-2">
       {% for ev_id in hunt.evidence_ids %}
-      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white text-slate-700 border border-slate-200 font-mono text-[11px]">
-        🔍 Evidence: {{ ev_id|string|truncate(12, True, '…') }}
-      </span>
+      <a class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white hover:bg-sky-50 text-slate-800 hover:text-sky-900 border border-slate-200 hover:border-sky-300 font-mono text-[11px] font-medium shadow-2xs hover:shadow-xs transition cursor-pointer"
+         href="/reports/{{ current_slug }}/evidence/{{ ev_id }}"
+         data-report-link
+         data-hx-get="/partials/reports/{{ current_slug }}/evidence/{{ ev_id }}"
+         data-evidence-id="{{ ev_id }}"
+         title="Click to view full evidence claim and CTI analyst interpretation">
+        <span>🔍 Evidence:</span>
+        <span class="text-sky-700 font-bold underline decoration-sky-300 decoration-1 underline-offset-2">{{ ev_id|string|truncate(12, True, '…') }}</span>
+      </a>
       {% endfor %}
       {% for det_id in hunt.detection_ids %}
       <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-200 font-mono text-[11px]">
@@ -314,3 +321,4 @@
   {% endif %}
 
 </div>
+

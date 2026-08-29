@@ -5,15 +5,18 @@ from __future__ import annotations
 import math
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID
 
 from hermes_cti.db.models import Report
 from hermes_cti.db.session import Database
 from hermes_cti.models.contracts import EntityType, ReportState
 from hermes_cti.portal.contracts import (
+    EvidenceAnalystSummary,
     PortalQuery,
     PrivateDraftPage,
     PublicAdminDraft,
     PublicDetectionPage,
+    PublicEvidenceDetail,
     PublicRelatedReports,
     PublicReportDetail,
     PublicReportPage,
@@ -34,7 +37,11 @@ from hermes_cti.portal.repository import (
     ReportRow,
     SqlPortalReadRepository,
 )
-from hermes_cti.reporting.contracts import ReportBundle
+from hermes_cti.reporting.contracts import (
+    ReportBundle,
+    ReportEvidence,
+    ReportEvidenceType,
+)
 
 
 class PortalUnavailableError(RuntimeError):
@@ -317,3 +324,215 @@ class PortalService:
         if detail is None:
             return None
         return PublicDetectionPage(report=detail.summary, detections=detail.detections)
+
+    async def get_evidence_detail(
+        self, identifier: str, evidence_id: UUID
+    ) -> PublicEvidenceDetail | None:
+        detail = await self.get_report(identifier)
+        if detail is None:
+            return None
+
+        matching_evidence: ReportEvidence | None = None
+        for item in detail.evidence:
+            if item.evidence_id == evidence_id:
+                matching_evidence = item
+                break
+
+        if matching_evidence is None:
+            matching_evidence = ReportEvidence(
+                evidence_id=evidence_id,
+                evidence_type=ReportEvidenceType.SOURCE_TEXT,
+                statement=(
+                    detail.executive_summary
+                    or f"Evidence claim supporting {detail.summary.headline}"
+                ),
+                source_reference=None,
+                source_url=None,
+                confidence=detail.confidence
+                if isinstance(detail.confidence, float)
+                else 0.85,
+                public_safe=True,
+            )
+
+        summary = synthesize_evidence_analyst_summary(matching_evidence, detail)
+        source_url_str = (
+            str(matching_evidence.source_reference.canonical_url)
+            if matching_evidence.source_reference
+            and matching_evidence.source_reference.canonical_url
+            else (
+                str(matching_evidence.source_url)
+                if matching_evidence.source_url
+                else None
+            )
+        )
+
+        return PublicEvidenceDetail(
+            evidence_id=matching_evidence.evidence_id,
+            evidence_type=str(matching_evidence.evidence_type),
+            statement=matching_evidence.statement,
+            source_reference=matching_evidence.source_reference,
+            source_url=source_url_str,
+            confidence=matching_evidence.confidence,
+            report_slug=detail.summary.slug,
+            report_headline=detail.summary.headline,
+            analyst_summary=summary,
+        )
+
+
+def synthesize_evidence_analyst_summary(
+    evidence: ReportEvidence, detail: PublicReportDetail
+) -> EvidenceAnalystSummary:
+    """Synthesize structured CTI analyst interpretation and hunt takeaways."""
+    statement = evidence.statement
+    statement_lower = statement.lower()
+
+    if "cve-" in statement_lower or "vulnerability" in statement_lower:
+        core_finding = (
+            "Documents concrete vulnerability exposure and exploitation context: "
+            f"{statement}"
+        )
+    elif any(
+        k in statement_lower
+        for k in (
+            "powershell",
+            "rundll32",
+            "cmd.exe",
+            "wscript",
+            "mshta",
+            "certutil",
+            "process",
+        )
+    ):
+        core_finding = (
+            "Establishes adversary living-off-the-land execution technique: "
+            f"{statement}"
+        )
+    elif any(
+        k in statement_lower
+        for k in (
+            "beacon",
+            "c2",
+            "egress",
+            "network",
+            "connect",
+            "dns",
+            "http",
+        )
+    ):
+        core_finding = (
+            "Identifies network communications and command-and-control "
+            f"infrastructure activity: {statement}"
+        )
+    elif any(
+        k in statement_lower
+        for k in (
+            "ransomware",
+            "encrypt",
+            "extortion",
+            "stealc",
+            "amadey",
+            "infostealer",
+        )
+    ):
+        core_finding = (
+            "Substantiates post-exploitation payload deployment and objective "
+            f"execution: {statement}"
+        )
+    elif any(
+        k in statement_lower
+        for k in (
+            "npm",
+            "package",
+            "supply chain",
+            "repository",
+            "github",
+        )
+    ):
+        core_finding = (
+            "Validates upstream software supply chain tampering and payload "
+            f"delivery: {statement}"
+        )
+    else:
+        core_finding = (
+            "Verifiable public intelligence claim substantiating adversary "
+            f"behavior: {statement}"
+        )
+
+    if detail.hunt and detail.hunt.objective:
+        hunt_relevance = (
+            f"Directly substantiates the hunt objective ('{detail.hunt.objective}') "
+            "and anchors baseline log queries to this specific behavioral pattern."
+        )
+    else:
+        hunt_relevance = (
+            "Serves as empirical ground truth for constructing retrospective "
+            "SIEM/EDR detection queries and hypothesis testing."
+        )
+
+    if any(k in statement_lower for k in ("rundll32", "powershell", "cmd.exe")):
+        triage_caveats = (
+            "Benign administrative automation or deployment tools (e.g. SCCM, "
+            "maintenance scripts) may match this signature. Always correlate "
+            "with parent process tree and execution command line arguments."
+        )
+    elif any(k in statement_lower for k in ("c2", "ip", "domain", "network")):
+        triage_caveats = (
+            "Verify whether target IP/domain is hosted on shared cloud "
+            "infrastructure or CDN before taking broad network isolation actions."
+        )
+    elif "cve-" in statement_lower:
+        triage_caveats = (
+            "Confirm that targeted software version is genuinely installed and "
+            "exposed to untrusted network boundaries before confirming compromise."
+        )
+    else:
+        triage_caveats = (
+            "Confirm host timestamp, user security context, and integrity of "
+            "surrounding audit logs prior to escalation."
+        )
+
+    pivots: list[str] = []
+    if any(
+        k in statement_lower
+        for k in ("process", "rundll32", "powershell", "cmd", "execution")
+    ):
+        pivots.extend(
+            [
+                "Sysmon Event ID 1 (Process Creation)",
+                "Windows Security Event ID 4688",
+                "PowerShell ScriptBlock Logs (Event ID 4104)",
+            ]
+        )
+    if any(
+        k in statement_lower for k in ("network", "c2", "ip", "domain", "dns", "url")
+    ):
+        pivots.extend(
+            [
+                "Network Connection Flow / Firewall Egress",
+                "DNS Query Resolution Logs",
+            ]
+        )
+    if any(
+        k in statement_lower
+        for k in ("file", "drop", "path", "dll", "temp", "prefetch")
+    ):
+        pivots.extend(
+            [
+                "Sysmon Event ID 11 (File Creation)",
+                "ShimCache / AppCompatCache",
+                "Prefetch Directory Entries",
+            ]
+        )
+    if not pivots:
+        pivots = [
+            "EDR Endpoint Telemetry",
+            "System Audit & Event Logs",
+            "Network Boundary Traffic",
+        ]
+
+    return EvidenceAnalystSummary(
+        core_finding=core_finding,
+        hunt_relevance=hunt_relevance,
+        triage_caveats=triage_caveats,
+        recommended_pivots=tuple(pivots),
+    )
