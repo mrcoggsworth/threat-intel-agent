@@ -1,6 +1,6 @@
 ---
 name: threat-hunting
-description: Procedural guide for synthesizing Sigma rules, YARA rules, and hunt playbooks.
+description: Procedural guide for synthesizing Sigma rules, YARA rules, and two-tiered hunt playbooks.
 ---
 
 # Threat Hunting Synthesis Procedure
@@ -10,4 +10,8 @@ description: Procedural guide for synthesizing Sigma rules, YARA rules, and hunt
    - Write **Sigma** rules for log-based detection.
    - Write **YARA** rules for file artifact and memory scanning.
    - Write **KQL** and **Splunk SPL** queries for SIEM hunting.
-3. **Generate Remediation Guide:** Document step-by-step containment, network isolation, and patch validation procedures.
+3. **Synthesize Two-Tiered Hunt Playbook:**
+   - **4-Step Play-by-Play:** Scoping $\rightarrow$ SIEM query $\rightarrow$ Triage branch $\rightarrow$ Containment.
+   - **Deep-Dive Operational Phases:** Baseline & telemetry, query execution & anomaly sweep, triage & false positive elimination, forensic artifact preservation.
+4. **Generate Remediation Guide:** Document step-by-step containment, network isolation, and patch validation procedures.
+

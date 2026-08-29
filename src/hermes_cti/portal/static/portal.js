@@ -111,8 +111,8 @@
     var copyBtn = target.closest("[data-copy-target]");
     if (copyBtn) {
       event.preventDefault();
-      var card = copyBtn.closest(".detection");
-      var codeEl = card ? card.querySelector("pre code") : null;
+      var card = copyBtn.closest(".detection, .hunt-query-card, [data-copy-container]");
+      var codeEl = card ? card.querySelector("pre code, pre, code") : null;
       var textToCopy = codeEl ? codeEl.textContent || "" : "";
 
       if (!textToCopy) return;

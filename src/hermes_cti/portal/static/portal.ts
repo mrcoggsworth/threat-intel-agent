@@ -111,8 +111,8 @@
     const copyBtn = target.closest<HTMLButtonElement>("[data-copy-target]");
     if (copyBtn) {
       event.preventDefault();
-      const card = copyBtn.closest(".detection");
-      const codeEl = card ? card.querySelector("pre code") : null;
+      const card = copyBtn.closest(".detection, .hunt-query-card, [data-copy-container]");
+      const codeEl = card ? card.querySelector("pre code, pre, code") : null;
       const textToCopy = codeEl ? (codeEl.textContent || "") : "";
 
       if (!textToCopy) return;
