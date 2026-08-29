@@ -8,6 +8,7 @@ import json
 from datetime import date
 from pathlib import Path
 from typing import Annotated, Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.encoders import jsonable_encoder
@@ -410,6 +411,50 @@ async def report_attack_modal_partial(
             "report_headline": headline,
             "report_slug": report_slug,
             "mitre_url": mitre_url,
+        },
+    )
+
+
+@router.get(
+    "/partials/reports/{identifier}/evidence/{evidence_id}", response_class=HTMLResponse
+)
+@router.get(
+    "/partials/reports/{identifier}/evidence-modal", response_class=HTMLResponse
+)
+@router.get("/partials/evidence-modal", response_class=HTMLResponse)
+async def report_evidence_modal_partial(
+    request: Request,
+    identifier: str | None = None,
+    evidence_id: str | None = None,
+    evidence: str | None = Query(default=None),
+    service: PortalService = Depends(get_portal_service),
+) -> HTMLResponse:  # noqa: B008
+    raw_id = evidence_id or evidence or request.query_params.get("evidence_id")
+    if not raw_id:
+        raise HTTPException(status_code=400, detail="evidence_id is required")
+    try:
+        parsed_id = UUID(raw_id.strip())
+    except (ValueError, AttributeError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid evidence UUID") from exc
+
+    target_identifier = (
+        identifier
+        or request.query_params.get("identifier")
+        or request.query_params.get("slug")
+    )
+    if not target_identifier:
+        raise HTTPException(status_code=400, detail="report identifier is required")
+
+    evidence_detail = await service.get_evidence_detail(target_identifier, parsed_id)
+    if evidence_detail is None:
+        raise HTTPException(status_code=404, detail="Evidence not found")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/evidence_modal.html",
+        context={
+            "request": request,
+            "evidence": evidence_detail,
         },
     )
 

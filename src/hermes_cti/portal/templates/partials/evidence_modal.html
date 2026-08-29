@@ -1,0 +1,117 @@
+<div class="dialog-backdrop" data-dialog-close></div>
+<section class="dialog" role="dialog" aria-modal="true" aria-labelledby="evidence-modal-title" tabindex="-1" data-dialog>
+  <button class="dialog-close" type="button" data-dialog-close aria-label="Close dialog">×</button>
+  <div class="dialog-body space-y-5 pr-6">
+    <!-- Header -->
+    <div class="border-b border-slate-200 pb-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-sky-700 px-2 py-0.5 rounded bg-sky-50 border border-sky-200">Public Evidence</span>
+        <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-50 text-indigo-800 border border-indigo-200">{{ evidence.evidence_type }}</span>
+        {% if evidence.confidence is not none %}
+        <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{{ "%.0f"|format(evidence.confidence * 100) }}% Confidence</span>
+        {% endif %}
+      </div>
+      <h1 id="evidence-modal-title" class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 mt-2 flex flex-wrap items-center gap-2 select-all font-mono">
+        <span>🔍 Evidence Claim</span>
+        <span class="text-xs font-normal text-slate-500 font-mono">({{ evidence.evidence_id }})</span>
+      </h1>
+      {% if evidence.report_headline %}
+      <p class="text-xs text-slate-500 mt-1">Associated Report: <span class="font-medium text-slate-700">{{ evidence.report_headline }}</span></p>
+      {% endif %}
+    </div>
+
+    <!-- Evidence Content & Source Verification Card -->
+    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3" data-copy-container>
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+          <span>📜 Source Statement</span>
+        </span>
+        <div class="flex items-center gap-2">
+          {% if evidence.source_url %}
+          <a class="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 hover:text-sky-900 transition-colors" href="{{ evidence.source_url }}" target="_blank" rel="noopener noreferrer">
+            Primary Source ↗
+          </a>
+          {% endif %}
+          <button type="button" class="copy-button inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition cursor-pointer" data-copy-target aria-label="Copy evidence statement">
+            <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
+        <p class="text-xs sm:text-sm text-slate-800 font-sans leading-relaxed select-text" code>{{ evidence.statement }}</p>
+      </div>
+
+      {% if evidence.source_reference %}
+      <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
+        <span>Source: <strong class="text-slate-700">{{ evidence.source_reference.name }}</strong> ({{ evidence.source_reference.reliability }})</span>
+        <span class="font-mono text-[11px] text-slate-400">UUID: {{ evidence.evidence_id }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- CTI Analyst Synthesis & Hunt Breakdown Card -->
+    <div class="p-4 rounded-xl border border-sky-200 bg-sky-50/40 shadow-xs space-y-4">
+      <div class="flex items-center justify-between border-b border-sky-100 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-base">🧠</span>
+          <span class="font-bold text-sm text-sky-950">CTI Analyst Interpretation &amp; Hunt Context</span>
+        </div>
+        <span class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-200">Hermes Live Synthesis</span>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <!-- What this proves -->
+        <div class="p-3 rounded-lg bg-white border border-sky-100 space-y-1">
+          <span class="font-bold text-sky-900 block uppercase tracking-wider text-[10px]">What This Evidence Establishes</span>
+          <p class="text-slate-700 leading-relaxed">{{ evidence.analyst_summary.core_finding }}</p>
+        </div>
+
+        <!-- Hunt Relevance -->
+        <div class="p-3 rounded-lg bg-white border border-sky-100 space-y-1">
+          <span class="font-bold text-sky-900 block uppercase tracking-wider text-[10px]">Threat Hunt Application</span>
+          <p class="text-slate-700 leading-relaxed">{{ evidence.analyst_summary.hunt_relevance }}</p>
+        </div>
+
+        <!-- Triage Caveats -->
+        <div class="p-3 rounded-lg bg-amber-50/80 border border-amber-200/80 space-y-1 text-amber-950">
+          <span class="font-bold text-amber-900 block uppercase tracking-wider text-[10px]">⚠️ Triage &amp; False-Positive Caveats</span>
+          <p class="leading-relaxed text-amber-900">{{ evidence.analyst_summary.triage_caveats }}</p>
+        </div>
+
+        <!-- Recommended Pivots -->
+        {% if evidence.analyst_summary.recommended_pivots %}
+        <div class="space-y-1.5 pt-1">
+          <span class="font-bold text-slate-700 block uppercase tracking-wider text-[10px]">Recommended Telemetry Pivots</span>
+          <div class="flex flex-wrap items-center gap-1.5">
+            {% for pivot in evidence.analyst_summary.recommended_pivots %}
+            <span class="text-[11px] font-medium px-2 py-0.5 rounded bg-white text-slate-800 border border-slate-200 shadow-2xs">
+              {{ pivot }}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Quick Navigation & Context -->
+    {% if evidence.report_slug %}
+    <div class="flex flex-wrap items-center justify-between gap-2 text-xs pt-1">
+      <a class="font-semibold text-sky-700 hover:text-sky-900 transition flex items-center gap-1" href="/reports/{{ evidence.report_slug }}">
+        ← Return to Main Report
+      </a>
+      <a class="font-semibold text-sky-700 hover:text-sky-900 transition flex items-center gap-1" href="/reports/{{ evidence.report_slug }}/hunt">
+        View Full Hunt Operations Console →
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- Modal Footer -->
+    <div class="modal-footer flex items-center justify-between pt-4 border-t border-slate-200">
+      <span class="text-xs text-slate-500">Hermes CTI Evidence &amp; Provenance Ledger</span>
+      <button class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition cursor-pointer" type="button" data-dialog-close>Close</button>
+    </div>
+  </div>
+</section>
