@@ -1044,6 +1044,47 @@ class PublicReportSummary(ContractModel):
     )
 
 
+class HuntQuery(ContractModel):
+    """Structured hunt query with language and tuning guidance."""
+
+    language: str = Field(
+        ...,
+        description="Query language (e.g., kql, spl, sigma, esql, sql, generic).",
+    )
+    title: str = Field(..., min_length=1, description="Descriptive query title.")
+    query: str = Field(..., min_length=1, description="Query logic or expression.")
+    target_log_sources: tuple[str, ...] = Field(
+        default=(), description="Target log sources or tables."
+    )
+    tuning_guidance: str | None = Field(
+        default=None,
+        description="Optional baseline and false-positive tuning guidance.",
+    )
+
+
+class HuntPhase(ContractModel):
+    """Structured operational phase for in-depth threat hunting execution."""
+
+    phase_number: int = Field(..., ge=1, description="Ordered phase number.")
+    name: str = Field(..., min_length=1, description="Phase name.")
+    objective: str = Field(..., min_length=1, description="Phase tactical goal.")
+    steps: tuple[str, ...] = Field(
+        ..., min_length=1, description="Detailed procedural steps for this phase."
+    )
+    telemetry_sources: tuple[str, ...] = Field(
+        default=(), description="Telemetry sources relevant to this phase."
+    )
+    queries: tuple[HuntQuery, ...] = Field(
+        default=(), description="Queries associated with this phase."
+    )
+    pivot_guidance: tuple[str, ...] = Field(
+        default=(), description="Pivot points and anomaly investigation tips."
+    )
+    evidence_ids: tuple[UUID, ...] = Field(
+        default=(), description="Supporting evidence IDs for this phase."
+    )
+
+
 class ThreatHunt(ContractModel):
     """Separate threat-hunting guidance contract."""
 
@@ -1076,6 +1117,19 @@ class ThreatHunt(ContractModel):
     )
     queries: tuple[str, ...] = Field(
         default=(), description="Optional hunt queries or query templates."
+    )
+    typed_queries: tuple[HuntQuery, ...] = Field(
+        default=(), description="Typed query objects with syntax and tuning context."
+    )
+    execution_phases: tuple[HuntPhase, ...] = Field(
+        default=(),
+        description="Structured operational hunt phases for deep-dive investigation.",
+    )
+    pivot_guidance: tuple[str, ...] = Field(
+        default=(), description="Investigation pivot tips and decision points."
+    )
+    forensic_artifacts: tuple[str, ...] = Field(
+        default=(), description="Forensic artifacts to collect upon positive match."
     )
     evidence_ids: tuple[UUID, ...] = Field(
         default=(), description="Evidence supporting the hunt hypothesis."

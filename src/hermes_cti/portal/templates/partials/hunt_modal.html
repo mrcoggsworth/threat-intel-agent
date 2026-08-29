@@ -1,0 +1,101 @@
+{% if value is defined %}{% set hunt = value %}{% else %}{% set hunt = detail.hunt %}{% endif %}
+<div class="space-y-4 text-slate-800">
+  <!-- Objective & Hypothesis Callout -->
+  <div class="bg-sky-50/60 border border-sky-200/80 rounded-xl p-4 space-y-2">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <span class="text-xs font-bold uppercase tracking-wider text-sky-800">Hunt Objective</span>
+      <span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-md bg-white text-sky-900 border border-sky-200 shadow-2xs">
+        Lookback: {{ hunt.lookback }}
+      </span>
+    </div>
+    <p class="text-sm font-semibold text-slate-900 leading-snug">{{ hunt.objective }}</p>
+    <div class="text-xs text-slate-700 pt-1 border-t border-sky-100 flex items-baseline gap-1.5">
+      <span class="font-bold text-sky-900 shrink-0">Hypothesis:</span>
+      <span class="italic text-slate-700">{{ hunt.hypothesis }}</span>
+    </div>
+  </div>
+
+  <!-- Scope & Telemetry Tags -->
+  <div class="flex flex-wrap items-center gap-1.5 text-xs">
+    <span class="font-bold uppercase tracking-wider text-slate-500 mr-1 text-[11px]">Scope:</span>
+    {% for platform in hunt.platforms %}
+    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium border border-slate-200">{{ platform }}</span>
+    {% endfor %}
+    {% for telemetry in hunt.telemetry_requirements %}
+    <span class="px-2 py-0.5 rounded bg-sky-50 text-sky-800 font-medium border border-sky-200">{{ telemetry }}</span>
+    {% endfor %}
+  </div>
+
+  <!-- 4-Step Play-by-Play Procedure -->
+  <div class="space-y-2">
+    <div class="flex items-center justify-between">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Play-by-Play Procedure</h3>
+      <span class="text-[11px] font-medium text-slate-400">Rapid Triage Sequence</span>
+    </div>
+    <ol class="space-y-2">
+      {% for step in hunt.procedure %}
+      <li class="flex items-start gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-xs text-slate-800">
+        <span class="flex items-center justify-center w-5 h-5 rounded-full bg-sky-700 text-white font-bold text-[11px] shrink-0 mt-0.5 shadow-2xs">
+          {{ loop.index }}
+        </span>
+        <span class="leading-relaxed font-medium pt-0.5">{{ step }}</span>
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+
+  <!-- Query Quick-Copy Preview if Available -->
+  {% if hunt.typed_queries %}
+    {% set primary_query = hunt.typed_queries[0] %}
+    <div class="hunt-query-card bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-xs space-y-0">
+      <div class="bg-slate-950 px-3.5 py-2 border-b border-slate-800 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-800 uppercase">{{ primary_query.language }}</span>
+          <span class="text-xs font-semibold text-slate-200 truncate">{{ primary_query.title }}</span>
+        </div>
+        <button type="button" class="copy-button inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer" data-copy-target aria-label="Copy query">
+          <svg class="copy-icon h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg>
+          <span class="copy-label text-[11px]">Copy</span>
+        </button>
+      </div>
+      <div class="p-3 overflow-x-auto bg-slate-950/60">
+        <pre class="font-mono text-xs text-sky-200 leading-relaxed"><code class="block">{{ primary_query.query }}</code></pre>
+      </div>
+    </div>
+  {% elif hunt.queries %}
+    <div class="hunt-query-card bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-xs">
+      <div class="bg-slate-950 px-3.5 py-2 border-b border-slate-800 flex items-center justify-between gap-2">
+        <span class="text-xs font-semibold text-slate-200">Hunt Query Logic</span>
+        <button type="button" class="copy-button inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer" data-copy-target aria-label="Copy query">
+          <svg class="copy-icon h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg>
+          <span class="copy-label text-[11px]">Copy</span>
+        </button>
+      </div>
+      <div class="p-3 overflow-x-auto bg-slate-950/60">
+        <pre class="font-mono text-xs text-sky-200 leading-relaxed"><code class="block">{{ hunt.queries[0] }}</code></pre>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Triage Summary: Evidence vs Benign -->
+  {% if hunt.expected_evidence or hunt.false_positives %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+    {% if hunt.expected_evidence %}
+    <div class="p-2.5 rounded-lg bg-emerald-50/70 border border-emerald-200/80 space-y-1">
+      <span class="font-bold text-emerald-900 block text-[11px] uppercase tracking-wider">✓ Expected Match Evidence</span>
+      {% for item in hunt.expected_evidence %}
+      <p class="text-emerald-800 font-medium leading-snug">• {{ item }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if hunt.false_positives %}
+    <div class="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200/80 space-y-1">
+      <span class="font-bold text-amber-900 block text-[11px] uppercase tracking-wider">ℹ️ Known Benign Activity</span>
+      {% for item in hunt.false_positives %}
+      <p class="text-amber-800 font-medium leading-snug">• {{ item }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>

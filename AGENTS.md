@@ -14,4 +14,4 @@
 - For each research run, record source URL, publication time, collection time, and processing status. Deduplicate by canonical URL, advisory ID, CVE, and campaign identity before publishing.
 - Run the applicable reusable skills from the active Hermes profile: `ioc-parser`, `threat-enrichment`, `sigma-rule-generator`, `yara-author`, `cti-analysis`, and `threat-hunting`. Do not claim a stage ran when its tool, API, credentials, or evidence was unavailable.
 - Keep generated IoCs and detection artifacts machine-readable. Preserve provenance for every IoC, CVE, attribution claim, and mitigation.
-- Generate Sigma/SPL/KQL, YARA, or a four-step hunt playbook only when the input evidence supports it or the user requests it; otherwise state what is missing.
+- Generate Sigma/SPL/KQL, YARA, or a two-tiered hunt playbook (4-step modal summary and multi-phase deep dive) only when the input evidence supports it or the user requests it; otherwise state what is missing.

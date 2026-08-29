@@ -114,10 +114,12 @@ class ReportValidator:
                 if not action.strip()
             )
 
-        if bundle.hunt is not None and not set(bundle.hunt.evidence_ids).issubset(
-            evidence_ids
-        ):
-            missing.append(ReportSection.THREAT_HUNTING)
+        if bundle.hunt is not None:
+            hunt_evidence = set(bundle.hunt.evidence_ids)
+            for phase in bundle.hunt.execution_phases:
+                hunt_evidence.update(phase.evidence_ids)
+            if not hunt_evidence.issubset(evidence_ids):
+                missing.append(ReportSection.THREAT_HUNTING)
         for artifact in bundle.detections:
             if not set(artifact.evidence_ids).issubset(evidence_ids):
                 missing.append(ReportSection.DETECTION_CONTENT)
@@ -132,6 +134,8 @@ class ReportValidator:
             covered_set.update(artifact.evidence_ids)
         if bundle.hunt is not None:
             covered_set.update(bundle.hunt.evidence_ids)
+            for phase in bundle.hunt.execution_phases:
+                covered_set.update(phase.evidence_ids)
         if bundle.remediation is not None:
             covered_set.update(bundle.remediation.evidence_ids)
         for timeline_event in bundle.timeline:

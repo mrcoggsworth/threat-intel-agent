@@ -440,6 +440,16 @@ class ReportRepository:
                     escalation_criteria=list(bundle.hunt.escalation_criteria),
                     validation_checklist=list(bundle.hunt.validation_checklist),
                     queries=list(bundle.hunt.queries),
+                    typed_queries=[
+                        item.model_dump(mode="json")
+                        for item in bundle.hunt.typed_queries
+                    ],
+                    execution_phases=[
+                        item.model_dump(mode="json")
+                        for item in bundle.hunt.execution_phases
+                    ],
+                    pivot_guidance=list(bundle.hunt.pivot_guidance),
+                    forensic_artifacts=list(bundle.hunt.forensic_artifacts),
                     evidence_ids=[str(item) for item in bundle.hunt.evidence_ids],
                     state=bundle.state.value,
                 )

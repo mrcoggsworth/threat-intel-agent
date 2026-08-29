@@ -1,51 +1,316 @@
 {% if value is defined %}{% set hunt = value %}{% else %}{% set hunt = detail.hunt %}{% endif %}
-<div class="space-y-4">
-  <div class="space-y-1">
-    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Objective</h3>
-    <p class="text-sm text-slate-800 font-medium">{{ hunt.objective }}</p>
-  </div>
+<div class="space-y-8 text-slate-800">
 
-  <div class="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-200">
-    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Scope &amp; Telemetry</h3>
-    <p class="text-xs text-slate-700">{{ hunt.scope }}</p>
-    <p class="text-xs text-sky-700 font-medium mt-1">{{ hunt.platforms|join(', ') }} · {{ hunt.telemetry_requirements|join(', ') }}</p>
-  </div>
+  <!-- Overview & Strategy Card -->
+  <section class="bg-slate-900 text-slate-100 p-6 rounded-2xl border border-slate-800 shadow-md space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+      <div>
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-sky-400">Hunt Strategy &amp; Objective</span>
+        <h2 class="text-xl font-extrabold text-white mt-1 leading-snug">{{ hunt.objective }}</h2>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-mono font-semibold px-3 py-1 rounded-full bg-sky-950 text-sky-300 border border-sky-800 shadow-2xs">
+          ⏱️ Lookback: {{ hunt.lookback }}
+        </span>
+      </div>
+    </div>
 
-  <div class="space-y-1">
-    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Lookback &amp; Hypothesis</h3>
-    <p class="text-sm text-slate-700"><span class="font-semibold text-slate-900">{{ hunt.lookback }}</span> — {{ hunt.hypothesis }}</p>
-  </div>
+    <!-- Hypothesis Callout -->
+    <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-4 space-y-1.5">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Hunt Hypothesis</h3>
+      <p class="text-sm text-sky-100 font-medium leading-relaxed">{{ hunt.hypothesis }}</p>
+    </div>
 
-  <div class="space-y-2">
-    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Procedure</h3>
-    <ol class="list-decimal list-inside space-y-1 text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-200">
+    <!-- Scope & Telemetry Matrix -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+      <div class="space-y-1.5">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Target Platforms &amp; Environment</h3>
+        <div class="flex flex-wrap gap-1.5">
+          {% for platform in hunt.platforms %}
+          <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 text-xs font-medium border border-slate-700">{{ platform }}</span>
+          {% else %}
+          <span class="text-xs text-slate-500 italic">Universal / All platforms</span>
+          {% endfor %}
+        </div>
+        <p class="text-xs text-slate-400 mt-1">{{ hunt.scope }}</p>
+      </div>
+
+      <div class="space-y-1.5">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Required Telemetry &amp; Data Sources</h3>
+        <div class="flex flex-wrap gap-1.5">
+          {% for telemetry in hunt.telemetry_requirements %}
+          <span class="px-2.5 py-1 rounded-lg bg-sky-950 text-sky-300 text-xs font-medium border border-sky-800">{{ telemetry }}</span>
+          {% else %}
+          <span class="text-xs text-slate-500 italic">Standard SIEM/EDR telemetry</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- In-Depth Operational Phases -->
+  {% if hunt.execution_phases %}
+  <section class="space-y-4">
+    <div class="border-b border-slate-200 pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <span class="flex items-center justify-center w-6 h-6 rounded-md bg-sky-700 text-white text-xs font-bold">✓</span>
+        Operational Execution Phases
+      </h2>
+      <span class="text-xs font-medium text-slate-500">{{ hunt.execution_phases|length }} Structured Investigation Phases</span>
+    </div>
+
+    <div class="space-y-6">
+      {% for phase in hunt.execution_phases %}
+      <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+        <!-- Phase Header -->
+        <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-3">
+            <span class="w-6 h-6 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
+              {{ phase.phase_number }}
+            </span>
+            <h3 class="text-sm font-bold text-slate-900">{{ phase.name }}</h3>
+          </div>
+          {% if phase.telemetry_sources %}
+          <div class="flex items-center gap-1.5">
+            {% for source in phase.telemetry_sources %}
+            <span class="text-[11px] font-medium px-2 py-0.5 rounded bg-white text-slate-700 border border-slate-200">{{ source }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="p-5 space-y-4">
+          <p class="text-xs font-semibold text-sky-800 bg-sky-50 border border-sky-100 p-2.5 rounded-lg leading-relaxed">
+            🎯 <strong>Phase Goal:</strong> {{ phase.objective }}
+          </p>
+
+          <!-- Phase Steps -->
+          <div class="space-y-2">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Procedural Actions</h4>
+            <ol class="space-y-2">
+              {% for step in phase.steps %}
+              <li class="flex items-start gap-2.5 text-xs text-slate-700">
+                <span class="text-sky-700 font-bold font-mono">{{ phase.phase_number }}.{{ loop.index }}</span>
+                <span class="leading-relaxed">{{ step }}</span>
+              </li>
+              {% endfor %}
+            </ol>
+          </div>
+
+          <!-- Phase Queries -->
+          {% if phase.queries %}
+          <div class="space-y-3 pt-2">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Phase Hunting Logic &amp; Queries</h4>
+            {% for query_item in phase.queries %}
+            <div class="hunt-query-card bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-xs">
+              <div class="bg-slate-950 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-800 uppercase">{{ query_item.language }}</span>
+                  <span class="text-xs font-bold text-white">{{ query_item.title }}</span>
+                </div>
+                <button type="button" class="copy-button inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 transition cursor-pointer shadow-xs" data-copy-target aria-label="Copy query">
+                  <svg class="copy-icon h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg>
+                  <span class="copy-label">Copy</span>
+                </button>
+              </div>
+              <div class="p-3.5 overflow-x-auto">
+                <pre class="font-mono text-xs text-sky-200 leading-relaxed"><code class="block">{{ query_item.query }}</code></pre>
+              </div>
+              {% if query_item.tuning_guidance %}
+              <div class="bg-slate-950/80 px-4 py-2 border-t border-slate-800/80 text-xs text-slate-300">
+                <span class="font-semibold text-amber-300">💡 Tuning &amp; Baselines:</span> {{ query_item.tuning_guidance }}
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <!-- Pivot Guidance -->
+          {% if phase.pivot_guidance %}
+          <div class="space-y-1.5 pt-1">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Anomaly Confirmation &amp; Pivot Guidance</h4>
+            <div class="space-y-1">
+              {% for pivot in phase.pivot_guidance %}
+              <p class="text-xs text-slate-700 bg-amber-50/60 border border-amber-200/70 p-2.5 rounded-lg flex items-start gap-2">
+                <span class="text-amber-700 font-bold shrink-0">↪</span>
+                <span>{{ pivot }}</span>
+              </p>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% else %}
+  <!-- Fallback / Standard Procedure Card -->
+  <section class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
+    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-2">Procedural Hunting Sequence</h3>
+    <ol class="space-y-3">
       {% for step in hunt.procedure %}
-      <li class="leading-relaxed">{{ step }}</li>
+      <li class="flex items-start gap-3 text-sm text-slate-700 p-3 rounded-lg bg-slate-50 border border-slate-200">
+        <span class="w-6 h-6 rounded-full bg-sky-700 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+          {{ loop.index }}
+        </span>
+        <span class="leading-relaxed font-medium">{{ step }}</span>
+      </li>
       {% endfor %}
     </ol>
-  </div>
+  </section>
+  {% endif %}
 
-  <div class="space-y-2">
-    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Expected Evidence &amp; False Positives</h3>
-    <div class="space-y-1 text-xs text-slate-700">
-      {% for item in hunt.expected_evidence %}
-      <p class="text-emerald-700 bg-emerald-50 border border-emerald-200 p-2 rounded">✓ {{ item }}</p>
-      {% endfor %}
-      {% for item in hunt.false_positives %}
-      <p class="text-amber-800 bg-amber-50 border border-amber-200 p-2 rounded">ℹ️ Benign possibility: {{ item }}</p>
-      {% endfor %}
+  <!-- Standalone Typed Queries (if not attached to phases) -->
+  {% if hunt.typed_queries and not hunt.execution_phases %}
+  <section class="space-y-3">
+    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">SIEM &amp; EDR Hunting Queries</h3>
+    {% for query_item in hunt.typed_queries %}
+    <div class="hunt-query-card bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-md">
+      <div class="bg-slate-950 px-4 py-3 border-b border-slate-800 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-800 uppercase">{{ query_item.language }}</span>
+          <span class="text-sm font-bold text-white">{{ query_item.title }}</span>
+        </div>
+        <button type="button" class="copy-button inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer" data-copy-target aria-label="Copy query">
+          <svg class="copy-icon h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg>
+          <span class="copy-label">Copy</span>
+        </button>
+      </div>
+      <div class="p-4 overflow-x-auto">
+        <pre class="font-mono text-xs text-sky-200 leading-relaxed"><code class="block">{{ query_item.query }}</code></pre>
+      </div>
+      {% if query_item.tuning_guidance %}
+      <div class="bg-slate-950/80 px-4 py-2 border-t border-slate-800 text-xs text-slate-300">
+        <span class="font-semibold text-amber-300">💡 Tuning &amp; Baselines:</span> {{ query_item.tuning_guidance }}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+  {% elif hunt.queries and not hunt.execution_phases %}
+  <section class="space-y-3">
+    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">Hunt Queries</h3>
+    {% for query in hunt.queries %}
+    <div class="hunt-query-card bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-md">
+      <div class="bg-slate-950 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between gap-2">
+        <span class="text-xs font-semibold text-slate-200">Query Pattern {{ loop.index }}</span>
+        <button type="button" class="copy-button inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer" data-copy-target aria-label="Copy query">
+          <svg class="copy-icon h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg>
+          <span class="copy-label">Copy</span>
+        </button>
+      </div>
+      <div class="p-4 overflow-x-auto">
+        <pre class="font-mono text-xs text-sky-200 leading-relaxed"><code class="block">{{ query }}</code></pre>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <!-- Triage Matrix: True Positives vs False Positives -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <!-- Expected Evidence -->
+    <div class="bg-white p-5 rounded-xl border border-emerald-200 shadow-xs space-y-3">
+      <div class="flex items-center gap-2 border-b border-emerald-100 pb-2">
+        <span class="w-5 h-5 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">✓</span>
+        <h3 class="text-sm font-bold text-emerald-950 uppercase tracking-wider">True Positive Confirmation Evidence</h3>
+      </div>
+      <div class="space-y-2">
+        {% for item in hunt.expected_evidence %}
+        <div class="p-2.5 rounded-lg bg-emerald-50/70 border border-emerald-100 text-xs text-emerald-900 flex items-start gap-2">
+          <span class="text-emerald-700 font-bold shrink-0">●</span>
+          <span class="leading-relaxed font-medium">{{ item }}</span>
+        </div>
+        {% else %}
+        <p class="text-xs text-slate-500 italic">No specific match observations listed.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- False Positives -->
+    <div class="bg-white p-5 rounded-xl border border-amber-200 shadow-xs space-y-3">
+      <div class="flex items-center gap-2 border-b border-amber-100 pb-2">
+        <span class="w-5 h-5 rounded-full bg-amber-600 text-white font-bold text-xs flex items-center justify-center">!</span>
+        <h3 class="text-sm font-bold text-amber-950 uppercase tracking-wider">Benign &amp; False Positive Explanations</h3>
+      </div>
+      <div class="space-y-2">
+        {% for item in hunt.false_positives %}
+        <div class="p-2.5 rounded-lg bg-amber-50/70 border border-amber-100 text-xs text-amber-900 flex items-start gap-2">
+          <span class="text-amber-700 font-bold shrink-0">●</span>
+          <span class="leading-relaxed font-medium">{{ item }}</span>
+        </div>
+        {% else %}
+        <p class="text-xs text-slate-500 italic">No known false positive patterns documented.</p>
+        {% endfor %}
+      </div>
     </div>
   </div>
 
-  <div class="space-y-2">
-    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Validation Checklist</h3>
-    <div class="space-y-1 text-xs text-slate-700">
-      {% for item in hunt.validation_checklist %}
-      <p class="bg-slate-100 border border-slate-200 p-2 rounded flex items-center gap-1.5">
-        <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
-        {{ item }}
-      </p>
+  <!-- Forensic Artifacts & Evidence Preservation (if available) -->
+  {% if hunt.forensic_artifacts %}
+  <section class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-2">🔬 Forensic Artifacts to Collect &amp; Preserve</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {% for artifact in hunt.forensic_artifacts %}
+      <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-800 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-600 shrink-0"></span>
+        <span>{{ artifact }}</span>
+      </div>
       {% endfor %}
     </div>
+  </section>
+  {% endif %}
+
+  <!-- Validation Checklist & Escalation -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+      <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-2">Validation Checklist</h3>
+      <div class="space-y-1.5">
+        {% for item in hunt.validation_checklist %}
+        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700 flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0"></span>
+          <span>{{ item }}</span>
+        </div>
+        {% else %}
+        <p class="text-xs text-slate-500 italic">Standard validation applies.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+      <h3 class="text-sm font-bold uppercase tracking-wider text-rose-900 border-b border-rose-100 pb-2">Escalation Criteria</h3>
+      <div class="space-y-1.5">
+        {% for item in hunt.escalation_criteria %}
+        <div class="p-2.5 rounded-lg bg-rose-50/60 border border-rose-200/70 text-xs text-rose-900 flex items-center gap-2 font-medium">
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0"></span>
+          <span>{{ item }}</span>
+        </div>
+        {% else %}
+        <p class="text-xs text-slate-500 italic">Follow standard incident response escalation.</p>
+        {% endfor %}
+      </div>
+    </div>
   </div>
+
+  <!-- Provenance & Cross-Reference Badges -->
+  {% if hunt.evidence_ids or hunt.detection_ids %}
+  <section class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-2">
+    <h4 class="font-bold uppercase tracking-wider text-slate-500 text-[11px]">Traceability &amp; Related Detections</h4>
+    <div class="flex flex-wrap items-center gap-2">
+      {% for ev_id in hunt.evidence_ids %}
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white text-slate-700 border border-slate-200 font-mono text-[11px]">
+        🔍 Evidence: {{ ev_id|string|truncate(12, True, '…') }}
+      </span>
+      {% endfor %}
+      {% for det_id in hunt.detection_ids %}
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-200 font-mono text-[11px]">
+        🛡️ Detection: {{ det_id|string|truncate(12, True, '…') }}
+      </span>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
 </div>

@@ -810,6 +810,18 @@ class Hunt(TimestampMixin, Base):
         JSONB, default=list, nullable=False
     )
     queries: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
+    typed_queries: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
+    execution_phases: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
+    pivot_guidance: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
+    forensic_artifacts: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
     evidence_ids: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     state: Mapped[str] = mapped_column(String(32), nullable=False)
 
