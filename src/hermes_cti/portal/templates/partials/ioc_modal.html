@@ -16,8 +16,8 @@
 
     {% if analyst_assessment %}
     <!-- CTI Analyst Assessment Panel -->
-    <div class="p-4 rounded-xl border {% if analyst_assessment.badge_style == 'danger' %}border-rose-200 bg-rose-50/40{% elif analyst_assessment.badge_style == 'warning' %}border-amber-200 bg-amber-50/40{% elif analyst_assessment.badge_style == 'success' %}border-emerald-200 bg-emerald-50/40{% else %}border-slate-200 bg-slate-50/70{% endif %} shadow-xs space-y-3.5">
-      <div class="flex flex-wrap items-center justify-between gap-2 border-b {% if analyst_assessment.badge_style == 'danger' %}border-rose-200/80 pb-2.5{% elif analyst_assessment.badge_style == 'warning' %}border-amber-200/80 pb-2.5{% elif analyst_assessment.badge_style == 'success' %}border-emerald-200/80 pb-2.5{% else %}border-slate-200 pb-2.5{% endif %}">
+    <div class="p-4 rounded-xl border {% if analyst_assessment.badge_style == 'danger' %}border-rose-200 bg-rose-50{% elif analyst_assessment.badge_style == 'warning' %}border-amber-200 bg-amber-50{% elif analyst_assessment.badge_style == 'success' %}border-emerald-200 bg-emerald-50{% else %}border-slate-200 bg-slate-50{% endif %} shadow-xs space-y-3.5">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b {% if analyst_assessment.badge_style == 'danger' %}border-rose-200 pb-2.5{% elif analyst_assessment.badge_style == 'warning' %}border-amber-200 pb-2.5{% elif analyst_assessment.badge_style == 'success' %}border-emerald-200 pb-2.5{% else %}border-slate-200 pb-2.5{% endif %}">
         <div class="flex items-center gap-2">
           <span class="inline-flex items-center gap-1.5 font-bold text-sm text-slate-900">
             <svg class="w-4 h-4 text-sky-600 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,7 +25,7 @@
             </svg>
             CTI Analyst Assessment
           </span>
-          <span class="text-xs font-medium px-2 py-0.5 rounded bg-white/80 text-slate-600 border border-slate-200/60 shadow-2xs">Confidence: <strong class="text-slate-800">{{ analyst_assessment.confidence }}</strong></span>
+          <span class="text-xs font-medium px-2 py-0.5 rounded bg-white text-slate-600 border border-slate-200 shadow-2xs">Confidence: <strong class="text-slate-800">{{ analyst_assessment.confidence }}</strong></span>
         </div>
         <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md {% if analyst_assessment.badge_style == 'danger' %}bg-rose-100 text-rose-800 border border-rose-300{% elif analyst_assessment.badge_style == 'warning' %}bg-amber-100 text-amber-800 border border-amber-300{% elif analyst_assessment.badge_style == 'success' %}bg-emerald-100 text-emerald-800 border border-emerald-300{% else %}bg-slate-200 text-slate-700 border border-slate-300{% endif %}">
           {{ analyst_assessment.badge_label }}
@@ -33,14 +33,14 @@
       </div>
 
       <!-- Executive Synthesis Narrative -->
-      <div class="text-xs sm:text-sm text-slate-800 leading-relaxed font-normal bg-white/90 p-3 rounded-lg border border-slate-200/70 shadow-2xs">
+      <div class="text-xs sm:text-sm text-slate-800 leading-relaxed font-normal bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
         <p>{{ analyst_assessment.summary }}</p>
       </div>
 
       <!-- Observations and Actionable Recommendations Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-0.5">
         <!-- Key Findings -->
-        <div class="p-3 rounded-lg bg-white/80 border border-slate-200/70 space-y-2">
+        <div class="p-3 rounded-lg bg-white border border-slate-200 space-y-2">
           <span class="font-semibold text-slate-900 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
             <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span> Key Analytical Findings
           </span>
@@ -52,7 +52,7 @@
         </div>
 
         <!-- Actionable SOC Guidance -->
-        <div class="p-3 rounded-lg bg-white/80 border border-slate-200/70 space-y-2">
+        <div class="p-3 rounded-lg bg-white border border-slate-200 space-y-2">
           <span class="font-semibold text-slate-900 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> SOC Operational Guidance
           </span>

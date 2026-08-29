@@ -52,30 +52,30 @@
     </div>
 
     <!-- CTI Analyst Synthesis & Hunt Breakdown Card -->
-    <div class="p-4 rounded-xl border border-sky-200 bg-sky-50/40 shadow-xs space-y-4">
+    <div class="p-4 rounded-xl border border-sky-200 bg-sky-50 shadow-xs space-y-4">
       <div class="flex items-center justify-between border-b border-sky-100 pb-2">
         <div class="flex items-center gap-2">
           <span class="text-base">🧠</span>
-          <span class="font-bold text-sm text-sky-950">CTI Analyst Interpretation &amp; Hunt Context</span>
+          <span class="font-bold text-sm text-slate-900">CTI Analyst Interpretation &amp; Hunt Context</span>
         </div>
         <span class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-200">Hermes Live Synthesis</span>
       </div>
 
       <div class="space-y-3 text-xs">
         <!-- What this proves -->
-        <div class="p-3 rounded-lg bg-white border border-sky-100 space-y-1">
-          <span class="font-bold text-sky-900 block uppercase tracking-wider text-[10px]">What This Evidence Establishes</span>
+        <div class="p-3 rounded-lg bg-white border border-slate-200 space-y-1">
+          <span class="font-bold text-slate-900 block uppercase tracking-wider text-[10px]">What This Evidence Establishes</span>
           <p class="text-slate-700 leading-relaxed">{{ evidence.analyst_summary.core_finding }}</p>
         </div>
 
         <!-- Hunt Relevance -->
-        <div class="p-3 rounded-lg bg-white border border-sky-100 space-y-1">
-          <span class="font-bold text-sky-900 block uppercase tracking-wider text-[10px]">Threat Hunt Application</span>
+        <div class="p-3 rounded-lg bg-white border border-slate-200 space-y-1">
+          <span class="font-bold text-slate-900 block uppercase tracking-wider text-[10px]">Threat Hunt Application</span>
           <p class="text-slate-700 leading-relaxed">{{ evidence.analyst_summary.hunt_relevance }}</p>
         </div>
 
         <!-- Triage Caveats -->
-        <div class="p-3 rounded-lg bg-amber-50/80 border border-amber-200/80 space-y-1 text-amber-950">
+        <div class="p-3 rounded-lg bg-amber-50 border border-amber-200 space-y-1">
           <span class="font-bold text-amber-900 block uppercase tracking-wider text-[10px]">⚠️ Triage &amp; False-Positive Caveats</span>
           <p class="leading-relaxed text-amber-900">{{ evidence.analyst_summary.triage_caveats }}</p>
         </div>
@@ -86,7 +86,7 @@
           <span class="font-bold text-slate-700 block uppercase tracking-wider text-[10px]">Recommended Telemetry Pivots</span>
           <div class="flex flex-wrap items-center gap-1.5">
             {% for pivot in evidence.analyst_summary.recommended_pivots %}
-            <span class="text-[11px] font-medium px-2 py-0.5 rounded bg-white text-slate-800 border border-slate-200 shadow-2xs">
+            <span class="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-50 text-slate-800 border border-slate-200 shadow-2xs">
               {{ pivot }}
             </span>
             {% endfor %}

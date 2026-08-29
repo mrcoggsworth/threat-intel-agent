@@ -19,7 +19,11 @@
     "Aligning defensive shields with MITRE ATT&CK vectors...",
     "Triangulating anomalous beaconing from the ether...",
     "Correlating kernel callbacks with adversary tradecraft...",
-    "Polishing the threat matrix for maximum defense..."
+    "Polishing the threat matrix for maximum defense...",
+    "Summoning the VirusTotal and AlienVault oracles...",
+    "Pivoting on malware hashes in the digital wild...",
+    "De-fanging suspicious infrastructure in the containment vat...",
+    "Calibrating threat score confidence algorithms..."
   ];
 
   let quoteInterval: number | null = null;
@@ -35,16 +39,8 @@
     title: string,
     subtitle: string,
     detailMsg: string,
-    isEvidence: boolean = false
+    bottomTag: string
   ): string {
-    const quoteHtml = isEvidence
-      ? `<p id="dynamic-loading-quote" class="text-xs font-semibold text-sky-900 italic transition-opacity duration-200 min-h-[2rem] flex items-center justify-center px-4 leading-relaxed">${detailMsg}</p>`
-      : `<p class="text-xs font-semibold text-slate-700">${detailMsg}</p>`;
-
-    const bottomTag = isEvidence
-      ? "🧠 Hermes CTI Analyst Synthesis Engine active"
-      : "Live intelligence enrichment in progress";
-
     return `
       <div class="dialog-backdrop" data-dialog-close></div>
       <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="loading-modal-title" tabindex="-1" data-dialog>
@@ -57,13 +53,13 @@
             </div>
             <h2 id="loading-modal-title" class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 mt-2 font-mono break-all select-all">${title}</h2>
           </div>
-          <div class="p-6 rounded-xl border border-sky-200 bg-sky-50/50 flex flex-col items-center justify-center text-center space-y-3 shadow-xs">
+          <div class="p-6 rounded-xl border border-sky-200 bg-sky-50 flex flex-col items-center justify-center text-center space-y-3 shadow-xs">
             <div class="relative flex items-center justify-center my-1">
-              <span class="text-2xl animate-pulse">🧠</span>
+              <span class="text-3xl animate-pulse">🧠</span>
             </div>
-            ${quoteHtml}
-            <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono pt-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-sky-500 animate-ping"></span>
+            <p id="dynamic-loading-quote" class="text-xs font-semibold text-slate-900 italic transition-opacity duration-200 min-h-[2rem] flex items-center justify-center px-4 leading-relaxed">${detailMsg}</p>
+            <div class="flex items-center gap-2 text-[11px] text-slate-500 font-mono pt-1">
+              <span class="inline-block w-2 h-2 rounded-full bg-sky-500 animate-ping"></span>
               <span>${bottomTag}</span>
             </div>
           </div>
@@ -104,49 +100,51 @@
       link.textContent?.trim() ||
       "Item";
     let subtitle = "Loading Report Component";
-    let detailMsg = "Fetching section content...";
+    let bottomTag = "Hermes CTI Intelligence Platform";
+    const initialQuote =
+      sillyAnalystQuotes[Math.floor(Math.random() * sillyAnalystQuotes.length)];
 
     if (isEvidence) {
       const evId = link.getAttribute("data-evidence-id") || title;
       const shortId = evId.length > 12 ? evId.substring(0, 8) + "…" : evId;
       title = `Evidence Claim (${shortId})`;
       subtitle = "Analyzing Evidence with CTI Analyst";
-      detailMsg =
-        sillyAnalystQuotes[Math.floor(Math.random() * sillyAnalystQuotes.length)];
+      bottomTag = "🧠 Hermes CTI Analyst Synthesis Engine active";
     } else if (isIoc) {
-      subtitle = "Enriching Indicator";
-      detailMsg = "Querying VirusTotal, AbuseIPDB, and AlienVault OTX...";
+      const iocVal = link.getAttribute("data-ioc-value") || title;
+      const iocType = link.getAttribute("data-ioc-type") || "IOC";
+      title = `${iocVal} (${iocType.toUpperCase()})`;
+      subtitle = "Enriching Indicator with Live CTI Feeds";
+      bottomTag = "Live VirusTotal, AbuseIPDB & OTX enrichment active";
     } else if (isAttack) {
-      subtitle = "Mapping ATT&CK Technique";
-      detailMsg = "Fetching technique profile and defensive mitigations...";
+      subtitle = "Mapping MITRE ATT&CK Technique";
+      bottomTag = "ATT&CK Enterprise Matrix correlation active";
     }
 
-    // Show instant loading skeleton
+    // Show instant loading skeleton with funny sayings
     shell!.innerHTML = buildLoadingSkeleton(
       title,
       subtitle,
-      detailMsg,
-      isEvidence
+      initialQuote,
+      bottomTag
     );
     shell!.hidden = false;
     shell!.setAttribute("aria-hidden", "false");
 
-    if (isEvidence) {
-      let quoteIdx = Math.floor(Math.random() * sillyAnalystQuotes.length);
-      quoteInterval = window.setInterval(() => {
-        const quoteEl = document.getElementById("dynamic-loading-quote");
-        if (quoteEl) {
-          quoteIdx = (quoteIdx + 1) % sillyAnalystQuotes.length;
-          quoteEl.style.opacity = "0";
-          setTimeout(() => {
-            if (quoteEl) {
-              quoteEl.textContent = sillyAnalystQuotes[quoteIdx];
-              quoteEl.style.opacity = "1";
-            }
-          }, 150);
-        }
-      }, 1500);
-    }
+    let quoteIdx = Math.floor(Math.random() * sillyAnalystQuotes.length);
+    quoteInterval = window.setInterval(() => {
+      const quoteEl = document.getElementById("dynamic-loading-quote");
+      if (quoteEl) {
+        quoteIdx = (quoteIdx + 1) % sillyAnalystQuotes.length;
+        quoteEl.style.opacity = "0";
+        setTimeout(() => {
+          if (quoteEl) {
+            quoteEl.textContent = sillyAnalystQuotes[quoteIdx];
+            quoteEl.style.opacity = "1";
+          }
+        }, 150);
+      }
+    }, 1500);
 
     if (
       typeof (
