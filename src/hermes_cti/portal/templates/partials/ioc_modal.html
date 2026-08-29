@@ -33,32 +33,32 @@
       </div>
 
       <!-- Executive Synthesis Narrative -->
-      <div class="text-xs sm:text-sm text-slate-800 leading-relaxed font-normal bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+      <div class="text-xs sm:text-sm text-slate-800 leading-relaxed font-normal bg-white p-3 rounded-lg border border-slate-200 shadow-2xs break-words [overflow-wrap:anywhere]">
         <p>{{ analyst_assessment.summary }}</p>
       </div>
 
       <!-- Observations and Actionable Recommendations Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-0.5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-0.5 min-w-0">
         <!-- Key Findings -->
-        <div class="p-3 rounded-lg bg-white border border-slate-200 space-y-2">
+        <div class="p-3 rounded-lg bg-white border border-slate-200 space-y-2 min-w-0 overflow-hidden">
           <span class="font-semibold text-slate-900 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
-            <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span> Key Analytical Findings
+            <span class="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0"></span> Key Analytical Findings
           </span>
-          <ul class="space-y-1.5 text-slate-700 list-disc list-inside">
+          <ul class="space-y-1.5 text-slate-700 list-disc list-inside break-words [overflow-wrap:anywhere]">
             {% for obs in analyst_assessment.observations %}
-            <li class="leading-normal">{{ obs }}</li>
+            <li class="leading-normal break-words [overflow-wrap:anywhere]">{{ obs }}</li>
             {% endfor %}
           </ul>
         </div>
 
         <!-- Actionable SOC Guidance -->
-        <div class="p-3 rounded-lg bg-white border border-slate-200 space-y-2">
+        <div class="p-3 rounded-lg bg-white border border-slate-200 space-y-2 min-w-0 overflow-hidden">
           <span class="font-semibold text-slate-900 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> SOC Operational Guidance
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span> SOC Operational Guidance
           </span>
-          <ul class="space-y-1.5 text-slate-700 list-disc list-inside">
+          <ul class="space-y-1.5 text-slate-700 list-disc list-inside break-words [overflow-wrap:anywhere]">
             {% for rec in analyst_assessment.recommendations %}
-            <li class="leading-normal">{{ rec }}</li>
+            <li class="leading-normal break-words [overflow-wrap:anywhere]">{{ rec }}</li>
             {% endfor %}
           </ul>
         </div>

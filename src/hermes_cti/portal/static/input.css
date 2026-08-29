@@ -480,4 +480,102 @@ header {
     border-color: var(--theme-border);
     @apply mt-6 pt-4 border-t text-sm font-medium;
   }
+
+  /* Universal text wrapping & card overflow containment */
+  .break-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .dialog-body,
+  .theme-card,
+  .report-line,
+  article,
+  section {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Force long hashes, URLs, and code tokens to wrap inside cards */
+  p, li, code, pre, span {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Safari CSS animation & transition hardware acceleration */
+  .animate-spin {
+    -webkit-animation: spin 1s linear infinite;
+    animation: spin 1s linear infinite;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  .animate-pulse {
+    -webkit-animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    will-change: opacity;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @-webkit-keyframes spin {
+    from { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+    to { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @-webkit-keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Structured Data, JSON, and Query formatting card styles */
+  .structured-code-block {
+    background-color: var(--theme-code-bg, #0f172a);
+    color: var(--theme-code-text, #f8fafc);
+    border: 1px solid var(--theme-border, #334155);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    overflow-x: auto;
+    max-width: 100%;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .structured-kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .structured-kv-table th,
+  .structured-kv-table td {
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--theme-border, #e2e8f0);
+    text-align: left;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .structured-kv-table th {
+    background-color: var(--theme-bg-card-subtle, #f8fafc);
+    font-weight: 600;
+    color: var(--theme-text-primary, #0f172a);
+    width: 30%;
+  }
 }

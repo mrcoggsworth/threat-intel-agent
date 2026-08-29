@@ -39,6 +39,48 @@
     }
   }
 
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatStructuredContent(container) {
+    if (!container) return;
+    var candidates = container.querySelectorAll("p, li, div.dialog-body div");
+    for (var i = 0; i < candidates.length; i++) {
+      var el = candidates[i];
+      if (el.children.length > 0 || el.classList.contains("structured-formatted")) continue;
+      var text = (el.textContent || "").trim();
+
+      if (
+        (text.startsWith("{") && text.endsWith("}")) ||
+        (text.startsWith("[") && text.endsWith("]"))
+      ) {
+        try {
+          var parsed = JSON.parse(text);
+          var pretty = JSON.stringify(parsed, null, 2);
+          el.classList.add("structured-formatted");
+          el.innerHTML = '<pre class="structured-code-block font-mono"><code>' + escapeHtml(pretty) + '</code></pre>';
+          continue;
+        } catch (e) {
+          // continue
+        }
+      }
+
+      var isQuery =
+        /^(SELECT\s+.+\s+FROM\s+|DeviceProcessEvents\s+\||index=\w+\s+sourcetype=)/i.test(text) ||
+        (text.indexOf(" | where ") !== -1 || text.indexOf(" | project ") !== -1 || text.indexOf(" | summarize ") !== -1);
+      if (isQuery && text.length > 25) {
+        el.classList.add("structured-formatted");
+        el.innerHTML = '<pre class="structured-code-block font-mono"><code>' + escapeHtml(text) + '</code></pre>';
+      }
+    }
+  }
+
   function buildLoadingSkeleton(title, subtitle, detailMsg, bottomTag) {
     return [
       '<div class="dialog-backdrop" data-dialog-close></div>',
@@ -53,7 +95,7 @@
       '      <h2 id="loading-modal-title" class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 mt-2 font-mono break-all select-all">' + title + '</h2>',
       '    </div>',
       '    <div class="p-6 rounded-xl border border-slate-200 bg-white flex flex-col items-center justify-center text-center space-y-4 shadow-xs">',
-      '      <div class="relative flex items-center justify-center w-12 h-12 my-1">',
+      '      <div class="relative flex items-center justify-center w-12 h-12 my-1" style="-webkit-transform: translateZ(0); transform: translateZ(0);">',
       '        <svg class="animate-spin w-10 h-10 text-sky-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">',
       '          <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>',
       '          <path class="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>',
@@ -64,7 +106,7 @@
       '      </div>',
       '      <div class="w-full max-w-lg mx-auto p-4 rounded-xl border border-sky-200 bg-sky-50 flex flex-col items-center justify-center text-center space-y-2 shadow-2xs">',
       '        <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700 font-mono">Hermes Analyst Synthesis</span>',
-      '        <p id="dynamic-loading-quote" class="text-sm font-semibold text-slate-900 italic transition-opacity duration-200 min-h-[2.5rem] flex items-center justify-center px-4 leading-relaxed">' + detailMsg + '</p>',
+      '        <p id="dynamic-loading-quote" class="text-sm font-semibold text-slate-900 italic transition-opacity duration-300 min-h-[2.5rem] flex items-center justify-center px-4 leading-relaxed">' + detailMsg + '</p>',
       '        <div class="flex items-center gap-1.5 pt-1">',
       '          <span class="inline-block w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>',
       '          <span class="inline-block w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>',
@@ -73,7 +115,7 @@
       '      </div>',
       '      <div class="flex items-center justify-center gap-2 pt-1 text-xs text-slate-500 font-mono">',
       '        <span class="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-semibold tracking-wide">',
-      '          ' + bottomTag,
+      '          ' + bottomTag + '',
       '        </span>',
       '      </div>',
       '    </div>',
@@ -149,6 +191,7 @@
     shell.setAttribute("aria-hidden", "false");
 
     var quoteIdx = Math.floor(Math.random() * sillyAnalystQuotes.length);
+    // Hold each saying for 3500ms (previous 1500ms + 2000ms)
     quoteInterval = window.setInterval(function () {
       var quoteEl = document.getElementById("dynamic-loading-quote");
       if (quoteEl) {
@@ -159,9 +202,9 @@
             quoteEl.textContent = sillyAnalystQuotes[quoteIdx];
             quoteEl.style.opacity = "1";
           }
-        }, 150);
+        }, 250);
       }
-    }, 1500);
+    }, 3500);
 
     if (typeof window.__hermesSetReturnFocus === "function") {
       window.__hermesSetReturnFocus(link);
@@ -185,6 +228,7 @@
       .then(function (html) {
         stopQuoteRotation();
         shell.innerHTML = html;
+        formatStructuredContent(shell);
         var dialog = shell.querySelector("[data-dialog]");
         if (dialog) dialog.focus();
       })

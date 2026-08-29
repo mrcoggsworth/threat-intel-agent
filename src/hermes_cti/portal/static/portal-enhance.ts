@@ -39,6 +39,52 @@
     }
   }
 
+  function formatStructuredContent(container: HTMLElement): void {
+    if (!container) return;
+    // Auto-detect JSON, SQL queries, or structured blocks in text nodes / lists
+    const candidates = container.querySelectorAll<HTMLElement>("p, li, div.dialog-body div");
+    candidates.forEach((el) => {
+      // Don't format containers with child elements or existing code blocks
+      if (el.children.length > 0 || el.classList.contains("structured-formatted")) return;
+      const text = el.textContent?.trim() || "";
+      
+      // JSON detection
+      if (
+        (text.startsWith("{") && text.endsWith("}")) ||
+        (text.startsWith("[") && text.endsWith("]"))
+      ) {
+        try {
+          const parsed = JSON.parse(text);
+          const pretty = JSON.stringify(parsed, null, 2);
+          el.classList.add("structured-formatted");
+          el.innerHTML = `<pre class="structured-code-block font-mono"><code>${escapeHtml(pretty)}</code></pre>`;
+          return;
+        } catch {
+          // not valid JSON, proceed
+        }
+      }
+
+      // SQL / KQL / SPL detection (multi-line queries or distinct keywords)
+      const isQuery =
+        /^(SELECT\s+.+\s+FROM\s+|DeviceProcessEvents\s+\||index=\w+\s+sourcetype=)/i.test(text) ||
+        (text.includes(" | where ") || text.includes(" | project ") || text.includes(" | summarize "));
+      if (isQuery && text.length > 25) {
+        el.classList.add("structured-formatted");
+        el.innerHTML = `<pre class="structured-code-block font-mono"><code>${escapeHtml(text)}</code></pre>`;
+        return;
+      }
+    });
+  }
+
+  function escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   function buildLoadingSkeleton(
     title: string,
     subtitle: string,
@@ -59,7 +105,7 @@
           </div>
 
           <div class="p-6 rounded-xl border border-slate-200 bg-white flex flex-col items-center justify-center text-center space-y-4 shadow-xs">
-            <div class="relative flex items-center justify-center w-12 h-12 my-1">
+            <div class="relative flex items-center justify-center w-12 h-12 my-1" style="-webkit-transform: translateZ(0); transform: translateZ(0);">
               <svg class="animate-spin w-10 h-10 text-sky-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
                 <path class="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -71,7 +117,7 @@
 
             <div class="w-full max-w-lg mx-auto p-4 rounded-xl border border-sky-200 bg-sky-50 flex flex-col items-center justify-center text-center space-y-2 shadow-2xs">
               <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700 font-mono">Hermes Analyst Synthesis</span>
-              <p id="dynamic-loading-quote" class="text-sm font-semibold text-slate-900 italic transition-opacity duration-200 min-h-[2.5rem] flex items-center justify-center px-4 leading-relaxed">${detailMsg}</p>
+              <p id="dynamic-loading-quote" class="text-sm font-semibold text-slate-900 italic transition-opacity duration-300 min-h-[2.5rem] flex items-center justify-center px-4 leading-relaxed">${detailMsg}</p>
               <div class="flex items-center gap-1.5 pt-1">
                 <span class="inline-block w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>
                 <span class="inline-block w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>
@@ -157,6 +203,7 @@
     shell!.setAttribute("aria-hidden", "false");
 
     let quoteIdx = Math.floor(Math.random() * sillyAnalystQuotes.length);
+    // Hold each saying for 3500ms (previous 1500ms + 2000ms)
     quoteInterval = window.setInterval(() => {
       const quoteEl = document.getElementById("dynamic-loading-quote");
       if (quoteEl) {
@@ -167,9 +214,9 @@
             quoteEl.textContent = sillyAnalystQuotes[quoteIdx];
             quoteEl.style.opacity = "1";
           }
-        }, 150);
+        }, 250);
       }
-    }, 1500);
+    }, 3500);
 
     if (
       typeof (
@@ -199,6 +246,7 @@
       .then((html) => {
         stopQuoteRotation();
         shell!.innerHTML = html;
+        formatStructuredContent(shell!);
         shell!.querySelector<HTMLElement>("[data-dialog]")?.focus();
       })
       .catch((err) => {
