@@ -1057,7 +1057,8 @@ class HuntQuery(ContractModel):
         default=(), description="Target log sources or tables."
     )
     tuning_guidance: str | None = Field(
-        default=None, description="Optional baseline and false-positive tuning guidance."
+        default=None,
+        description="Optional baseline and false-positive tuning guidance.",
     )
 
 

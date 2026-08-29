@@ -1,23 +1,25 @@
-"""Tests for two-tiered threat hunt playbooks (modal play-by-play vs dedicated operational console)."""
+"""Tests for two-tiered threat hunt playbooks.
+
+Covers modal play-by-play vs dedicated operational console.
+"""
 
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi.testclient import TestClient
 
 from hermes_cti.api.main import create_app
 from hermes_cti.core.settings import Settings
-from hermes_cti.db.models import Report, ReportVersion
+from hermes_cti.db.models import ReportVersion
 from hermes_cti.models.contracts import (
     HuntPhase,
     HuntQuery,
     ThreatHunt,
 )
 from hermes_cti.portal.repository import ReportRow
-from tests.test_phase7 import EVIDENCE_ID, VERSION_ID, _fixture
+from tests.test_phase7 import EVIDENCE_ID, VERSION_ID
 from tests.test_phase8 import MemoryPortalService
 
 
@@ -30,41 +32,66 @@ class DetailedHuntMemoryPortalService(MemoryPortalService):
             objective="Find public exploitation telemetry.",
             scope="Publicly documented indicators and process execution behavior.",
             platforms=("Windows", "Linux"),
-            telemetry_requirements=("Process creation (Event ID 4688 / Sysmon 1)", "PowerShell scriptblock logs"),
+            telemetry_requirements=(
+                "Process creation (Event ID 4688 / Sysmon 1)",
+                "PowerShell scriptblock logs",
+            ),
             lookback="30 days",
-            hypothesis="The documented rundll32 process pattern may recur in public telemetry.",
+            hypothesis=(
+                "The documented rundll32 process pattern may recur in telemetry."
+            ),
             procedure=(
                 "Scope endpoints with rundll32 execution.",
                 "Run baseline SIEM query for suspicious parent processes.",
                 "Eliminate benign administrative software hits.",
                 "Validate forensic artifacts and isolate affected hosts.",
             ),
-            expected_evidence=("rundll32 process execution spawning unexpected child shells",),
-            false_positives=("Scheduled administrative tasks using known signed scripts",),
-            escalation_criteria=("Confirmed interactive command execution via rundll32",),
+            expected_evidence=(
+                "rundll32 process execution spawning unexpected child shells",
+            ),
+            false_positives=(
+                "Scheduled administrative tasks using known signed scripts",
+            ),
+            escalation_criteria=(
+                "Confirmed interactive command execution via rundll32",
+            ),
             validation_checklist=("Confirm host IP, timestamp, and user context",),
             queries=("DeviceProcessEvents | where ProcessCommandLine has 'rundll32'",),
             typed_queries=(
                 HuntQuery(
                     language="kql",
                     title="Microsoft Defender for Endpoint Rundll32 Search",
-                    query="DeviceProcessEvents | where FileName =~ 'rundll32.exe' and ProcessCommandLine has 'setup.dll'",
+                    query=(
+                        "DeviceProcessEvents | where FileName =~ 'rundll32.exe' "
+                        "and ProcessCommandLine has 'setup.dll'"
+                    ),
                     target_log_sources=("DeviceProcessEvents",),
-                    tuning_guidance="Filter out known SCCM deployment paths in Program Files.",
+                    tuning_guidance=(
+                        "Filter out known SCCM deployment paths in Program Files."
+                    ),
                 ),
                 HuntQuery(
                     language="spl",
                     title="Splunk Process Anomaly Query",
-                    query="index=main EventCode=4688 NewProcessName=*rundll32.exe | stats count by ComputerName, CommandLine",
+                    query=(
+                        "index=main EventCode=4688 NewProcessName=*rundll32.exe "
+                        "| stats count by ComputerName, CommandLine"
+                    ),
                     target_log_sources=("index=main EventCode=4688",),
-                    tuning_guidance="Exclude domain controllers running standard maintenance scripts.",
+                    tuning_guidance=(
+                        "Exclude domain controllers running standard "
+                        "maintenance scripts."
+                    ),
                 ),
             ),
             execution_phases=(
                 HuntPhase(
                     phase_number=1,
                     name="Baseline & Telemetry Scoping",
-                    objective="Ensure telemetry completeness and establish normal parent-child baselines.",
+                    objective=(
+                        "Ensure telemetry completeness and establish normal "
+                        "parent-child baselines."
+                    ),
                     steps=(
                         "Verify Sysmon Event ID 1 ingestion over the past 30 days.",
                         "Establish top 10 benign parent processes launching rundll32.",
@@ -74,28 +101,47 @@ class DetailedHuntMemoryPortalService(MemoryPortalService):
                         HuntQuery(
                             language="kql",
                             title="Baseline Parent Process Sweep",
-                            query="DeviceProcessEvents | where FileName =~ 'rundll32.exe' | summarize count() by InitiatingProcessFileName",
+                            query=(
+                                "DeviceProcessEvents | where FileName =~ "
+                                "'rundll32.exe' | summarize count() by "
+                                "InitiatingProcessFileName"
+                            ),
                             target_log_sources=("DeviceProcessEvents",),
-                            tuning_guidance="Filter out known SCCM deployment paths in Program Files.",
+                            tuning_guidance=(
+                                "Filter out known SCCM deployment paths in "
+                                "Program Files."
+                            ),
                         ),
                     ),
-                    pivot_guidance=("Look for abnormal parent processes like winword.exe, excel.exe, or powershell.exe",),
+                    pivot_guidance=(
+                        "Look for abnormal parent processes like winword.exe, "
+                        "excel.exe, or powershell.exe",
+                    ),
                     evidence_ids=(EVIDENCE_ID,),
                 ),
                 HuntPhase(
                     phase_number=2,
                     name="Triage & False Positive Elimination",
-                    objective="Filter benign software and identify true positive malicious executions.",
+                    objective=(
+                        "Filter benign software and identify true positive "
+                        "malicious executions."
+                    ),
                     steps=(
-                        "Correlate DLL command line parameters against known vendor hash lists.",
+                        "Correlate DLL command line parameters against known "
+                        "vendor hash lists.",
                         "Review network egress from matching process PIDs.",
                     ),
                     telemetry_sources=("Network Flow", "DNS Logs"),
-                    pivot_guidance=("Check for outbound connections to newly registered domains",),
+                    pivot_guidance=(
+                        "Check for outbound connections to newly registered domains",
+                    ),
                     evidence_ids=(EVIDENCE_ID,),
                 ),
             ),
-            pivot_guidance=("Correlate anomalous rundll32 invocations with scheduled task creation (Event ID 4698).",),
+            pivot_guidance=(
+                "Correlate anomalous rundll32 invocations with scheduled task "
+                "creation (Event ID 4698).",
+            ),
             forensic_artifacts=(
                 "Prefetch files (C:\\Windows\\Prefetch\\RUNDLL32.EXE-*.pf)",
                 "PowerShell ScriptBlock Event Logs (Event ID 4104)",
