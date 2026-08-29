@@ -24,6 +24,7 @@ from hermes_cti.api.dependencies import (
 )
 from hermes_cti.core.settings import load_settings
 from hermes_cti.enrichment.cache import EnrichmentCache
+from hermes_cti.enrichment.ioc_analysis import synthesize_ioc_analyst_assessment
 from hermes_cti.enrichment.providers import build_providers
 from hermes_cti.enrichment.service import EnrichmentService
 from hermes_cti.extraction.pipeline import refang_text
@@ -345,6 +346,20 @@ async def report_ioc_modal_partial(
         (r for r in run_result.provider_results if r.provider == "otx"), None
     )
 
+    vt_data = vt_result.normalized_result if vt_result else None
+    abuse_data = abuse_result.normalized_result if abuse_result else None
+    otx_data = otx_result.normalized_result if otx_result else None
+
+    analyst_assessment = synthesize_ioc_analyst_assessment(
+        ioc_type=normalized_type,
+        ioc_value=refanged_value,
+        report_headline=headline,
+        run_result=run_result,
+        vt_data=vt_data,
+        abuse_data=abuse_data,
+        otx_data=otx_data,
+    )
+
     return templates.TemplateResponse(
         request=request,
         name="partials/ioc_modal.html",
@@ -354,12 +369,13 @@ async def report_ioc_modal_partial(
             "ioc_value": refanged_value,
             "report_headline": headline,
             "result": run_result,
+            "analyst_assessment": analyst_assessment,
             "vt_result": vt_result,
-            "vt_data": vt_result.normalized_result if vt_result else None,
+            "vt_data": vt_data,
             "abuse_result": abuse_result,
-            "abuse_data": abuse_result.normalized_result if abuse_result else None,
+            "abuse_data": abuse_data,
             "otx_result": otx_result,
-            "otx_data": otx_result.normalized_result if otx_result else None,
+            "otx_data": otx_data,
         },
     )
 

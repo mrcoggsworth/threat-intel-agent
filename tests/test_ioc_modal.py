@@ -7,6 +7,11 @@ from fastapi.testclient import TestClient
 
 from hermes_cti.api.main import create_app
 from hermes_cti.core.settings import Settings
+from hermes_cti.enrichment.ioc_analysis import (
+    IOCRiskLevel,
+    IOCVerdict,
+    synthesize_ioc_analyst_assessment,
+)
 from hermes_cti.enrichment.providers import (
     AbuseIPDBProvider,
     OTXProvider,
@@ -93,6 +98,101 @@ class FakeOTXProvider(OTXProvider):
         }, _mock_fetch()
 
 
+def test_synthesize_ioc_analyst_assessment_malicious() -> None:
+    vt = {
+        "last_analysis_stats": {"malicious": 12, "suspicious": 2, "harmless": 10},
+        "tags": ["trojan", "stealer"],
+        "popular_threat_classification": "Trojan.Agent",
+    }
+    abuse = {
+        "abuse_confidence_score": 85,
+        "total_reports": 24,
+        "country_code": "US",
+        "usage_type": "Hosting",
+    }
+    otx = {
+        "pulse_count": 5,
+        "pulse_names": ["Threat Campaign Alpha", "C2 Infrastructure"],
+    }
+
+    assessment = synthesize_ioc_analyst_assessment(
+        ioc_type="ipv4",
+        ioc_value="198.51.100.22",
+        report_headline="DarkGate Campaign Advisory",
+        vt_data=vt,
+        abuse_data=abuse,
+        otx_data=otx,
+    )
+
+    assert assessment.verdict == IOCVerdict.MALICIOUS
+    assert assessment.risk_level == IOCRiskLevel.CRITICAL
+    assert assessment.confidence == "High"
+    assert assessment.badge_style == "danger"
+    assert "MALICIOUS" in assessment.summary
+    assert any("Trojan.Agent" in obs for obs in assessment.observations)
+    assert any("12 vendors" in obs for obs in assessment.observations)
+    assert any("DarkGate Campaign Advisory" in obs for obs in assessment.observations)
+    assert any("Containment:" in rec for rec in assessment.recommendations)
+    assert any("Telemetry Hunt:" in rec for rec in assessment.recommendations)
+
+
+def test_synthesize_ioc_analyst_assessment_suspicious() -> None:
+    vt = {
+        "last_analysis_stats": {"malicious": 1, "suspicious": 1, "harmless": 20},
+        "tags": ["suspicious"],
+    }
+    assessment = synthesize_ioc_analyst_assessment(
+        ioc_type="domain",
+        ioc_value="suspicious-domain.test",
+        vt_data=vt,
+    )
+
+    assert assessment.verdict == IOCVerdict.SUSPICIOUS
+    assert assessment.risk_level == IOCRiskLevel.MEDIUM
+    assert assessment.badge_style == "warning"
+    assert "SUSPICIOUS" in assessment.summary
+    assert any("Watchlist:" in rec for rec in assessment.recommendations)
+
+
+def test_synthesize_ioc_analyst_assessment_benign() -> None:
+    vt = {
+        "last_analysis_stats": {"malicious": 0, "suspicious": 0, "harmless": 65},
+        "tags": [],
+    }
+    abuse = {
+        "abuse_confidence_score": 0,
+        "total_reports": 0,
+        "country_code": "US",
+    }
+    otx = {"pulse_count": 0, "pulse_names": []}
+
+    assessment = synthesize_ioc_analyst_assessment(
+        ioc_type="ipv4",
+        ioc_value="8.8.8.8",
+        vt_data=vt,
+        abuse_data=abuse,
+        otx_data=otx,
+    )
+
+    assert assessment.verdict == IOCVerdict.BENIGN
+    assert assessment.risk_level == IOCRiskLevel.LOW
+    assert assessment.badge_style == "success"
+    assert "Clean" in assessment.badge_label
+    assert any("Standard Logging:" in rec for rec in assessment.recommendations)
+
+
+def test_synthesize_ioc_analyst_assessment_inconclusive() -> None:
+    assessment = synthesize_ioc_analyst_assessment(
+        ioc_type="sha256",
+        ioc_value="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    )
+
+    assert assessment.verdict == IOCVerdict.INCONCLUSIVE
+    assert assessment.risk_level == IOCRiskLevel.UNKNOWN
+    assert assessment.badge_style == "neutral"
+    assert any("Manual Pivot:" in rec for rec in assessment.recommendations)
+
+
 @pytest.mark.asyncio
 async def test_enrich_indicator_service() -> None:
     service = EnrichmentService(
@@ -142,7 +242,15 @@ def test_portal_ioc_modal_endpoint() -> None:
         )
         assert response.status_code == 200
         html = response.text
+        # Header & Indicator info
         assert "198.51.100.22" in html
+        # CTI Analyst Assessment Panel
+        assert "CTI Analyst Assessment" in html
+        assert "Malicious / Critical Risk" in html
+        assert "Key Analytical Findings" in html
+        assert "SOC Operational Guidance" in html
+        assert "Containment:" in html
+        # Raw Provider Cards
         assert "VirusTotal" in html
         assert "12 Detections" in html
         assert "AbuseIPDB" in html
@@ -160,6 +268,7 @@ def test_portal_ioc_modal_endpoint() -> None:
             "evil.com" in response_standalone.text
             or "evil[.]com" in response_standalone.text
         )
+        assert "CTI Analyst Assessment" in response_standalone.text
 
 
 def test_portal_ioc_modal_disabled_providers() -> None:
@@ -180,6 +289,8 @@ def test_portal_ioc_modal_disabled_providers() -> None:
         html = response.text
         assert "198.51.100.22" in html
         assert "Not Configured" in html
+        assert "CTI Analyst Assessment" in html
+        assert "Inconclusive / Unassessed" in html
 
 
 def test_portal_iocs_partial_rendering() -> None:
