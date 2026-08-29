@@ -20,10 +20,14 @@
     "Triangulating anomalous beaconing from the ether...",
     "Correlating kernel callbacks with adversary tradecraft...",
     "Polishing the threat matrix for maximum defense...",
-    "Summoning the VirusTotal and AlienVault oracles...",
-    "Pivoting on malware hashes in the digital wild...",
+    "Summoning the VirusTotal, AbuseIPDB and AlienVault oracles...",
+    "Pivoting on malware hashes across threat landscape...",
     "De-fanging suspicious infrastructure in the containment vat...",
-    "Calibrating threat score confidence algorithms..."
+    "Translating threat actor forum chatter...",
+    "Calibrating threat score confidence algorithms...",
+    "Scouring memory dumps for hidden reflective DLLs...",
+    "Consulting the MITRE ATT&CK knowledge matrix...",
+    "Filtering out benign background noise from the enterprise matrix..."
   ];
 
   var quoteInterval = null;
@@ -48,14 +52,29 @@
       '      </div>',
       '      <h2 id="loading-modal-title" class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 mt-2 font-mono break-all select-all">' + title + '</h2>',
       '    </div>',
-      '    <div class="p-6 rounded-xl border border-sky-200 bg-sky-50 flex flex-col items-center justify-center text-center space-y-3 shadow-xs">',
-      '      <div class="relative flex items-center justify-center my-1">',
-      '        <span class="text-3xl animate-pulse">🧠</span>',
+      '    <div class="p-6 rounded-xl border border-slate-200 bg-white flex flex-col items-center justify-center text-center space-y-4 shadow-xs">',
+      '      <div class="relative flex items-center justify-center w-12 h-12 my-1">',
+      '        <svg class="animate-spin w-10 h-10 text-sky-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">',
+      '          <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>',
+      '          <path class="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>',
+      '        </svg>',
+      '        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">',
+      '          <span class="w-2.5 h-2.5 rounded-full bg-sky-500 animate-pulse"></span>',
+      '        </div>',
       '      </div>',
-      '      <p id="dynamic-loading-quote" class="text-xs font-semibold text-slate-900 italic transition-opacity duration-200 min-h-[2rem] flex items-center justify-center px-4 leading-relaxed">' + detailMsg + '</p>',
-      '      <div class="flex items-center gap-2 text-[11px] text-slate-500 font-mono pt-1">',
-      '        <span class="inline-block w-2 h-2 rounded-full bg-sky-500 animate-ping"></span>',
-      '        <span>' + bottomTag + '</span>',
+      '      <div class="w-full max-w-lg mx-auto p-4 rounded-xl border border-sky-200 bg-sky-50 flex flex-col items-center justify-center text-center space-y-2 shadow-2xs">',
+      '        <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700 font-mono">Hermes Analyst Synthesis</span>',
+      '        <p id="dynamic-loading-quote" class="text-sm font-semibold text-slate-900 italic transition-opacity duration-200 min-h-[2.5rem] flex items-center justify-center px-4 leading-relaxed">' + detailMsg + '</p>',
+      '        <div class="flex items-center gap-1.5 pt-1">',
+      '          <span class="inline-block w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>',
+      '          <span class="inline-block w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>',
+      '          <span class="inline-block w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>',
+      '        </div>',
+      '      </div>',
+      '      <div class="flex items-center justify-center gap-2 pt-1 text-xs text-slate-500 font-mono">',
+      '        <span class="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-semibold tracking-wide">',
+      '          ' + bottomTag,
+      '        </span>',
       '      </div>',
       '    </div>',
       '  </div>',
@@ -85,17 +104,18 @@
   function loadModal(link, url) {
     stopQuoteRotation();
 
-    var isIoc = url.indexOf("ioc-modal") !== -1;
+    var isIoc = url.indexOf("ioc-modal") !== -1 || url.indexOf("type=") !== -1 || url.indexOf("value=") !== -1;
     var isEvidence = url.indexOf("evidence") !== -1;
-    var isAttack = url.indexOf("attack-modal") !== -1;
+    var isAttack = url.indexOf("attack-modal") !== -1 || url.indexOf("attack_id=") !== -1 || url.indexOf("techniques/") !== -1;
 
     var title =
       link.getAttribute("data-evidence-id") ||
       link.getAttribute("data-ioc-value") ||
-      link.textContent.trim() ||
-      "Item";
-    var subtitle = "Loading Report Component";
-    var bottomTag = "Hermes CTI Intelligence Platform";
+      link.getAttribute("data-attack-id") ||
+      link.textContent.replace("🔍", "").trim() ||
+      "Intelligence Record";
+    var subtitle = "Loading CTI Intelligence Module";
+    var bottomTag = "Hermes Threat Intelligence Platform";
     var initialQuote =
       sillyAnalystQuotes[Math.floor(Math.random() * sillyAnalystQuotes.length)];
 
@@ -103,20 +123,22 @@
       var evId = link.getAttribute("data-evidence-id") || title;
       var shortId = evId.length > 12 ? evId.substring(0, 8) + "…" : evId;
       title = "Evidence Claim (" + shortId + ")";
-      subtitle = "Analyzing Evidence with CTI Analyst";
-      bottomTag = "🧠 Hermes CTI Analyst Synthesis Engine active";
+      subtitle = "CTI Analyst Synthesis & Provenance";
+      bottomTag = "Hermes Evidence & Provenance Ledger";
     } else if (isIoc) {
       var iocVal = link.getAttribute("data-ioc-value") || title;
-      var iocType = link.getAttribute("data-ioc-type") || "IOC";
-      title = iocVal + " (" + iocType.toUpperCase() + ")";
+      var iocType = (link.getAttribute("data-ioc-type") || "IOC").toUpperCase();
+      title = iocVal + " (" + iocType + ")";
       subtitle = "Enriching Indicator with Live CTI Feeds";
-      bottomTag = "Live VirusTotal, AbuseIPDB & OTX enrichment active";
+      bottomTag = "Live VirusTotal · AbuseIPDB · AlienVault OTX";
     } else if (isAttack) {
-      subtitle = "Mapping MITRE ATT&CK Technique";
-      bottomTag = "ATT&CK Enterprise Matrix correlation active";
+      var attackId = link.getAttribute("data-attack-id") || title;
+      title = "MITRE ATT&CK " + attackId;
+      subtitle = "Mapping ATT&CK Enterprise Technique";
+      bottomTag = "ATT&CK Enterprise Matrix Correlation";
     }
 
-    // Show instant loading skeleton with funny sayings
+    // Show instant Claude-style loading skeleton with funny sayings
     shell.innerHTML = buildLoadingSkeleton(
       title,
       subtitle,
@@ -196,11 +218,12 @@
     loadModal(link, url);
   });
 
-  // Handle URL query parameters on initial page load (e.g. ?ioc=198.51.100.22 or ?evidence=UUID)
+  // Handle URL query parameters on initial page load (e.g. ?ioc=..., ?attack=..., ?evidence=...)
   window.addEventListener("DOMContentLoaded", function () {
     var params = new URLSearchParams(window.location.search);
     var iocParam = params.get("ioc");
     var evParam = params.get("evidence") || params.get("evidence_id");
+    var attackParam = params.get("attack") || params.get("attack_id");
 
     if (iocParam) {
       var matchIoc =
@@ -214,6 +237,26 @@
         var urlIoc = matchIoc.getAttribute("data-hx-get");
         if (urlIoc) {
           loadModal(matchIoc, urlIoc);
+          return;
+        }
+      }
+    }
+
+    if (attackParam) {
+      var matchAttack =
+        document.querySelector(
+          '[data-attack-id="' + CSS.escape(attackParam) + '"]'
+        ) ||
+        document.querySelector(
+          '[data-report-link][href*="attack=' + encodeURIComponent(attackParam) + '"]'
+        ) ||
+        document.querySelector(
+          '[data-report-link][data-hx-get*="attack_id=' + encodeURIComponent(attackParam) + '"]'
+        );
+      if (matchAttack) {
+        var urlAttack = matchAttack.getAttribute("data-hx-get");
+        if (urlAttack) {
+          loadModal(matchAttack, urlAttack);
           return;
         }
       }

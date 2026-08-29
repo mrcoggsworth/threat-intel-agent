@@ -4,7 +4,7 @@
   <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50/30 transition-all flex flex-col justify-between group">
     <div>
       <div class="flex items-center justify-between">
-        <a class="text-xs font-mono font-bold text-sky-700 hover:text-sky-900 bg-sky-50 px-2 py-0.5 rounded border border-sky-200 hover:bg-sky-100 transition cursor-pointer inline-flex items-center gap-1" data-report-link data-hx-get="/partials/reports/{{ detail.summary.slug }}/attack-modal?attack_id={{ mapping.attack_id }}" href="{{ detail.summary.canonical_url }}?attack={{ mapping.attack_id }}">
+        <a class="text-xs font-mono font-bold text-sky-700 hover:text-sky-900 bg-sky-50 px-2 py-0.5 rounded border border-sky-200 hover:bg-sky-100 transition cursor-pointer inline-flex items-center gap-1" data-report-link data-attack-id="{{ mapping.attack_id }}" data-hx-get="/partials/reports/{{ detail.summary.slug }}/attack-modal?attack_id={{ mapping.attack_id }}" href="{{ detail.summary.canonical_url }}?attack={{ mapping.attack_id }}">
           <span>{{ mapping.attack_id }}</span>
           <span class="text-[11px] text-sky-600 opacity-80 group-hover:opacity-100">🔍</span>
         </a>
