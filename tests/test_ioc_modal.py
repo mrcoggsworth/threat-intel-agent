@@ -318,3 +318,37 @@ def test_portal_iocs_partial_rendering() -> None:
     assert 'data-ioc-value="198.51.100.22"' in rendered
     assert "select-none" in rendered
     assert "pointer-events-none" in rendered
+
+
+def test_synthesize_ioc_analyst_assessment_dict_threat_classification() -> None:
+    vt = {
+        "last_analysis_stats": {"malicious": 50, "suspicious": 2, "harmless": 5},
+        "popular_threat_classification": {
+            "suggested_threat_label": "trojan.bumblebee/doina",
+            "popular_threat_name": [
+                {"value": "bumblebee", "count": 9},
+                {"value": "doina", "count": 7},
+            ],
+            "popular_threat_category": [
+                {"value": "trojan", "count": 20},
+                {"value": "ransomware", "count": 1},
+            ],
+        },
+    }
+    assessment = synthesize_ioc_analyst_assessment(
+        ioc_type="sha256",
+        ioc_value="a6df0b49a5ef9ffd6513bfe061fb60f6d2941a440038e2de8a7aeb1914945331",
+        vt_data=vt,
+    )
+    assert assessment.verdict == IOCVerdict.MALICIOUS
+    # Verify no raw dict/curly braces leaked into summary text
+    assert "{'suggested_threat_label'" not in assessment.summary
+    assert "trojan.bumblebee/doina" in assessment.summary
+    # Verify structured observation
+    assert any(
+        "Label: 'trojan.bumblebee/doina'" in obs for obs in assessment.observations
+    )
+    assert any(
+        "Categories: trojan (20), ransomware (1)" in obs
+        for obs in assessment.observations
+    )

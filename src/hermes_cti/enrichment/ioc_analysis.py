@@ -42,25 +42,85 @@ class IOCAnalystAssessment:
     recommendations: tuple[str, ...]
 
 
+def _format_threat_class(threat_class_raw: Any) -> tuple[str | None, str | None]:
+    """Extract narrative label and observation from threat classification."""
+    if not threat_class_raw:
+        return None, None
+    if isinstance(threat_class_raw, str):
+        return (
+            threat_class_raw,
+            f"Threat Classification: Identified as '{threat_class_raw}'.",
+        )
+    if isinstance(threat_class_raw, dict):
+        label = threat_class_raw.get("suggested_threat_label")
+        categories = threat_class_raw.get("popular_threat_category") or []
+        names = threat_class_raw.get("popular_threat_name") or []
+
+        cats_summary: list[str] = []
+        if isinstance(categories, list):
+            for c in categories:
+                if isinstance(c, dict) and "value" in c:
+                    count = c.get("count")
+                    cats_summary.append(
+                        f"{c['value']} ({count})" if count else str(c["value"])
+                    )
+                elif isinstance(c, str):
+                    cats_summary.append(c)
+
+        names_summary: list[str] = []
+        if isinstance(names, list):
+            for n in names:
+                if isinstance(n, dict) and "value" in n:
+                    count = n.get("count")
+                    names_summary.append(
+                        f"{n['value']} ({count})" if count else str(n["value"])
+                    )
+                elif isinstance(n, str):
+                    names_summary.append(n)
+
+        narrative_label = (
+            label
+            or (names_summary[0] if names_summary else None)
+            or (cats_summary[0] if cats_summary else None)
+        )
+
+        obs_parts: list[str] = []
+        if label:
+            obs_parts.append(f"Label: '{label}'")
+        if cats_summary:
+            obs_parts.append(f"Categories: {', '.join(cats_summary[:3])}")
+        if names_summary:
+            obs_parts.append(f"Names: {', '.join(names_summary[:3])}")
+
+        formatted_obs = (
+            f"Threat Classification: {'; '.join(obs_parts)}." if obs_parts else None
+        )
+        return narrative_label, formatted_obs
+    return None, None
+
+
 def _extract_vt_stats(
     vt_data: dict[str, Any] | None,
-) -> tuple[int, int, int, int, list[str], str | None]:
+) -> tuple[int, int, int, int, list[str], str | None, str | None]:
     if not vt_data or vt_data.get("not_found"):
-        return 0, 0, 0, 0, [], None
+        return 0, 0, 0, 0, [], None, None
     stats = vt_data.get("last_analysis_stats") or {}
     malicious = int(stats.get("malicious") or 0)
     suspicious = int(stats.get("suspicious") or 0)
     harmless = int(stats.get("harmless") or 0)
     undetected = int(stats.get("undetected") or 0)
     tags = [str(t) for t in (vt_data.get("tags") or []) if isinstance(t, str)]
-    threat_class = vt_data.get("popular_threat_classification")
+    threat_label, threat_obs = _format_threat_class(
+        vt_data.get("popular_threat_classification")
+    )
     return (
         malicious,
         suspicious,
         harmless,
         undetected,
         tags,
-        str(threat_class) if threat_class else None,
+        threat_label,
+        threat_obs,
     )
 
 
@@ -75,9 +135,15 @@ def synthesize_ioc_analyst_assessment(
     otx_data: dict[str, Any] | None = None,
 ) -> IOCAnalystAssessment:
     """Synthesize multi-source CTI enrichment into an analyst assessment."""
-    malicious_vt, suspicious_vt, harmless_vt, _undetected_vt, vt_tags, threat_class = (
-        _extract_vt_stats(vt_data)
-    )
+    (
+        malicious_vt,
+        suspicious_vt,
+        harmless_vt,
+        _undetected_vt,
+        vt_tags,
+        threat_label,
+        threat_obs,
+    ) = _extract_vt_stats(vt_data)
 
     abuse_score = int((abuse_data or {}).get("abuse_confidence_score") or 0)
     abuse_reports = int((abuse_data or {}).get("total_reports") or 0)
@@ -115,7 +181,7 @@ def synthesize_ioc_analyst_assessment(
         or (abuse_score >= 80 and abuse_reports >= 10)
     )
     is_high_malicious = (
-        malicious_vt >= 3 or abuse_score >= 50 or pulse_count >= 3 or bool(threat_class)
+        malicious_vt >= 3 or abuse_score >= 50 or pulse_count >= 3 or bool(threat_label)
     )
     is_suspicious = (
         malicious_vt in (1, 2)
@@ -169,11 +235,8 @@ def synthesize_ioc_analyst_assessment(
         confidence = "Low"
 
     # 3. Formulate Key Observations
-    if threat_class:
-        observations.append(
-            f"Threat Classification: Classified as {threat_class} "
-            "across community engines."
-        )
+    if threat_obs:
+        observations.append(threat_obs)
     elif vt_tags:
         tags_str = ", ".join(vt_tags[:5])
         observations.append(
@@ -276,7 +339,7 @@ def synthesize_ioc_analyst_assessment(
         if malicious_vt > 0:
             summary_parts.append(
                 f"VirusTotal indexes {malicious_vt} vendor detections"
-                + (f" identified as {threat_class}" if threat_class else "")
+                + (f" identified as {threat_label}" if threat_label else "")
                 + "."
             )
         if abuse_score > 0:
