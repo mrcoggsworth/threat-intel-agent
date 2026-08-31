@@ -81,6 +81,113 @@ def _source_count(bundle: ReportBundle) -> int:
     return len(keys) or len(bundle.source_references)
 
 
+_DOMAIN_SOURCE_MAP: dict[str, str] = {
+    "cisa.gov": "CISA",
+    "microsoft.com": "Microsoft Threat Intelligence",
+    "paloaltonetworks.com": "Unit 42",
+    "thedfirreport.com": "The DFIR Report",
+    "bleepingcomputer.com": "BleepingComputer",
+    "thehackernews.com": "The Hacker News",
+    "krebsonsecurity.com": "Krebs on Security",
+    "sentinelone.com": "SentinelLabs",
+    "redcanary.com": "Red Canary",
+    "rapid7.com": "Rapid7",
+    "recordedfuture.com": "Recorded Future",
+    "securityweek.com": "SecurityWeek",
+    "isc.sans.edu": "SANS ISC",
+    "ncsc.gov.uk": "UK NCSC",
+    "zerodayinitiative.com": "Trend Micro ZDI",
+    "socprime.com": "SOC Prime",
+    "github.com/sigmahq": "SigmaHQ",
+    "abuse.ch/urlhaus": "URLhaus",
+    "abuse.ch/threatfox": "ThreatFox",
+    "feodotracker": "Feodo Tracker",
+    "qualys.com": "Qualys Security",
+    "huntress.com": "Huntress",
+    "darkreading.com": "Dark Reading",
+    "nvd.nist.gov": "NIST NVD",
+}
+
+
+def _source_names(
+    bundle: ReportBundle, headline: str = "", slug: str = ""
+) -> tuple[str, ...]:
+    names: list[str] = []
+
+    # 1. Direct source references
+    for ref in bundle.source_references:
+        name = ref.name.strip()
+        if name:
+            if "dfir" in name.casefold():
+                name = "The DFIR Report"
+            elif "cisa" in name.casefold():
+                if "known" in name.casefold() or "kev" in name.casefold():
+                    name = "CISA KEV"
+                else:
+                    name = "CISA"
+            elif "microsoft" in name.casefold():
+                name = "Microsoft Threat Intelligence"
+            if name.casefold() not in [n.casefold() for n in names]:
+                names.append(name)
+
+    # 2. Evidence items
+    for item in bundle.evidence:
+        if item.source_reference and item.source_reference.name:
+            n = item.source_reference.name.strip()
+            if n and n.casefold() not in [x.casefold() for x in names]:
+                names.append(n)
+        if item.source_url:
+            url_str = str(item.source_url).casefold()
+            for dom, clean_name in _DOMAIN_SOURCE_MAP.items():
+                if dom in url_str and clean_name.casefold() not in [
+                    x.casefold() for x in names
+                ]:
+                    names.append(clean_name)
+
+    # 3. Check combined text
+    remed_refs = " ".join(
+        str(r)
+        for r in (
+            getattr(bundle.remediation, "references", ()) if bundle.remediation else ()
+        )
+    )
+    combined_text = (
+        f"{headline} {slug} {bundle.executive_summary} {remed_refs}"
+    ).casefold()
+
+    for dom, clean_name in _DOMAIN_SOURCE_MAP.items():
+        if dom in combined_text and clean_name.casefold() not in [
+            x.casefold() for x in names
+        ]:
+            names.append(clean_name)
+
+    if not names:
+        if "cisa" in combined_text:
+            names.append("CISA")
+        elif "dfir" in combined_text:
+            names.append("The DFIR Report")
+        elif "microsoft" in combined_text:
+            names.append("Microsoft Threat Intelligence")
+        elif "sentinellabs" in combined_text or "sentinelone" in combined_text:
+            names.append("SentinelLabs")
+        elif "unit 42" in combined_text or "unit42" in combined_text:
+            names.append("Unit 42")
+        elif "bleepingcomputer" in combined_text:
+            names.append("BleepingComputer")
+        elif "krebsonsecurity" in combined_text or "krebs" in combined_text:
+            names.append("Krebs on Security")
+        elif "hacker news" in combined_text:
+            names.append("The Hacker News")
+        elif "zdi" in combined_text or "zero day initiative" in combined_text:
+            names.append("Trend Micro ZDI")
+        elif "rapid7" in combined_text:
+            names.append("Rapid7")
+        else:
+            names.append("Threat Advisory")
+
+    return tuple(names)
+
+
 def _products(bundle: ReportBundle) -> tuple[str, ...]:
     values = {
         f"{item.product.vendor} {item.product.product}"
@@ -134,6 +241,7 @@ class PortalService:
     ) -> PublicReportSummary:
         content = bundle or cls._bundle(row)
         report = row.report
+        source_names = _source_names(content, report.headline, report.slug)
         return PublicReportSummary(
             public_id=report.public_id,
             slug=report.slug,
@@ -155,6 +263,8 @@ class PortalService:
                 sorted({str(item.attack_id) for item in content.attack_mappings})
             ),
             source_count=_source_count(content),
+            source_names=source_names,
+            primary_source=source_names[0] if source_names else None,
             hunt_available=content.hunt is not None,
             remediation_available=content.remediation is not None,
             detection_available=bool(content.detections),
@@ -216,6 +326,7 @@ class PortalService:
                     for row in rows.items:
                         bundle = self._bundle(row)
                         slug = row.report.slug
+                        row_sources = _source_names(bundle, row.report.headline, slug)
                         for v in bundle.vulnerabilities:
                             cve_clean = v.cve_id.strip().upper()
                             entry = cve_map.setdefault(
@@ -235,9 +346,29 @@ class PortalService:
                                     "cwe_ids": set(v.cwe_ids),
                                     "products": set(),
                                     "report_slugs": set(),
+                                    "source_names": set(),
+                                    "published_at": None,
+                                    "last_updated_at": None,
                                 },
                             )
                             entry["report_slugs"].add(slug)
+                            for s in row_sources:
+                                entry["source_names"].add(s)
+                            if v.known_exploited or v.kev_date_added:
+                                entry["source_names"].add("CISA KEV")
+                            if v.kev_date_added:
+                                entry["published_at"] = str(v.kev_date_added)
+                            elif (
+                                row.report.first_published_at
+                                and not entry["published_at"]
+                            ):
+                                entry["published_at"] = str(
+                                    row.report.first_published_at
+                                ).split("T")[0]
+                            if row.report.last_updated_at:
+                                entry["last_updated_at"] = str(
+                                    row.report.last_updated_at
+                                ).split("T")[0]
                             if v.cvss_score is not None and (
                                 entry["cvss_score"] is None
                                 or v.cvss_score > entry["cvss_score"]
@@ -272,6 +403,7 @@ class PortalService:
             score = data["cvss_score"]
             is_kev = bool(data.get("known_exploited", False))
             epss = data["epss_score"]
+            cve_sources = tuple(sorted(data.get("source_names", ())))
 
             if (
                 is_kev
@@ -319,6 +451,10 @@ class PortalService:
                     affected_products=tuple(sorted(data["products"])),
                     report_count=len(data["report_slugs"]),
                     report_slugs=tuple(sorted(data["report_slugs"])),
+                    source_names=cve_sources,
+                    primary_source=cve_sources[0] if cve_sources else None,
+                    published_at=data.get("published_at"),
+                    last_updated_at=data.get("last_updated_at"),
                     canonical_url=f"/vulnerabilities/{cve_clean}",
                 )
             )

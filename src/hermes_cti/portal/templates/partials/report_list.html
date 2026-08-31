@@ -8,7 +8,7 @@
 <div class="report-list space-y-3.5" role="list">
   {% for report in page.items %}
   <article class="report-line bg-white p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all space-y-3" role="listitem" data-report-slug="{{ report.slug }}">
-    <div class="flex flex-wrap items-center justify-between gap-2">
+    <div class="flex flex-wrap items-start justify-between gap-2">
       <div class="flex flex-wrap items-center gap-2">
         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border {% if report.severity == 'critical' %}bg-rose-50 text-rose-700 border-rose-200 severity severity-critical{% elif report.severity == 'high' %}bg-amber-50 text-amber-700 border-amber-200 severity severity-high{% elif report.severity == 'medium' %}bg-sky-50 text-sky-700 border-sky-200 severity severity-medium{% else %}bg-emerald-50 text-emerald-700 border-emerald-200 severity severity-low{% endif %}">
           ● {{ report.severity|upper }}
@@ -20,7 +20,24 @@
           {{ report.change_state }}
         </span>
       </div>
-      <span class="text-xs text-slate-500"><time datetime="{{ report.last_updated_at }}">Updated {{ report.last_updated_at }}</time></span>
+      <div class="flex flex-col items-end gap-1 text-right">
+        <span class="text-xs text-slate-500 font-mono"><time datetime="{{ report.last_updated_at }}">Updated {{ report.last_updated_at }}</time></span>
+        {% if report.source_names %}
+        <div class="flex flex-wrap items-center justify-end gap-1.5 pt-0.5">
+          {% for src in report.source_names %}
+          <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs hover:bg-slate-200 transition-colors" title="Origin Source Feed: {{ src }}">
+            <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+            {{ src }}
+          </span>
+          {% endfor %}
+        </div>
+        {% elif report.primary_source %}
+        <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs" title="Origin Source Feed: {{ report.primary_source }}">
+          <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+          {{ report.primary_source }}
+        </span>
+        {% endif %}
+      </div>
     </div>
 
     <h2 class="text-lg font-bold text-slate-900 leading-snug">
