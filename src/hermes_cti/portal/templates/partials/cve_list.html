@@ -1,0 +1,106 @@
+{% if not page.items %}
+<div class="bg-white rounded-xl border border-slate-200 p-8 text-center space-y-2">
+  <div class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-2">🔍</div>
+  <h2 class="text-lg font-bold text-slate-800">No matching CVEs found</h2>
+  <p class="text-sm text-slate-500 max-w-md mx-auto">Try clearing one or more active filters, adjusting the CVSS/EPSS thresholds, or broadening your search query.</p>
+</div>
+{% else %}
+<div class="cve-list space-y-4" role="list">
+  {% for cve in page.items %}
+  <article class="cve-card bg-white p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all space-y-3.5" role="listitem" data-cve-id="{{ cve.cve_id }}">
+    <!-- Top Meta Row -->
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+      <div class="flex flex-wrap items-center gap-2">
+        <a class="px-2.5 py-0.5 rounded text-sm font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition cursor-pointer inline-flex items-center gap-1 select-all" data-report-link data-cve-id="{{ cve.cve_id }}" data-hx-get="/partials/cve-modal?cve_id={{ cve.cve_id }}" href="{{ cve.canonical_url }}">
+          🛡️ {{ cve.cve_id }}
+        </a>
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border {% if cve.severity == 'critical' %}bg-rose-50 text-rose-700 border-rose-200{% elif cve.severity == 'high' %}bg-amber-50 text-amber-700 border-amber-200{% elif cve.severity == 'medium' %}bg-sky-50 text-sky-700 border-sky-200{% else %}bg-emerald-50 text-emerald-700 border-emerald-200{% endif %}">
+          ● {{ cve.severity|upper }}
+        </span>
+        {% if cve.known_exploited %}
+        <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
+          ⚡ CISA KEV Listed
+        </span>
+        {% endif %}
+        {% if cve.cvss_score is not none %}
+        <span class="text-xs font-medium text-slate-700 px-2 py-0.5 rounded bg-slate-100 border border-slate-200/80">
+          CVSS {{ "%.1f"|format(cve.cvss_score) }}
+        </span>
+        {% endif %}
+        {% if cve.epss_score is not none %}
+        <span class="text-xs font-medium text-purple-700 px-2 py-0.5 rounded bg-purple-50 border border-purple-200">
+          EPSS {{ "%.1f"|format(cve.epss_score * 100) }}% ({{ "%.0f"|format((cve.epss_percentile or 0) * 100) }}th %)
+        </span>
+        {% endif %}
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold px-2 py-0.5 rounded {% if cve.badge_style == 'danger' %}bg-rose-100 text-rose-800{% elif cve.badge_style == 'warning' %}bg-amber-100 text-amber-800{% elif cve.badge_style == 'success' %}bg-emerald-100 text-emerald-800{% else %}bg-slate-100 text-slate-600{% endif %}">
+          {{ cve.badge_label }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <p class="text-sm text-slate-700 leading-relaxed">{{ cve.summary }}</p>
+
+    <!-- Affected Products -->
+    {% if cve.affected_products %}
+    <div class="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+      <span class="font-semibold text-slate-500 mr-1">Affected:</span>
+      {% for prod in cve.affected_products %}
+      <span class="px-2 py-0.5 rounded bg-slate-50 text-slate-700 border border-slate-200 font-medium">{{ prod }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- CWEs -->
+    {% if cve.cwe_ids %}
+    <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+      <span class="font-semibold text-slate-500 mr-1">CWEs:</span>
+      {% for cwe in cve.cwe_ids %}
+      <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">{{ cwe }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Footer Actions & Correlated Reports -->
+    <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-2 text-slate-500">
+        <span>Correlated in <strong class="text-slate-800">{{ cve.report_count }}</strong> threat report{{ '' if cve.report_count == 1 else 's' }}</span>
+        {% if cve.report_slugs %}
+        <span class="text-slate-300">|</span>
+        <div class="flex flex-wrap items-center gap-1">
+          {% for slug in cve.report_slugs %}
+          <a class="font-medium text-sky-700 hover:text-sky-900 underline" href="/reports/{{ slug }}">{{ slug }}</a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-800 border border-sky-300 transition cursor-pointer" href="/vulnerabilities/{{ cve.cve_id }}/hunt">
+          <span>🎯 Threat Hunt</span>
+        </a>
+        <a class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-700 text-white hover:bg-sky-800 transition-colors shadow-xs" href="{{ cve.canonical_url }}">
+          View Full Report &amp; Playbook →
+        </a>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+
+<nav class="pagination mt-6 flex items-center justify-between text-xs font-semibold text-slate-600 bg-white px-4 py-3 rounded-xl border border-slate-200" aria-label="CVE pages">
+  <div>
+    {% if page.page > 1 %}
+    <a class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition" href="?page={{ page.page - 1 }}&page_size={{ page.page_size }}">← Previous</a>
+    {% endif %}
+  </div>
+  <span>Page {{ page.page }}{% if page.total_pages %} of {{ page.total_pages }}{% endif %}</span>
+  <div>
+    {% if page.page < page.total_pages %}
+    <a class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition" href="?page={{ page.page + 1 }}&page_size={{ page.page_size }}">Next →</a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}

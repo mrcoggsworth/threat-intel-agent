@@ -13,7 +13,7 @@ from uuid import UUID, uuid5
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
@@ -36,8 +36,11 @@ from hermes_cti.models.contracts import (
     ThreatHunt,
 )
 from hermes_cti.portal.contracts import (
+    CVEQuery,
+    CVESort,
     PortalQuery,
     PrivateDraftPage,
+    PublicCVEPage,
     PublicDetectionPage,
     PublicRelatedReports,
     PublicReportDetail,
@@ -51,6 +54,13 @@ from hermes_cti.reporting.contracts import ReportVulnerability
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
+
+
+@router.get("/", response_class=RedirectResponse, include_in_schema=False)
+async def root_redirect() -> RedirectResponse:
+    return RedirectResponse(
+        url="/reports", status_code=status.HTTP_307_TEMPORARY_REDIRECT
+    )
 
 
 def _query(
@@ -72,6 +82,41 @@ def _query(
             date_from=date_from,
             date_to=date_to,
             change_states=change_state,
+            sort=sort,
+            page=page,
+            page_size=page_size,
+        )
+    except ValidationError as exc:
+        errors: list[Any] = []
+        for err in exc.errors():
+            err_dict = dict(err)
+            raw_loc: tuple[str | int, ...] = err_dict.get("loc", ())  # type: ignore[assignment]
+            err_dict["loc"] = ("query", *raw_loc)
+            errors.append(err_dict)
+        raise RequestValidationError(errors=errors) from exc
+    except ValueError as exc:
+        raise RequestValidationError(
+            errors=[{"loc": ("query",), "msg": str(exc), "type": "value_error"}]
+        ) from exc
+
+
+def _cve_query(
+    q: str | None = Query(default=None, max_length=200),
+    severity: Annotated[list[Severity | str] | None, Query()] = None,
+    known_exploited_only: bool | str = Query(default=False),
+    min_cvss: float | str | None = Query(default=None),
+    min_epss: float | str | None = Query(default=None),
+    sort: CVESort | str = Query(default=CVESort.PRIORITY),
+    page: int | str = Query(default=1),
+    page_size: int | str = Query(default=20),
+) -> CVEQuery:
+    try:
+        return CVEQuery(
+            search=q,
+            severities=severity,
+            known_exploited_only=known_exploited_only,
+            min_cvss=min_cvss,
+            min_epss=min_epss,
             sort=sort,
             page=page,
             page_size=page_size,
@@ -129,6 +174,15 @@ async def public_reports(
     service: PortalService = Depends(get_portal_service),
 ) -> Response:  # noqa: B008
     return _json_response(request, await service.list_reports(query))
+
+
+@router.get("/api/v1/public/cves", response_model=PublicCVEPage)
+async def public_cves(
+    request: Request,
+    query: CVEQuery = Depends(_cve_query),
+    service: PortalService = Depends(get_portal_service),
+) -> Response:  # noqa: B008
+    return _json_response(request, await service.list_cves(query))
 
 
 @router.get("/api/v1/public/search", response_model=PublicReportPage)
@@ -261,6 +315,20 @@ async def report_list_partial(
     )
 
 
+@router.get("/partials/cves", response_class=HTMLResponse)
+async def cve_list_partial(
+    request: Request,
+    query: CVEQuery = Depends(_cve_query),
+    service: PortalService = Depends(get_portal_service),
+) -> HTMLResponse:  # noqa: B008
+    page = await service.list_cves(query)
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/cve_list.html",
+        context=_context(request, page),
+    )
+
+
 @router.get("/partials/reports/{identifier}/modal", response_class=HTMLResponse)
 async def report_modal_partial(
     request: Request,
@@ -326,6 +394,12 @@ async def report_ioc_modal_partial(
     if enrichment_service is None:
         settings = getattr(request.app.state, "settings", None) or load_settings()
         providers = build_providers(settings)
+        if normalized_type != "cve":
+            providers = tuple(
+                provider
+                for provider in providers
+                if provider.name in {"virustotal", "otx", "abuseipdb"}
+            )
         enrichment_service = EnrichmentService(
             providers,
             cache=EnrichmentCache(
@@ -558,6 +632,7 @@ async def technique_page(
 
 
 @router.get("/vulnerabilities/{cve_id}", response_class=HTMLResponse)
+@router.get("/cves/{cve_id}", response_class=HTMLResponse)
 async def vulnerability_page(
     request: Request,
     cve_id: str,
@@ -622,7 +697,92 @@ async def vulnerability_page(
             "related_reports": related,
             "result": run_result,
             "report_vulnerability": report_vulnerability,
+            "active_tab": "analysis",
         },
+    )
+
+
+@router.get("/vulnerabilities/{cve_id}/hunt", response_class=HTMLResponse)
+@router.get("/cves/{cve_id}/hunt", response_class=HTMLResponse)
+async def vulnerability_hunt_page(
+    request: Request,
+    cve_id: str,
+    service: PortalService = Depends(get_portal_service),
+    enrichment_service: EnrichmentService | None = Depends(get_enrichment_service),
+) -> HTMLResponse:  # noqa: B008
+    normalized_cve = cve_id.strip().upper()
+    related = await service.related("vulnerability", normalized_cve)
+
+    report_vulnerability: ReportVulnerability | None = None
+    if related.reports:
+        for rep in related.reports:
+            try:
+                detail = await service.get_report(rep.slug)
+                if detail:
+                    matching = next(
+                        (
+                            v
+                            for v in detail.vulnerabilities
+                            if v.cve_id.upper() == normalized_cve
+                        ),
+                        None,
+                    )
+                    if matching:
+                        report_vulnerability = matching
+                        break
+            except Exception:
+                pass
+
+    if enrichment_service is None:
+        settings = getattr(request.app.state, "settings", None) or load_settings()
+        providers = build_providers(settings)
+        enrichment_service = EnrichmentService(
+            providers,
+            cache=EnrichmentCache(
+                stale_if_error_seconds=settings.enrichment_stale_if_error_seconds,
+            ),
+        )
+
+    vulnerability_uid = uuid5(
+        UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8"),
+        f"vulnerability:{normalized_cve}",
+    )
+    run_result = await enrichment_service.enrich_cve(
+        cve_id=normalized_cve,
+        entity_id=vulnerability_uid,
+    )
+
+    analyst_assessment = synthesize_cve_analyst_assessment(
+        cve_id=normalized_cve,
+        run_result=run_result,
+        report_vulnerability=report_vulnerability,
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="vulnerability.html",
+        context={
+            "request": request,
+            "cve_id": normalized_cve,
+            "analyst_assessment": analyst_assessment,
+            "related_reports": related,
+            "result": run_result,
+            "report_vulnerability": report_vulnerability,
+            "active_tab": "hunt",
+        },
+    )
+
+
+@router.get("/cves", response_class=HTMLResponse)
+@router.get("/vulnerabilities", response_class=HTMLResponse)
+async def cves_page(
+    request: Request,
+    query: CVEQuery = Depends(_cve_query),
+    service: PortalService = Depends(get_portal_service),
+) -> HTMLResponse:  # noqa: B008
+    page = await service.list_cves(query)
+    return templates.TemplateResponse(
+        request=request, name="cves.html", context=_context(request, page)
     )
 
 

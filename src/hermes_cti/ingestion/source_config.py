@@ -85,9 +85,15 @@ def _default_reliability(category: str, name: str) -> ReliabilityClassification:
         SourceCategory.VENDOR_ADVISORIES.value,
     }:
         return ReliabilityClassification.AUTHORITATIVE
-    if category == SourceCategory.THREAT_RESEARCH.value:
+    if category in {
+        SourceCategory.THREAT_RESEARCH.value,
+        SourceCategory.DETECTION_ENGINEERING.value,
+    }:
         return ReliabilityClassification.PRIMARY_RESEARCH
-    if category == SourceCategory.INCIDENT_RESPONSE.value:
+    if category in {
+        SourceCategory.INCIDENT_RESPONSE.value,
+        SourceCategory.TACTICAL_IOCS.value,
+    }:
         return ReliabilityClassification.INCIDENT_RESPONSE
     return ReliabilityClassification.GENERAL_NEWS
 

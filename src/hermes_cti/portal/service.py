@@ -9,12 +9,16 @@ from uuid import UUID
 
 from hermes_cti.db.models import Report
 from hermes_cti.db.session import Database
-from hermes_cti.models.contracts import EntityType, ReportState
+from hermes_cti.models.contracts import EntityType, ReportState, Severity
 from hermes_cti.portal.contracts import (
+    CVEQuery,
+    CVESort,
     EvidenceAnalystSummary,
     PortalQuery,
     PrivateDraftPage,
     PublicAdminDraft,
+    PublicCVEPage,
+    PublicCVESummary,
     PublicDetectionPage,
     PublicEvidenceDetail,
     PublicRelatedReports,
@@ -195,6 +199,188 @@ class PortalService:
             page=query.page,
             page_size=query.page_size,
             total=rows.total,
+            total_pages=total_pages,
+            query=query,
+        )
+
+    async def list_cves(self, query: CVEQuery) -> PublicCVEPage:
+        cve_map: dict[str, dict[str, Any]] = {}
+
+        if self.database is not None:
+            async with self.database.session() as session:
+                rows = await self.repository.list_reports(
+                    session, PortalQuery(page=1, page_size=1000)
+                )
+                for row in rows.items:
+                    bundle = self._bundle(row)
+                    slug = row.report.slug
+                    for v in bundle.vulnerabilities:
+                        cve_clean = v.cve_id.strip().upper()
+                        entry = cve_map.setdefault(
+                            cve_clean,
+                            {
+                                "cve_id": cve_clean,
+                                "summary": v.summary
+                                or f"Vulnerability record for {cve_clean}",
+                                "cvss_score": v.cvss_score,
+                                "cvss_version": v.cvss_version,
+                                "cvss_vector": v.cvss_vector,
+                                "epss_score": v.epss_score,
+                                "epss_percentile": v.epss_percentile,
+                                "known_exploited": v.known_exploited,
+                                "cwe_ids": set(v.cwe_ids),
+                                "products": set(),
+                                "report_slugs": set(),
+                            },
+                        )
+                        entry["report_slugs"].add(slug)
+                        if v.cvss_score is not None and (
+                            entry["cvss_score"] is None
+                            or v.cvss_score > entry["cvss_score"]
+                        ):
+                            entry["cvss_score"] = v.cvss_score
+                            entry["cvss_version"] = v.cvss_version
+                            entry["cvss_vector"] = v.cvss_vector
+                        if v.epss_score is not None:
+                            entry["epss_score"] = v.epss_score
+                            entry["epss_percentile"] = v.epss_percentile
+                        if v.known_exploited:
+                            entry["known_exploited"] = True
+                        if v.summary and len(v.summary) > len(entry["summary"]):
+                            entry["summary"] = v.summary
+                        for cwe in v.cwe_ids:
+                            entry["cwe_ids"].add(cwe)
+                        for ap in v.affected_products:
+                            p_str = f"{ap.product.vendor} {ap.product.product}"
+                            if ap.version_range:
+                                p_str += f" ({ap.version_range})"
+                            entry["products"].add(p_str)
+
+        summaries: list[PublicCVESummary] = []
+        for cve_clean, data in cve_map.items():
+            score = data["cvss_score"]
+            is_kev = data["known_exploited"]
+            epss = data["epss_score"]
+
+            if (
+                is_kev
+                or (score is not None and score >= 9.0)
+                or (epss is not None and epss >= 0.50)
+            ):
+                sev = Severity.CRITICAL
+                b_label = (
+                    "Active In-The-Wild Exploitation" if is_kev else "Critical Severity"
+                )
+                b_style = "danger"
+            elif (score is not None and score >= 7.0) or (
+                epss is not None and epss >= 0.20
+            ):
+                sev = Severity.HIGH
+                b_label = "High Severity Exposure"
+                b_style = "warning"
+            elif score is not None and score >= 4.0:
+                sev = Severity.MEDIUM
+                b_label = "Moderate Severity"
+                b_style = "warning"
+            elif score is not None:
+                sev = Severity.LOW
+                b_label = "Low Severity"
+                b_style = "success"
+            else:
+                sev = Severity.INFO
+                b_label = "Telemetry Pending"
+                b_style = "slate"
+
+            summaries.append(
+                PublicCVESummary(
+                    cve_id=cve_clean,
+                    summary=data["summary"],
+                    cvss_score=score,
+                    cvss_version=data["cvss_version"],
+                    cvss_vector=data["cvss_vector"],
+                    epss_score=epss,
+                    epss_percentile=data["epss_percentile"],
+                    known_exploited=is_kev,
+                    severity=sev,
+                    badge_label=b_label,
+                    badge_style=b_style,
+                    cwe_ids=tuple(sorted(data["cwe_ids"])),
+                    affected_products=tuple(sorted(data["products"])),
+                    report_count=len(data["report_slugs"]),
+                    report_slugs=tuple(sorted(data["report_slugs"])),
+                    canonical_url=f"/vulnerabilities/{cve_clean}",
+                )
+            )
+
+        filtered = summaries
+        if query.search:
+            s = query.search.casefold()
+            filtered = [
+                c
+                for c in filtered
+                if s in c.cve_id.casefold()
+                or s in c.summary.casefold()
+                or any(s in p.casefold() for p in c.affected_products)
+                or any(s in cwe.casefold() for cwe in c.cwe_ids)
+            ]
+        if query.severities:
+            filtered = [c for c in filtered if c.severity in query.severities]
+        if query.known_exploited_only:
+            filtered = [c for c in filtered if c.known_exploited]
+        if query.min_cvss is not None:
+            filtered = [
+                c
+                for c in filtered
+                if c.cvss_score is not None and c.cvss_score >= query.min_cvss
+            ]
+        if query.min_epss is not None:
+            filtered = [
+                c
+                for c in filtered
+                if c.epss_score is not None and c.epss_score >= query.min_epss
+            ]
+
+        if query.sort == CVESort.CVSS:
+            filtered.sort(
+                key=lambda x: (
+                    x.cvss_score is None,
+                    -(x.cvss_score or 0),
+                    x.cve_id,
+                )
+            )
+        elif query.sort == CVESort.EPSS:
+            filtered.sort(
+                key=lambda x: (
+                    x.epss_score is None,
+                    -(x.epss_score or 0),
+                    x.cve_id,
+                )
+            )
+        elif query.sort == CVESort.REPORTS:
+            filtered.sort(key=lambda x: (-x.report_count, x.cve_id))
+        elif query.sort == CVESort.NEWEST:
+            filtered.sort(key=lambda x: x.cve_id, reverse=True)
+        else:  # PRIORITY
+            filtered.sort(
+                key=lambda x: (
+                    not x.known_exploited,
+                    -(x.cvss_score or 0),
+                    -(x.epss_score or 0),
+                    x.cve_id,
+                )
+            )
+
+        total = len(filtered)
+        start_idx = (query.page - 1) * query.page_size
+        end_idx = start_idx + query.page_size
+        page_items = tuple(filtered[start_idx:end_idx])
+        total_pages = math.ceil(total / query.page_size) if total else 0
+
+        return PublicCVEPage(
+            items=page_items,
+            page=query.page,
+            page_size=query.page_size,
+            total=total,
             total_pages=total_pages,
             query=query,
         )

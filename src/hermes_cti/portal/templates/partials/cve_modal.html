@@ -136,15 +136,20 @@
       </div>
     </div>
 
-    <!-- Navigation to Dedicated Analysis Page -->
+    <!-- Exploit Mechanics & Hunt Quick Navigation -->
     <div class="p-4 rounded-xl border border-sky-200 bg-sky-50 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
       <div>
-        <span class="font-bold text-sm text-slate-900 block">Dedicated CVE Deep-Dive Page</span>
-        <p class="text-xs text-slate-600 mt-0.5">Explore the full engineering analysis, root-cause breakdown, detection queries, and correlated reports.</p>
+        <span class="font-bold text-sm text-slate-900 block">Exploit Mechanics &amp; Threat Hunt Playbook</span>
+        <p class="text-xs text-slate-600 mt-0.5">Explore the step-by-step exploit chain, movement detections, and live Sigma/SPL/KQL hunt queries.</p>
       </div>
-      <a class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-sky-700 text-white text-xs font-semibold hover:bg-sky-800 transition-colors shadow-xs whitespace-nowrap" href="/vulnerabilities/{{ cve_id }}">
-        Open Dedicated Page →
-      </a>
+      <div class="flex items-center gap-2">
+        <a class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-sky-300 text-sky-800 text-xs font-semibold hover:bg-sky-100 transition-colors shadow-2xs whitespace-nowrap" href="/vulnerabilities/{{ cve_id }}/hunt">
+          <span>🎯 Threat Hunt</span>
+        </a>
+        <a class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-sky-700 text-white text-xs font-semibold hover:bg-sky-800 transition-colors shadow-xs whitespace-nowrap" href="/vulnerabilities/{{ cve_id }}">
+          Full Analysis →
+        </a>
+      </div>
     </div>
 
     <!-- Modal Footer -->

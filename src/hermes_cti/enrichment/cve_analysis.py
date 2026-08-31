@@ -63,6 +63,10 @@ class CVEAnalystAssessment:
     kev_due_date: str | None
     kev_required_action: str | None
     affected_products: tuple[str, ...]
+    exploitation_steps: tuple[str, ...] = ()
+    hunt_steps: tuple[str, ...] = ()
+    movement_indicators: tuple[str, ...] = ()
+    detection_rules: tuple[dict[str, str], ...] = ()
 
 
 CWE_TITLES: dict[str, str] = {
@@ -99,6 +103,228 @@ def _cwe_label(cwe_id: str) -> str:
     if title:
         return f"{cwe_id}: {title}"
     return cwe_id
+
+
+def _synthesize_exploitation_steps(
+    cve_id: str,
+    cwe_ids: list[str],
+    description: str,
+    affected_products: list[str],
+) -> tuple[str, ...]:
+    primary_cwe = cwe_ids[0] if cwe_ids else ""
+    target_product = (
+        affected_products[0] if affected_products else "the vulnerable service"
+    )
+
+    step1 = (
+        "Phase 1 - Attack Surface Discovery & Preconditions: Attacker scans "
+        "public or internal ingress telemetry to identify reachable instances of "
+        f"{target_product}. They enumerate software banners, endpoints, or "
+        "unauthenticated RPC/HTTP headers to confirm exposure."
+    )
+
+    desc_lower = description.casefold()
+    if "502" in primary_cwe or "deserial" in desc_lower:
+        step2 = (
+            "Phase 2 - Payload Crafting & Injection: Attacker constructs a "
+            "malicious serialized gadget chain embedded within an HTTP request "
+            "body or header sent to the target endpoint without authentication."
+        )
+        step3 = (
+            "Phase 3 - Deserialization Invocation: The runtime deserializes "
+            "untrusted bytes, invoking unsafe class loaders or gadget primitives "
+            "that execute OS commands with the privileges of the host service."
+        )
+    elif "78" in primary_cwe or "command" in desc_lower:
+        step2 = (
+            "Phase 2 - Command Injection Delivery: Attacker crafts a malformed "
+            "parameter containing shell metacharacters (e.g. ';', '|', '&&', '`') "
+            "to bypass sanitization routines and inject arbitrary system commands."
+        )
+        step3 = (
+            "Phase 3 - Unchecked Shell Fork: The vulnerable process passes "
+            "unescaped input to a system shell (/bin/sh or cmd.exe), spawning "
+            "a child process under the identity of the target service."
+        )
+    elif "22" in primary_cwe or "traversal" in desc_lower:
+        step2 = (
+            "Phase 2 - Path Traversal Sequence: Attacker supplies encoded "
+            "directory traversal tokens (e.g. '../', '..%2f', '%252e%252e%252f') "
+            "into URI or parameter fields to break out of intended boundaries."
+        )
+        step3 = (
+            "Phase 3 - Arbitrary File Read / Execution: The application accesses "
+            "unauthorized system or configuration files, disclosing credentials "
+            "or loading untrusted libraries."
+        )
+    elif (
+        "787" in primary_cwe
+        or "120" in primary_cwe
+        or "416" in primary_cwe
+        or "overflow" in desc_lower
+    ):
+        step2 = (
+            "Phase 2 - Memory Corruption Payload Delivery: Attacker transmits "
+            "oversized buffers, malformed packet lengths, or specially arranged "
+            "object references designed to trigger memory boundary corruption."
+        )
+        step3 = (
+            "Phase 3 - Control-Flow Hijack: The process corrupts memory pointers "
+            "or return addresses, diverting the instruction pointer to "
+            "attacker-controlled shellcode or ROP gadgets to execute native code."
+        )
+    elif "287" in primary_cwe or "863" in primary_cwe or "auth" in desc_lower:
+        step2 = (
+            "Phase 2 - Authentication Bypass: Attacker manipulates headers, "
+            "token states, or request flows to bypass verification logic and gain "
+            "administrative session context."
+        )
+        step3 = (
+            "Phase 3 - Administrative Privilege Elevation: The service grants "
+            "full management access, allowing arbitrary administrative "
+            "configuration changes, payload uploads, or data exfiltration."
+        )
+    else:
+        step2 = (
+            f"Phase 2 - Malformed Payload Delivery: Attacker transmits specially "
+            f"crafted network requests or input data targeting {cve_id} directly "
+            "to the vulnerable component."
+        )
+        step3 = (
+            "Phase 3 - Defect Trigger & Execution: The underlying software logic "
+            "executes the malicious input without proper boundary checks, "
+            "granting attacker code execution or unauthorized privileged actions."
+        )
+
+    step4 = (
+        "Phase 4 - Post-Exploitation Movement & Shell Access: The payload spawns "
+        "an interactive command shell (e.g. bash, sh, powershell.exe, cmd.exe), "
+        "establishes reverse C2 communication, writes persistent webshells to disk, "
+        "and executes discovery commands to pivot laterally."
+    )
+
+    return (step1, step2, step3, step4)
+
+
+def _synthesize_hunt_steps(
+    cve_id: str, affected_products: list[str]
+) -> tuple[str, ...]:
+    target = affected_products[0] if affected_products else "affected service"
+    return (
+        "1. Telemetry Verification (EDR Process Lineage): Query endpoint detection "
+        "telemetry for web application daemons (e.g. w3wp.exe, nginx, httpd, "
+        "java, node) spawning shell binaries (cmd.exe, powershell.exe, sh, bash) "
+        "or utility downloaders (certutil, curl, wget).",
+        f"2. Network Ingress / Egress Inspection: Review reverse proxy, WAF, and "
+        f"firewall logs for anomalous POST/GET requests targeting {target}, followed "
+        "immediately by unauthorized outbound TCP/UDP connections to external IPs.",
+        "3. Disk & Webroot Forensics: Scan temporary directories (/tmp/, /var/tmp/, "
+        "C:\\Windows\\Temp\\) and application webroots for newly dropped webshells, "
+        "compiled DLLs, or executable scripts created around the timestamp of "
+        "suspicious requests.",
+        "4. Session & Identity Auditing: Check authentication and IAM audit logs for "
+        "newly spawned administrator accounts, service token issuance, or sudden "
+        "privilege escalation originating from the service host.",
+    )
+
+
+def _synthesize_movement_indicators(cve_id: str) -> tuple[str, ...]:
+    return (
+        "Spawning of interactive shells (cmd.exe, powershell.exe, /bin/sh, "
+        "/bin/bash) from web server or middleware processes",
+        "Outbound network connections initiated from server processes to "
+        "untrusted external IP addresses on non-standard ports",
+        "Creation of temporary executable artifacts or scripts in %TEMP%, "
+        "/tmp/, or application document roots",
+        "Execution of system discovery commands (whoami, ipconfig, ifconfig, "
+        "net user, id, uname -a) by web service accounts",
+        "Attempted persistence via scheduled tasks (schtasks.exe), cron jobs, "
+        "or registry autorun modifications",
+    )
+
+
+def _synthesize_detection_rules(cve_id: str) -> tuple[dict[str, str], ...]:
+    from uuid import UUID, uuid5
+
+    sigma_id = str(
+        uuid5(UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8"), f"sigma:{cve_id}")
+    )
+    sigma_desc = (
+        "Detects suspicious process execution, child process anomalies, and "
+        f"command interpreter invocation associated with {cve_id} exploitation."
+    )
+    sigma_yaml = (
+        f"title: Exploitation and Post-Exploit Movement - {cve_id}\n"
+        f"id: {sigma_id}\n"
+        "status: experimental\n"
+        f"description: {sigma_desc}\n"
+        "logsource:\n"
+        "  category: process_creation\n"
+        "  product: windows\n"
+        "detection:\n"
+        "  selection:\n"
+        "    ParentImage|endswith:\n"
+        "      - '\\\\w3wp.exe'\n"
+        "      - '\\\\httpd.exe'\n"
+        "      - '\\\\nginx.exe'\n"
+        "      - '\\\\java.exe'\n"
+        "      - '\\\\node.exe'\n"
+        "      - '\\\\tomcat.exe'\n"
+        "    Image|endswith:\n"
+        "      - '\\\\cmd.exe'\n"
+        "      - '\\\\powershell.exe'\n"
+        "      - '\\\\pwsh.exe'\n"
+        "      - '\\\\certutil.exe'\n"
+        "      - '\\\\whoami.exe'\n"
+        "  condition: selection\n"
+        "level: high\n"
+        "tags:\n"
+        "  - attack.execution\n"
+        "  - attack.t1059\n"
+        f"  - cve.{cve_id.lower()}"
+    )
+
+    splunk_spl = (
+        "index=security sourcetype=XmlWinEventLog:Microsoft-Windows-Sysmon/Operational "
+        'EventCode=1 (ParentImage="*w3wp.exe" OR ParentImage="*httpd.exe" OR '
+        'ParentImage="*nginx.exe" OR ParentImage="*java.exe" OR '
+        'ParentImage="*node.exe") (Image="*cmd.exe" OR Image="*powershell.exe" OR '
+        'Image="*certutil.exe" OR Image="*whoami.exe") '
+        f'| eval cve="{cve_id}" '
+        "| table _time Computer User ParentImage Image CommandLine cve"
+    )
+
+    kql_query = (
+        f"// Microsoft Sentinel KQL - Exploitation Detection for {cve_id}\n"
+        "DeviceProcessEvents\n"
+        "| where InitiatingProcessFileName in~ ("
+        "'w3wp.exe', 'httpd.exe', 'nginx.exe', 'java.exe', 'node.exe', 'tomcat.exe')\n"
+        "| where FileName in~ ("
+        "'cmd.exe', 'powershell.exe', 'pwsh.exe', 'sh', 'bash', 'whoami.exe', "
+        "'certutil.exe')\n"
+        f"| extend AssociatedCVE = '{cve_id}'\n"
+        "| project TimeGenerated, DeviceName, InitiatingProcessFileName, "
+        "InitiatingProcessCommandLine, FileName, ProcessCommandLine, AccountName, "
+        "AssociatedCVE"
+    )
+
+    return (
+        {
+            "format": "sigma",
+            "name": f"Sigma Rule - {cve_id} Exploitation & Movement",
+            "query": sigma_yaml,
+        },
+        {
+            "format": "splunk",
+            "name": f"Splunk SPL - {cve_id} Process Anomalies",
+            "query": splunk_spl,
+        },
+        {
+            "format": "kql",
+            "name": f"Microsoft Sentinel KQL - {cve_id} Attack Telemetry",
+            "query": kql_query,
+        },
+    )
 
 
 def synthesize_cve_analyst_assessment(
@@ -390,6 +616,13 @@ def synthesize_cve_analyst_assessment(
             "proof-of-concept exploits or weaponization."
         )
 
+    exploitation_steps = _synthesize_exploitation_steps(
+        clean_cve, cwe_ids_list, description, affected_products_list
+    )
+    hunt_steps = _synthesize_hunt_steps(clean_cve, affected_products_list)
+    movement_indicators = _synthesize_movement_indicators(clean_cve)
+    detection_rules = _synthesize_detection_rules(clean_cve)
+
     return CVEAnalystAssessment(
         cve_id=clean_cve,
         verdict=verdict,
@@ -414,4 +647,8 @@ def synthesize_cve_analyst_assessment(
         kev_due_date=kev_due_date,
         kev_required_action=kev_required_action,
         affected_products=tuple(affected_products_list),
+        exploitation_steps=exploitation_steps,
+        hunt_steps=hunt_steps,
+        movement_indicators=movement_indicators,
+        detection_rules=detection_rules,
     )

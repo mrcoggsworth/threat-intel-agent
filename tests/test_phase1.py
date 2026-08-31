@@ -48,7 +48,7 @@ def _source(**overrides: object) -> dict[str, object]:
 def test_current_source_registry_is_valid_and_backward_compatible() -> None:
     registry = load_source_registry()
 
-    assert len(registry.sources) == 14
+    assert len(registry.sources) == 39
     assert registry.sources == tuple(
         sorted(registry.sources, key=lambda item: item.source_id)
     )
@@ -237,7 +237,10 @@ def test_cli_source_validation_success_and_failure(tmp_path: Path) -> None:
     runner = CliRunner()
     success = runner.invoke(cli_app, ["sources", "validate"])
     assert success.exit_code == 0
-    assert "Validated 14 source configurations" in success.stdout
+    assert (
+        f"Validated {len(load_source_registry().sources)} source configurations"
+        in success.stdout
+    )
 
     invalid_path = tmp_path / "bad-sources.json"
     invalid_path.write_text(json.dumps([_source(type="unknown")]), encoding="utf-8")

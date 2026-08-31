@@ -746,8 +746,7 @@ def build_providers(
         VirusTotalProvider(
             str(settings.virustotal_url),
             enabled=bool(
-                (settings.virustotal_enabled or _secret(settings, "virustotal_api_key"))
-                and _secret(settings, "virustotal_api_key")
+                settings.virustotal_enabled and _secret(settings, "virustotal_api_key")
             ),
             api_key=_secret(settings, "virustotal_api_key"),
             **common,
@@ -756,10 +755,7 @@ def build_providers(
     providers.append(
         OTXProvider(
             str(settings.otx_url),
-            enabled=bool(
-                (settings.otx_enabled or _secret(settings, "otx_api_key"))
-                and _secret(settings, "otx_api_key")
-            ),
+            enabled=bool(settings.otx_enabled and _secret(settings, "otx_api_key")),
             api_key=_secret(settings, "otx_api_key"),
             **common,
         )
@@ -768,8 +764,7 @@ def build_providers(
         AbuseIPDBProvider(
             str(settings.abuseipdb_url),
             enabled=bool(
-                (settings.abuseipdb_enabled or _secret(settings, "abuseipdb_api_key"))
-                and _secret(settings, "abuseipdb_api_key")
+                settings.abuseipdb_enabled and _secret(settings, "abuseipdb_api_key")
             ),
             api_key=_secret(settings, "abuseipdb_api_key"),
             **common,

@@ -11,13 +11,26 @@
 </head>
 <body class="min-h-full flex flex-col font-sans antialiased">
   <header class="text-white border-b shadow-sm sticky top-0 z-40 transition-colors duration-200">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
-      <a class="text-xl font-bold tracking-tight text-white hover:text-sky-300 transition-colors flex items-center gap-2" href="/reports">
-        <span class="inline-block w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
-        Hermes CTI
-      </a>
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-6">
+        <a class="text-xl font-bold tracking-tight text-white hover:text-sky-300 transition-colors flex items-center gap-2" href="/reports">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+          Hermes CTI
+        </a>
+        <nav class="flex items-center gap-1 text-sm font-medium" aria-label="Main Navigation">
+          {% set current_path = request.url.path if request and request.url else '/reports' %}
+          <a class="px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 {% if current_path.startswith('/reports') or current_path == '/' %}bg-sky-700/80 text-white font-semibold shadow-xs border border-sky-500/40{% else %}text-slate-300 hover:text-white hover:bg-slate-800/60{% endif %}" href="/reports">
+            <span>📊</span>
+            <span>Reports</span>
+          </a>
+          <a class="px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 {% if current_path.startswith('/cves') or current_path.startswith('/vulnerabilities') %}bg-sky-700/80 text-white font-semibold shadow-xs border border-sky-500/40{% else %}text-slate-300 hover:text-white hover:bg-slate-800/60{% endif %}" href="/cves">
+            <span>🛡️</span>
+            <span>CVEs &amp; Vulnerabilities</span>
+          </a>
+        </nav>
+      </div>
       <div class="flex items-center gap-3">
-        <span class="text-xs font-medium tracking-wide uppercase px-2.5 py-1 rounded-md bg-slate-800/80 text-sky-200 border border-slate-700/60 hidden md:inline-block">Public CTI · Evidence-Centered</span>
+        <span class="text-xs font-medium tracking-wide uppercase px-2.5 py-1 rounded-md bg-slate-800/80 text-sky-200 border border-slate-700/60 hidden lg:inline-block">Public CTI · Evidence-Centered</span>
         <div class="flex items-center gap-1.5 text-xs">
           <label for="theme-selector" class="sr-only">Theme</label>
           <div class="relative inline-flex items-center">

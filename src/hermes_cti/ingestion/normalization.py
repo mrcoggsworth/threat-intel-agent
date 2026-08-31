@@ -444,4 +444,162 @@ def normalize_kev(
                 content_type=fetch.content_type or "application/json",
             )
         )
+    return tuple(documents)
+
+
+def normalize_json(
+    source: SourceConfig, fetch: FetchResult, artifact: RawArtifactMetadata
+) -> tuple[SourceDocument, ...]:
+    """Normalize public JSON intelligence feeds (KEV, URLhaus, ThreatFox, etc)."""
+
+    try:
+        payload = json.loads(_decode(fetch.body, fetch.encoding))
+    except json.JSONDecodeError as exc:
+        raise NormalizationError(
+            "invalid_json", "JSON payload could not be parsed"
+        ) from exc
+
+    if isinstance(payload, dict) and "vulnerabilities" in payload:
+        return normalize_kev(source, fetch, artifact)
+
+    documents: list[SourceDocument] = []
+    base_url = str(source.url)
+
+    if (
+        isinstance(payload, dict)
+        and "urls" in payload
+        and isinstance(payload["urls"], list)
+    ):
+        for entry in payload["urls"]:
+            if not isinstance(entry, dict):
+                continue
+            entry_id = str(entry.get("id") or entry.get("url") or "")
+            if not entry_id:
+                continue
+            target_url = str(entry.get("url") or f"{base_url}#{quote(entry_id)}")
+            threat = str(entry.get("threat") or "Malicious URL")
+            status_val = str(entry.get("url_status") or "active")
+            text = "\n".join(f"{k}: {v}" for k, v in entry.items() if v is not None)
+            summary = (
+                f"Threat: {threat} | Status: {status_val} | Tags: {entry.get('tags')}"
+            )
+            title = f"URLhaus: {threat} - {target_url}"
+            documents.append(
+                _source_document(
+                    source=source,
+                    artifact=artifact,
+                    external_id=entry_id,
+                    canonical_url=target_url,
+                    title=title,
+                    authors=("Abuse.ch URLhaus",),
+                    published_at=_parse_datetime(str(entry.get("dateadded", ""))),
+                    updated_at=None,
+                    normalized_text=normalize_html_text(text),
+                    summary=summary,
+                    language=None,
+                    content_type=fetch.content_type or "application/json",
+                )
+            )
+        return _sort_documents(documents)
+
+    if (
+        isinstance(payload, dict)
+        and "data" in payload
+        and isinstance(payload["data"], list)
+    ):
+        for entry in payload["data"]:
+            if not isinstance(entry, dict):
+                continue
+            entry_id = str(entry.get("id") or entry.get("ioc") or "")
+            if not entry_id:
+                continue
+            ioc_val = str(entry.get("ioc") or entry_id)
+            canonical_url = f"{base_url}#{quote(entry_id)}"
+            threat_type = str(
+                entry.get("threat_type_desc") or entry.get("threat_type") or "Indicator"
+            )
+            malware = str(entry.get("malware_printable") or "Unknown malware")
+            text = "\n".join(f"{k}: {v}" for k, v in entry.items() if v is not None)
+            summary = (
+                f"Threat: {threat_type} | Malware: {malware} | "
+                f"Confidence: {entry.get('confidence_level')}%"
+            )
+            title = f"ThreatFox: {threat_type} ({malware}) - {ioc_val}"
+            documents.append(
+                _source_document(
+                    source=source,
+                    artifact=artifact,
+                    external_id=entry_id,
+                    canonical_url=canonical_url,
+                    title=title,
+                    authors=("Abuse.ch ThreatFox",),
+                    published_at=_parse_datetime(str(entry.get("first_seen", ""))),
+                    updated_at=None,
+                    normalized_text=normalize_html_text(text),
+                    summary=summary,
+                    language=None,
+                    content_type=fetch.content_type or "application/json",
+                )
+            )
+        return _sort_documents(documents)
+
+    raw_items: list[Any] = []
+    if isinstance(payload, list):
+        raw_items = payload
+    elif isinstance(payload, dict):
+        raw_items = [payload]
+
+    for index, entry in enumerate(raw_items):
+        if not isinstance(entry, dict):
+            continue
+        entry_id = str(
+            entry.get("id")
+            or entry.get("ip_address")
+            or entry.get("cveID")
+            or entry.get("name")
+            or f"item-{index}"
+        )
+        canonical_url = str(entry.get("url") or f"{base_url}#{quote(entry_id)}")
+        title = str(
+            entry.get("title")
+            or entry.get("name")
+            or entry.get("vulnerabilityName")
+            or entry.get("malware")
+            or f"{source.name} Record {entry_id}"
+        )
+        text = "\n".join(f"{k}: {v}" for k, v in entry.items() if v is not None)
+        summary = normalize_html_text(
+            str(
+                entry.get("description")
+                or entry.get("shortDescription")
+                or entry.get("notes")
+                or text[:200]
+            )
+        )
+        documents.append(
+            _source_document(
+                source=source,
+                artifact=artifact,
+                external_id=entry_id,
+                canonical_url=canonical_url,
+                title=title,
+                authors=(source.name,),
+                published_at=_parse_datetime(
+                    str(
+                        entry.get("first_seen")
+                        or entry.get("date_added")
+                        or entry.get("date")
+                        or ""
+                    )
+                ),
+                updated_at=_parse_datetime(
+                    str(entry.get("last_online") or entry.get("updated") or "")
+                ),
+                normalized_text=normalize_html_text(text),
+                summary=summary,
+                language=None,
+                content_type=fetch.content_type or "application/json",
+            )
+        )
+
     return _sort_documents(documents)

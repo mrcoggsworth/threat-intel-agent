@@ -15,12 +15,6 @@
   </section>
 
   <section class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-3">
-    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2">Evidence and sources</h2>
-    <p class="text-sm text-slate-600">{{ detail.evidence_summary }}</p>
-    {% include "partials/evidence.html" %}
-  </section>
-
-  <section class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-3">
     <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2">IOCs</h2>
     {% include "partials/iocs.html" %}
   </section>
@@ -88,6 +82,31 @@
     {% for caveat in detail.caveats %}
     <p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 p-3 rounded-lg">⚠️ {{ caveat }}</p>
     {% endfor %}
+  </section>
+
+  <!-- Collapsible Intelligence Sources & Advisory Feeds Dropdown Card -->
+  <section class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+    <details class="group" open>
+      <summary class="flex items-center justify-between p-5 cursor-pointer font-bold text-sm text-slate-800 hover:bg-slate-50 transition-colors select-none">
+        <div class="flex items-center gap-2.5">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-sky-100 text-sky-800 text-sm">📄</span>
+          <div>
+            <span class="text-slate-900 font-bold">Intelligence Sources &amp; Advisory Feeds</span>
+            <span class="text-xs text-slate-500 block font-normal sm:inline sm:ml-2">DFIR investigations, vendor research, advisory feeds &amp; verified claims</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+            {{ detail.evidence|length }} reference{{ '' if (detail.evidence|length) == 1 else 's' }}
+          </span>
+          <span class="text-slate-400 group-open:rotate-180 transition-transform duration-200 text-xs">▼</span>
+        </div>
+      </summary>
+      <div class="px-6 pb-6 pt-2 border-t border-slate-100 space-y-3">
+        <p class="text-sm text-slate-600">{{ detail.evidence_summary }}</p>
+        {% include "partials/evidence.html" %}
+      </div>
+    </details>
   </section>
 </article>
 {% endblock %}

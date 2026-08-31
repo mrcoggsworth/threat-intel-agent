@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}CVEs &amp; Vulnerability Intelligence · Hermes CTI{% endblock %}
+{% block content %}
+<section class="space-y-6" aria-labelledby="cves-heading">
+  <div class="space-y-1.5 border-b border-slate-200 pb-5">
+    <p class="text-xs font-bold uppercase tracking-wider text-rose-700">Vulnerability Center</p>
+    <h1 id="cves-heading" class="text-3xl font-extrabold tracking-tight text-slate-900">CVE &amp; Vulnerability Intelligence</h1>
+    <p class="text-sm text-slate-600">Explore enriched vulnerability records, NVD CVSS telemetry, CISA KEV weaponization status, FIRST EPSS predictions, and step-by-step exploit hunt playbooks.</p>
+  </div>
+
+  <form class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4" method="get" action="/cves" hx-get="/partials/cves" hx-target="#cve-list" hx-push-url="true">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div class="space-y-1 sm:col-span-2 lg:col-span-2">
+        <label for="q" class="block text-xs font-semibold text-slate-700">Search CVEs</label>
+        <input id="q" name="q" value="{{ page.query.search or '' }}" maxlength="200" placeholder="Search CVE-202X-XXXX, vendor, product, CWE, or flaw..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+      </div>
+      <div class="space-y-1">
+        <label for="min_cvss" class="block text-xs font-semibold text-slate-700">Min CVSS (0–10)</label>
+        <input id="min_cvss" name="min_cvss" type="number" min="0" max="10" step="0.1" value="{{ page.query.min_cvss if page.query.min_cvss is not none else '' }}" placeholder="e.g. 7.0" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+      </div>
+      <div class="space-y-1">
+        <label for="min_epss" class="block text-xs font-semibold text-slate-700">Min EPSS (0–1)</label>
+        <input id="min_epss" name="min_epss" type="number" min="0" max="1" step="0.05" value="{{ page.query.min_epss if page.query.min_epss is not none else '' }}" placeholder="e.g. 0.2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+      </div>
+      <div class="space-y-1">
+        <label for="sort" class="block text-xs font-semibold text-slate-700">Sort By</label>
+        <select id="sort" name="sort" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+          <option value="priority"{% if page.query.sort == 'priority' %} selected{% endif %}>Risk Priority (Default)</option>
+          <option value="cvss"{% if page.query.sort == 'cvss' %} selected{% endif %}>Highest CVSS</option>
+          <option value="epss"{% if page.query.sort == 'epss' %} selected{% endif %}>Highest EPSS</option>
+          <option value="reports"{% if page.query.sort == 'reports' %} selected{% endif %}>Most Correlated</option>
+          <option value="newest"{% if page.query.sort == 'newest' %} selected{% endif %}>Newest CVE</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-6 text-xs text-slate-700">
+        <fieldset class="flex items-center gap-3">
+          <legend class="font-semibold text-slate-800 mr-1">Severity:</legend>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="severity" value="critical"{% if 'critical' in page.query.severities %} checked{% endif %} class="rounded text-rose-600 focus:ring-rose-500"> <span class="text-rose-700 font-medium">Critical</span></label>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="severity" value="high"{% if 'high' in page.query.severities %} checked{% endif %} class="rounded text-amber-600 focus:ring-amber-500"> <span class="text-amber-700 font-medium">High</span></label>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="severity" value="medium"{% if 'medium' in page.query.severities %} checked{% endif %} class="rounded text-sky-600 focus:ring-sky-500"> <span class="text-sky-700 font-medium">Medium</span></label>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="severity" value="low"{% if 'low' in page.query.severities %} checked{% endif %} class="rounded text-emerald-600 focus:ring-emerald-500"> <span class="text-emerald-700 font-medium">Low</span></label>
+        </fieldset>
+        <fieldset class="flex items-center gap-3">
+          <legend class="font-semibold text-slate-800 mr-1">Exploitation State:</legend>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="known_exploited_only" value="true"{% if page.query.known_exploited_only %} checked{% endif %} class="rounded text-rose-600 focus:ring-rose-500"> <span class="text-rose-700 font-semibold">CISA KEV Listed Only</span></label>
+        </fieldset>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button type="submit" class="inline-flex items-center px-4 py-2 text-xs font-semibold rounded-lg bg-sky-700 text-white hover:bg-sky-800 transition-colors shadow-xs cursor-pointer">Apply Filters</button>
+        <a href="/cves" class="inline-flex items-center px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-colors">Clear All</a>
+      </div>
+    </div>
+  </form>
+
+  <div id="cve-list" aria-live="polite">{% include "partials/cve_list.html" %}</div>
+</section>
+{% endblock %}
