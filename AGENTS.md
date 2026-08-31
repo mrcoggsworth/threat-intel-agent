@@ -10,8 +10,11 @@
 ## CTI Operational Workflow
 
 - Treat `config/sources.json` as the authoritative ingestion registry; do not duplicate or silently alter feed URLs in code or prompts.
+- Ensure the Ingestion and Analysis pipelines inspect all active sources and feeds across all 8 threat categories daily, capturing all newly published threat advisories, IOC drops, vulnerability announcements, and incident reports.
+- Proactive Reconnaissance & Deep Web Research: When processing news feeds, advisories, or vendor alerts, perform supplemental web reconnaissance and research (e.g. querying vendor security bulletins, GitHub PoC repositories, NVD/CISA KEV updates, and technical DFIR write-ups) to collect complete technical context, exploit mechanics, and indicators needed to construct high-fidelity reports.
 - Apply source precedence by evidence quality: CISA and vendor advisories, original threat research, incident-response reporting, then general security news.
 - For each research run, record source URL, publication time, collection time, and processing status. Deduplicate by canonical URL, advisory ID, CVE, and campaign identity before publishing.
 - Run the applicable reusable skills from the active Hermes profile: `ioc-parser`, `threat-enrichment`, `sigma-rule-generator`, `yara-author`, `cti-analysis`, and `threat-hunting`. Do not claim a stage ran when its tool, API, credentials, or evidence was unavailable.
 - Keep generated IoCs and detection artifacts machine-readable. Preserve provenance for every IoC, CVE, attribution claim, and mitigation.
 - Generate Sigma/SPL/KQL, YARA, or a two-tiered hunt playbook (4-step modal summary and multi-phase deep dive) only when the input evidence supports it or the user requests it; otherwise state what is missing.
+

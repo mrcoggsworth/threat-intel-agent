@@ -25,7 +25,7 @@ from hermes_cti.ingestion.http_client import (
 from hermes_cti.ingestion.normalization import (
     NormalizationError,
     normalize_feed,
-    normalize_kev,
+    normalize_json,
 )
 from hermes_cti.ingestion.source_config import source_configuration_hash
 from hermes_cti.models.contracts import (
@@ -173,7 +173,7 @@ class IngestionService:
 
                 artifact = self._artifact(source, fetch, run_id, self._now())
                 if source.source_type.value == "json":
-                    documents = normalize_kev(source, fetch, artifact)
+                    documents = normalize_json(source, fetch, artifact)
                 else:
                     documents = normalize_feed(source, fetch, artifact)
                 self._validators[source.source_id] = ConditionalValidators(

@@ -43,15 +43,25 @@ interface only; never write directly to PostgreSQL.
 
 Coverage & Population Contract:
 Do NOT artificially cap or restrict analysis to a top 2-3 subset. Review the
-complete evidence set from the latest ingestion run across all active sources.
-Systematically identify and process ALL distinct qualifying threat events,
-vulnerabilities, zero-days, exploit advisories, and malware campaigns present
-in the evidence (whether 5, 10, 20, 30, or more). Every distinct threat event with
-concrete supporting evidence must have a complete, validated ReportBundle generated
-and published into the platform.
+complete evidence set from the daily ingestion run across all active sources
+in `config/sources.json` (spanning CERT advisories, vendor bulletins, threat research,
+incident response, detection engineering, tactical IOCs, and news). Systematically
+identify and process ALL distinct qualifying threat events, vulnerabilities, zero-days,
+exploit advisories, and malware campaigns present in the evidence.
+
+Proactive Reconnaissance & Deep Web Research:
+When analyzing incoming feed items (especially security news, brief alerts, or early advisories),
+perform proactive web reconnaissance and research using web search and URL extraction tools.
+Query official vendor advisories, GitHub proof-of-concept repositories, NVD/CISA KEV updates,
+and technical DFIR write-ups to gather:
+- Exact defect mechanics and root causes (CWEs, memory corruption, command injection, auth bypass).
+- Step-by-step 4-phase exploitation sequences (Attack surface discovery -> Payload injection -> Trigger -> Lateral movement).
+- Telemetry indicators, parent/child process anomalies, and actionable Sigma/SPL/KQL hunt queries.
+- Verified IOCs (hashes, C2 domains, IP addresses, mutexes).
 
 For each distinct qualifying threat event:
-1. Correlate with historical corpus and submit any newly discovered relationships
+1. If the item is purely a standalone CVE notification with no broader attack narrative, ensure the CVE record is enriched and available on the `/cves` index. If the item covers an active campaign, ransomware operation, malware family, or intrusion containing CVEs, publish the full Threat Report to `/reports` and cross-link the CVE to `/vulnerabilities/{cve_id}`.
+2. Correlate with historical corpus and submit any newly discovered relationships
    to `POST /api/v1/analyst/proposals`.
 2. Generate a comprehensive ReportBundle including:
    - Sourced headline, executive summary, technical analysis, evidence summary, caveats.

@@ -247,9 +247,24 @@ async def test_malformed_payload_and_schema_drift(
     assert response.normalized_result == {}
 
 
-def test_missing_optional_credentials_disable_provider_without_startup_failure() -> (
-    None
-):
+def test_missing_optional_credentials_disable_provider_without_startup_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for name in (
+        "HERMES_VIRUSTOTAL_API_KEY",
+        "VIRUSTOTAL_API_KEY",
+        "HERMES_VIRUSTOTAL_API_KEY_FILE",
+        "VIRUSTOTAL_API_KEY_FILE",
+        "HERMES_OTX_API_KEY",
+        "OTX_API_KEY",
+        "HERMES_OTX_API_KEY_FILE",
+        "OTX_API_KEY_FILE",
+        "HERMES_ABUSEIPDB_API_KEY",
+        "ABUSEIPDB_API_KEY",
+        "HERMES_ABUSEIPDB_API_KEY_FILE",
+        "ABUSEIPDB_API_KEY_FILE",
+    ):
+        monkeypatch.delenv(name, raising=False)
     settings = Settings(
         database_required=False,
         virustotal_enabled=True,

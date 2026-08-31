@@ -55,6 +55,8 @@ class SourceCategory(StrEnum):
     THREAT_RESEARCH = "threat_research"
     INCIDENT_RESPONSE = "incident_response"
     VENDOR_ADVISORIES = "vendor_advisories"
+    DETECTION_ENGINEERING = "detection_engineering"
+    TACTICAL_IOCS = "tactical_iocs"
     NEWS = "news"
 
 

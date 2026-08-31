@@ -115,7 +115,10 @@ The loader accepts the Phase 0 `type` field and supplies typed defaults for
 enabled state, polling interval, timeout, response size, reliability, tags, and
 adapter settings. It does not rewrite the existing registry or add credentials.
 Validation failures identify the file, source, and invalid field without
-echoing secret-like values. Provider credentials are runtime-only HERMES_* secrets; missing optional credentials disable those providers without startup failure.
+echoing secret-like values. Optional provider credentials are runtime-only
+HERMES_* secrets; a provider is active only when its corresponding
+`*_enabled` setting is true and its credential is present. Missing optional
+credentials disable those providers without startup failure.
 
 ## Tests and quality gates
 

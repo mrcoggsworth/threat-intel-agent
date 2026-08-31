@@ -12,6 +12,42 @@
     "category": "cert_advisories"
   },
   {
+    "name": "UK NCSC Advisories & Alerts",
+    "type": "rss",
+    "url": "https://www.ncsc.gov.uk/api/1/services/v1/report-rss-feed.xml",
+    "category": "cert_advisories"
+  },
+  {
+    "name": "Australian Cyber Security Centre (ACSC) Alerts",
+    "type": "rss",
+    "url": "https://www.cyber.gov.au/rss/alerts.xml",
+    "category": "cert_advisories"
+  },
+  {
+    "name": "CERT-EU Security Advisories",
+    "type": "rss",
+    "url": "https://cert.europa.eu/publications/security-advisories/rss.xml",
+    "category": "cert_advisories"
+  },
+  {
+    "name": "Canadian Centre for Cyber Security Alerts",
+    "type": "rss",
+    "url": "https://cyber.gc.ca/api/sitrep/en/rss/alerts",
+    "category": "cert_advisories"
+  },
+  {
+    "name": "Google Cloud Threat Intelligence (Mandiant)",
+    "type": "rss",
+    "url": "https://cloud.google.com/blog/topics/threat-intelligence/rss",
+    "category": "threat_research"
+  },
+  {
+    "name": "Google Threat Analysis Group",
+    "type": "rss",
+    "url": "https://blog.google/threat-analysis-group/rss/",
+    "category": "threat_research"
+  },
+  {
     "name": "The DFIR Report",
     "type": "rss",
     "url": "https://thedfirreport.com/feed/",
@@ -27,12 +63,6 @@
     "name": "Palo Alto Unit 42",
     "type": "rss",
     "url": "https://unit42.paloaltonetworks.com/feed/",
-    "category": "threat_research"
-  },
-  {
-    "name": "Google Threat Analysis Group",
-    "type": "rss",
-    "url": "https://blog.google/threat-analysis-group/rss/",
     "category": "threat_research"
   },
   {
@@ -54,16 +84,118 @@
     "category": "threat_research"
   },
   {
+    "name": "ESET WeLiveSecurity",
+    "type": "rss",
+    "url": "https://www.welivesecurity.com/en/rss/feed/",
+    "category": "threat_research"
+  },
+  {
+    "name": "Kaspersky Securelist",
+    "type": "rss",
+    "url": "https://securelist.com/feed/",
+    "category": "threat_research"
+  },
+  {
+    "name": "Recorded Future News & Research",
+    "type": "rss",
+    "url": "https://therecord.media/feed",
+    "category": "threat_research"
+  },
+  {
+    "name": "Rapid7 Threat Research & AttackerKB",
+    "type": "rss",
+    "url": "https://www.rapid7.com/blog/rss/",
+    "category": "threat_research"
+  },
+  {
+    "name": "Huntress Blog",
+    "type": "rss",
+    "url": "https://www.huntress.com/blog/rss.xml",
+    "category": "threat_research"
+  },
+  {
+    "name": "Check Point Research",
+    "type": "rss",
+    "url": "https://research.checkpoint.com/feed/",
+    "category": "threat_research"
+  },
+  {
+    "name": "CrowdStrike Blog",
+    "type": "rss",
+    "url": "https://www.crowdstrike.com/blog/feed/",
+    "category": "threat_research"
+  },
+  {
+    "name": "Symantec Threat Intelligence",
+    "type": "rss",
+    "url": "https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/rss",
+    "category": "threat_research"
+  },
+  {
     "name": "SANS ISC InfoSec Diaries",
     "type": "rss",
     "url": "https://isc.sans.edu/rssfeed_full.xml",
     "category": "incident_response"
   },
   {
+    "name": "Microsoft Security Response Center",
+    "type": "rss",
+    "url": "https://msrc.microsoft.com/blog/feed",
+    "category": "vendor_advisories"
+  },
+  {
     "name": "Trend Micro Zero Day Initiative",
     "type": "rss",
     "url": "https://www.zerodayinitiative.com/blog?format=rss",
     "category": "vulnerabilities"
+  },
+  {
+    "name": "NIST National Vulnerability Database (NVD)",
+    "type": "rss",
+    "url": "https://nvd.nist.gov/feeds/xml/cve/misc/nvd-rss.xml",
+    "category": "vulnerabilities"
+  },
+  {
+    "name": "Google Project Zero",
+    "type": "rss",
+    "url": "https://googleprojectzero.blogspot.com/feeds/posts/default?alt=rss",
+    "category": "vulnerabilities"
+  },
+  {
+    "name": "Qualys Security Blog",
+    "type": "rss",
+    "url": "https://blog.qualys.com/feed",
+    "category": "vulnerabilities"
+  },
+  {
+    "name": "SigmaHQ Rule Releases",
+    "type": "rss",
+    "url": "https://github.com/SigmaHQ/sigma/releases.atom",
+    "category": "detection_engineering"
+  },
+  {
+    "name": "SOC Prime Detection News",
+    "type": "rss",
+    "url": "https://socprime.com/blog/feed/",
+    "category": "detection_engineering"
+  },
+  {
+    "name": "URLhaus Recent URLs (Abuse.ch)",
+    "type": "json",
+    "url": "https://urlhaus-api.abuse.ch/v1/urls/recent/",
+    "category": "tactical_iocs"
+  },
+  {
+    "name": "ThreatFox Recent Indicators (Abuse.ch)",
+    "type": "json",
+    "url": "https://threatfox-api.abuse.ch/api/v1/get_iocs/",
+    "category": "tactical_iocs"
+  },
+  {
+    "name": "Feodo Tracker Botnet C2 IPs",
+    "type": "json",
+    "url": "https://feodotracker.abuse.ch/downloads/ipblocklist.json",
+    "category": "tactical_iocs"
   },
   {
     "name": "Krebs on Security",
@@ -78,9 +210,27 @@
     "category": "news"
   },
   {
-    "name": "Microsoft Security Response Center",
+    "name": "The Hacker News",
     "type": "rss",
-    "url": "https://msrc.microsoft.com/blog/feed",
-    "category": "vendor_advisories"
+    "url": "https://feeds.feedburner.com/TheHackersNews",
+    "category": "news"
+  },
+  {
+    "name": "Dark Reading",
+    "type": "rss",
+    "url": "https://www.darkreading.com/rss.xml",
+    "category": "news"
+  },
+  {
+    "name": "SecurityWeek",
+    "type": "rss",
+    "url": "https://www.securityweek.com/feed/",
+    "category": "news"
+  },
+  {
+    "name": "Ars Technica Security",
+    "type": "rss",
+    "url": "https://feeds.arstechnica.com/arstechnica/security",
+    "category": "news"
   }
 ]
