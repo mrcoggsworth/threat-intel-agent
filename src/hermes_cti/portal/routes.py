@@ -8,7 +8,7 @@ import json
 from datetime import date
 from pathlib import Path
 from typing import Annotated, Any
-from uuid import UUID
+from uuid import UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.encoders import jsonable_encoder
@@ -24,6 +24,7 @@ from hermes_cti.api.dependencies import (
 )
 from hermes_cti.core.settings import load_settings
 from hermes_cti.enrichment.cache import EnrichmentCache
+from hermes_cti.enrichment.cve_analysis import synthesize_cve_analyst_assessment
 from hermes_cti.enrichment.ioc_analysis import synthesize_ioc_analyst_assessment
 from hermes_cti.enrichment.providers import build_providers
 from hermes_cti.enrichment.service import EnrichmentService
@@ -46,6 +47,7 @@ from hermes_cti.portal.contracts import (
 )
 from hermes_cti.portal.entity_contracts import PublicEntity, PublicRelationshipPage
 from hermes_cti.portal.service import PortalService
+from hermes_cti.reporting.contracts import ReportVulnerability
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
@@ -380,6 +382,70 @@ async def report_ioc_modal_partial(
     )
 
 
+@router.get("/partials/reports/{identifier}/cve-modal", response_class=HTMLResponse)
+@router.get("/partials/cve-modal", response_class=HTMLResponse)
+async def report_cve_modal_partial(
+    request: Request,
+    cve_id: str = Query(..., min_length=1, max_length=64),
+    identifier: str | None = None,
+    service: PortalService = Depends(get_portal_service),
+    enrichment_service: EnrichmentService | None = Depends(get_enrichment_service),
+) -> HTMLResponse:  # noqa: B008
+    normalized_cve = cve_id.strip().upper()
+    headline = None
+    report_slug = None
+    report_vulnerability: ReportVulnerability | None = None
+
+    if identifier is not None:
+        detail = await _public_detail(service, identifier)
+        headline = detail.summary.headline
+        report_slug = detail.summary.slug
+        report_vulnerability = next(
+            (v for v in detail.vulnerabilities if v.cve_id.upper() == normalized_cve),
+            None,
+        )
+
+    if enrichment_service is None:
+        settings = getattr(request.app.state, "settings", None) or load_settings()
+        providers = build_providers(settings)
+        enrichment_service = EnrichmentService(
+            providers,
+            cache=EnrichmentCache(
+                stale_if_error_seconds=settings.enrichment_stale_if_error_seconds,
+            ),
+        )
+
+    vulnerability_uid = uuid5(
+        UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8"),
+        f"vulnerability:{normalized_cve}",
+    )
+    run_result = await enrichment_service.enrich_cve(
+        cve_id=normalized_cve,
+        entity_id=vulnerability_uid,
+    )
+
+    analyst_assessment = synthesize_cve_analyst_assessment(
+        cve_id=normalized_cve,
+        report_headline=headline,
+        run_result=run_result,
+        report_vulnerability=report_vulnerability,
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/cve_modal.html",
+        context={
+            "request": request,
+            "cve_id": normalized_cve,
+            "report_headline": headline,
+            "report_slug": report_slug,
+            "result": run_result,
+            "analyst_assessment": analyst_assessment,
+            "report_vulnerability": report_vulnerability,
+        },
+    )
+
+
 def _mitre_attack_url(attack_id: str) -> str:
     """Build the official canonical MITRE ATT&CK reference URL."""
     clean = attack_id.strip().upper()
@@ -488,6 +554,75 @@ async def technique_page(
         request=request,
         name="reports.html",
         context=_context(request, page=page),
+    )
+
+
+@router.get("/vulnerabilities/{cve_id}", response_class=HTMLResponse)
+async def vulnerability_page(
+    request: Request,
+    cve_id: str,
+    service: PortalService = Depends(get_portal_service),
+    enrichment_service: EnrichmentService | None = Depends(get_enrichment_service),
+) -> HTMLResponse:  # noqa: B008
+    normalized_cve = cve_id.strip().upper()
+    related = await service.related("vulnerability", normalized_cve)
+
+    report_vulnerability: ReportVulnerability | None = None
+    if related.reports:
+        for rep in related.reports:
+            try:
+                detail = await service.get_report(rep.slug)
+                if detail:
+                    matching = next(
+                        (
+                            v
+                            for v in detail.vulnerabilities
+                            if v.cve_id.upper() == normalized_cve
+                        ),
+                        None,
+                    )
+                    if matching:
+                        report_vulnerability = matching
+                        break
+            except Exception:
+                pass
+
+    if enrichment_service is None:
+        settings = getattr(request.app.state, "settings", None) or load_settings()
+        providers = build_providers(settings)
+        enrichment_service = EnrichmentService(
+            providers,
+            cache=EnrichmentCache(
+                stale_if_error_seconds=settings.enrichment_stale_if_error_seconds,
+            ),
+        )
+
+    vulnerability_uid = uuid5(
+        UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8"),
+        f"vulnerability:{normalized_cve}",
+    )
+    run_result = await enrichment_service.enrich_cve(
+        cve_id=normalized_cve,
+        entity_id=vulnerability_uid,
+    )
+
+    analyst_assessment = synthesize_cve_analyst_assessment(
+        cve_id=normalized_cve,
+        run_result=run_result,
+        report_vulnerability=report_vulnerability,
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="vulnerability.html",
+        context={
+            "request": request,
+            "cve_id": normalized_cve,
+            "analyst_assessment": analyst_assessment,
+            "related_reports": related,
+            "result": run_result,
+            "report_vulnerability": report_vulnerability,
+        },
     )
 
 

@@ -157,11 +157,13 @@
     var isIoc = url.indexOf("ioc-modal") !== -1 || url.indexOf("type=") !== -1 || url.indexOf("value=") !== -1;
     var isEvidence = url.indexOf("evidence") !== -1;
     var isAttack = url.indexOf("attack-modal") !== -1 || url.indexOf("attack_id=") !== -1 || url.indexOf("techniques/") !== -1;
+    var isCve = url.indexOf("cve-modal") !== -1 || url.indexOf("cve_id=") !== -1 || link.hasAttribute("data-cve-id") || url.indexOf("vulnerabilities") !== -1;
 
     var title =
       link.getAttribute("data-evidence-id") ||
       link.getAttribute("data-ioc-value") ||
       link.getAttribute("data-attack-id") ||
+      link.getAttribute("data-cve-id") ||
       link.textContent.replace("🔍", "").trim() ||
       "Intelligence Record";
     var subtitle = "Loading CTI Intelligence Module";
@@ -186,6 +188,11 @@
       title = "MITRE ATT&CK " + attackId;
       subtitle = "Mapping ATT&CK Enterprise Technique";
       bottomTag = "ATT&CK Enterprise Matrix Correlation";
+    } else if (isCve) {
+      var cveId = link.getAttribute("data-cve-id") || title;
+      title = cveId + " (Vulnerability)";
+      subtitle = "Enriching CVE with NVD, CISA KEV & EPSS Telemetry";
+      bottomTag = "Live NVD · CISA KEV · FIRST EPSS";
     }
 
     // Show instant Claude-style loading skeleton with funny sayings
@@ -276,6 +283,27 @@
     var iocParam = params.get("ioc");
     var evParam = params.get("evidence") || params.get("evidence_id");
     var attackParam = params.get("attack") || params.get("attack_id");
+    var cveParam = params.get("cve") || params.get("cve_id");
+
+    if (cveParam) {
+      var matchCve =
+        document.querySelector(
+          '[data-cve-id="' + CSS.escape(cveParam) + '"]'
+        ) ||
+        document.querySelector(
+          '[data-report-link][href*="cve=' + encodeURIComponent(cveParam) + '"]'
+        ) ||
+        document.querySelector(
+          '[data-report-link][data-hx-get*="cve_id=' + encodeURIComponent(cveParam) + '"]'
+        );
+      if (matchCve) {
+        var urlCve = matchCve.getAttribute("data-hx-get");
+        if (urlCve) {
+          loadModal(matchCve, urlCve);
+          return;
+        }
+      }
+    }
 
     if (iocParam) {
       var matchIoc =
