@@ -169,11 +169,13 @@
     const isIoc = url.includes("ioc-modal") || url.includes("type=") || url.includes("value=");
     const isEvidence = url.includes("evidence");
     const isAttack = url.includes("attack-modal") || url.includes("attack_id=") || url.includes("techniques/");
+    const isCve = url.includes("cve-modal") || url.includes("cve_id=") || link.hasAttribute("data-cve-id") || url.includes("vulnerabilities");
 
     let title =
       link.getAttribute("data-evidence-id") ||
       link.getAttribute("data-ioc-value") ||
       link.getAttribute("data-attack-id") ||
+      link.getAttribute("data-cve-id") ||
       link.textContent?.trim().replace("🔍", "").trim() ||
       "Intelligence Record";
     let subtitle = "Loading CTI Intelligence Module";
@@ -198,6 +200,11 @@
       title = `MITRE ATT&CK ${attackId}`;
       subtitle = "Mapping ATT&CK Enterprise Technique";
       bottomTag = "ATT&CK Enterprise Matrix Correlation";
+    } else if (isCve) {
+      const cveId = link.getAttribute("data-cve-id") || title;
+      title = `${cveId} (Vulnerability)`;
+      subtitle = "Enriching CVE with NVD, CISA KEV & EPSS Telemetry";
+      bottomTag = "Live NVD · CISA KEV · FIRST EPSS";
     }
 
     // Show instant Claude-style loading skeleton with funny sayings
@@ -293,6 +300,27 @@
     const iocParam = params.get("ioc");
     const evParam = params.get("evidence") || params.get("evidence_id");
     const attackParam = params.get("attack") || params.get("attack_id");
+    const cveParam = params.get("cve") || params.get("cve_id");
+
+    if (cveParam) {
+      const match =
+        document.querySelector<HTMLElement>(
+          `[data-cve-id="${CSS.escape(cveParam)}"]`
+        ) ||
+        document.querySelector<HTMLElement>(
+          `[data-report-link][href*="cve=${encodeURIComponent(cveParam)}"]`
+        ) ||
+        document.querySelector<HTMLElement>(
+          `[data-report-link][data-hx-get*="cve_id=${encodeURIComponent(cveParam)}"]`
+        );
+      if (match) {
+        const url = match.getAttribute("data-hx-get");
+        if (url) {
+          loadModal(match, url);
+          return;
+        }
+      }
+    }
 
     if (iocParam) {
       const match =

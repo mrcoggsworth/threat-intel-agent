@@ -1,6 +1,12 @@
 """Bounded provider enrichment and explainable priority scoring (Phase 5)."""
 
 from hermes_cti.enrichment.cache import EnrichmentCache
+from hermes_cti.enrichment.cve_analysis import (
+    CVEAnalystAssessment,
+    CVERiskLevel,
+    CVEVerdict,
+    synthesize_cve_analyst_assessment,
+)
 from hermes_cti.enrichment.ioc_analysis import (
     IOCAnalystAssessment,
     IOCRiskLevel,
@@ -24,6 +30,9 @@ from hermes_cti.enrichment.service import EnrichmentService
 __all__ = [
     "AbuseIPDBProvider",
     "CISAKEVProvider",
+    "CVEAnalystAssessment",
+    "CVERiskLevel",
+    "CVEVerdict",
     "EPSSProvider",
     "EnrichmentCache",
     "EnrichmentProvider",
@@ -38,5 +47,6 @@ __all__ = [
     "VirusTotalProvider",
     "build_providers",
     "calculate_priority_score",
+    "synthesize_cve_analyst_assessment",
     "synthesize_ioc_analyst_assessment",
 ]

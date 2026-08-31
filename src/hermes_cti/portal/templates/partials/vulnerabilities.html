@@ -3,7 +3,7 @@
   {% for item in detail.vulnerabilities %}
   <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <a class="text-sm font-mono font-bold text-rose-700 hover:text-rose-900 bg-rose-50 px-2 py-0.5 rounded border border-rose-200" href="/api/v1/public/vulnerabilities/{{ item.cve_id }}">{{ item.cve_id }}</a>
+      <a class="text-sm font-mono font-bold text-rose-700 hover:text-rose-900 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 hover:bg-rose-100 transition cursor-pointer inline-flex items-center gap-1" data-report-link data-cve-id="{{ item.cve_id }}" data-hx-get="/partials/reports/{{ detail.summary.slug }}/cve-modal?cve_id={{ item.cve_id }}" href="{{ detail.summary.canonical_url }}?cve={{ item.cve_id }}">{{ item.cve_id }}</a>
     </div>
     <p class="text-xs text-slate-700 leading-relaxed">{{ item.summary }}</p>
     {% for affected in item.affected_products %}
