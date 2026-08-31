@@ -208,58 +208,69 @@ class PortalService:
 
         if self.database is not None:
             async with self.database.session() as session:
-                rows = await self.repository.list_reports(
-                    session, PortalQuery(page=1, page_size=1000)
-                )
-                for row in rows.items:
-                    bundle = self._bundle(row)
-                    slug = row.report.slug
-                    for v in bundle.vulnerabilities:
-                        cve_clean = v.cve_id.strip().upper()
-                        entry = cve_map.setdefault(
-                            cve_clean,
-                            {
-                                "cve_id": cve_clean,
-                                "summary": v.summary
-                                or f"Vulnerability record for {cve_clean}",
-                                "cvss_score": v.cvss_score,
-                                "cvss_version": v.cvss_version,
-                                "cvss_vector": v.cvss_vector,
-                                "epss_score": v.epss_score,
-                                "epss_percentile": v.epss_percentile,
-                                "known_exploited": v.known_exploited,
-                                "cwe_ids": set(v.cwe_ids),
-                                "products": set(),
-                                "report_slugs": set(),
-                            },
-                        )
-                        entry["report_slugs"].add(slug)
-                        if v.cvss_score is not None and (
-                            entry["cvss_score"] is None
-                            or v.cvss_score > entry["cvss_score"]
-                        ):
-                            entry["cvss_score"] = v.cvss_score
-                            entry["cvss_version"] = v.cvss_version
-                            entry["cvss_vector"] = v.cvss_vector
-                        if v.epss_score is not None:
-                            entry["epss_score"] = v.epss_score
-                            entry["epss_percentile"] = v.epss_percentile
-                        if v.known_exploited:
-                            entry["known_exploited"] = True
-                        if v.summary and len(v.summary) > len(entry["summary"]):
-                            entry["summary"] = v.summary
-                        for cwe in v.cwe_ids:
-                            entry["cwe_ids"].add(cwe)
-                        for ap in v.affected_products:
-                            p_str = f"{ap.product.vendor} {ap.product.product}"
-                            if ap.version_range:
-                                p_str += f" ({ap.version_range})"
-                            entry["products"].add(p_str)
+                page_idx = 1
+                while True:
+                    rows = await self.repository.list_reports(
+                        session, PortalQuery(page=page_idx, page_size=100)
+                    )
+                    for row in rows.items:
+                        bundle = self._bundle(row)
+                        slug = row.report.slug
+                        for v in bundle.vulnerabilities:
+                            cve_clean = v.cve_id.strip().upper()
+                            entry = cve_map.setdefault(
+                                cve_clean,
+                                {
+                                    "cve_id": cve_clean,
+                                    "summary": v.summary
+                                    or f"Vulnerability record for {cve_clean}",
+                                    "cvss_score": v.cvss_score,
+                                    "cvss_version": v.cvss_version,
+                                    "cvss_vector": v.cvss_vector,
+                                    "epss_score": v.epss_score,
+                                    "epss_percentile": v.epss_percentile,
+                                    "known_exploited": bool(v.known_exploited)
+                                    if v.known_exploited is not None
+                                    else False,
+                                    "cwe_ids": set(v.cwe_ids),
+                                    "products": set(),
+                                    "report_slugs": set(),
+                                },
+                            )
+                            entry["report_slugs"].add(slug)
+                            if v.cvss_score is not None and (
+                                entry["cvss_score"] is None
+                                or v.cvss_score > entry["cvss_score"]
+                            ):
+                                entry["cvss_score"] = v.cvss_score
+                                entry["cvss_version"] = v.cvss_version
+                                entry["cvss_vector"] = v.cvss_vector
+                            if v.epss_score is not None:
+                                entry["epss_score"] = v.epss_score
+                                entry["epss_percentile"] = v.epss_percentile
+                            if v.known_exploited:
+                                entry["known_exploited"] = True
+                            if v.summary and len(v.summary) > len(entry["summary"]):
+                                entry["summary"] = v.summary
+                            for cwe in v.cwe_ids:
+                                entry["cwe_ids"].add(cwe)
+                            for ap in v.affected_products:
+                                p_str = f"{ap.product.vendor} {ap.product.product}"
+                                if ap.version_range:
+                                    p_str += f" ({ap.version_range})"
+                                entry["products"].add(p_str)
+                    if (
+                        not rows.items
+                        or len(rows.items) < 100
+                        or page_idx * 100 >= rows.total
+                    ):
+                        break
+                    page_idx += 1
 
         summaries: list[PublicCVESummary] = []
         for cve_clean, data in cve_map.items():
             score = data["cvss_score"]
-            is_kev = data["known_exploited"]
+            is_kev = bool(data.get("known_exploited", False))
             epss = data["epss_score"]
 
             if (

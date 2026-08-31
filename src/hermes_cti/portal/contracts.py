@@ -353,6 +353,15 @@ class PublicCVESummary(ContractModel):
     report_slugs: tuple[str, ...] = ()
     canonical_url: str
 
+    @field_validator("known_exploited", mode="before")
+    @classmethod
+    def _clean_known_exploited(cls, v: Any) -> bool:
+        if v is None:
+            return False
+        if isinstance(v, str):
+            return v.lower() in {"true", "1", "yes", "on"}
+        return bool(v)
+
 
 class PublicCVEPage(ContractModel):
     """Paginated public CVE response."""
