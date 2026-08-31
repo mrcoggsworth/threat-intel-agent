@@ -215,3 +215,28 @@ def test_multi_format_json_feed_normalization() -> None:
     assert len(docs2) == 1
     assert "AsyncRAT" in docs2[0].title
     assert "203.0.113.88:443" in docs2[0].normalized_text
+
+
+def test_report_and_cve_rows_render_source_feed_tags() -> None:
+    portal_service = MemoryPortalService()
+    app = create_app(
+        Settings(database_required=False),
+        portal_service=portal_service,
+    )
+    with TestClient(app) as client:
+        # 1. Reports page source tag
+        resp_reports = client.get("/reports")
+        assert resp_reports.status_code == 200
+        assert (
+            "Origin Source Feed:" in resp_reports.text
+            or "Updated " in resp_reports.text
+        )
+
+        # 2. CVEs page source tag
+        resp_cves = client.get("/cves")
+        assert resp_cves.status_code == 200
+        assert "CVE-2027-1234" in resp_cves.text
+        assert (
+            "Origin Source Feed:" in resp_cves.text
+            or "Active In-The-Wild" in resp_cves.text
+        )

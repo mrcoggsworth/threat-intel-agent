@@ -150,6 +150,8 @@ class PublicReportSummary(ContractModel):
     malware: tuple[str, ...] = ()
     attack_techniques: tuple[str, ...] = ()
     source_count: int = Field(default=0, ge=0)
+    source_names: tuple[str, ...] = ()
+    primary_source: str | None = None
     hunt_available: bool = False
     remediation_available: bool = False
     detection_available: bool = False
@@ -351,7 +353,20 @@ class PublicCVESummary(ContractModel):
     affected_products: tuple[str, ...] = ()
     report_count: int = 0
     report_slugs: tuple[str, ...] = ()
+    source_names: tuple[str, ...] = ()
+    primary_source: str | None = None
+    published_at: str | None = None
+    last_updated_at: str | None = None
     canonical_url: str
+
+    @field_validator("known_exploited", mode="before")
+    @classmethod
+    def _clean_known_exploited(cls, v: Any) -> bool:
+        if v is None:
+            return False
+        if isinstance(v, str):
+            return v.lower() in {"true", "1", "yes", "on"}
+        return bool(v)
 
 
 class PublicCVEPage(ContractModel):
