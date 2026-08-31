@@ -12,14 +12,18 @@ from pydantic import SecretStr
 from hermes_cti.api.main import create_app
 from hermes_cti.core.settings import Settings
 from hermes_cti.db.models import Report, ReportVersion
+from hermes_cti.models.contracts import Severity
 from hermes_cti.portal.contracts import (
+    CVEQuery,
     PortalQuery,
     PrivateDraftPage,
+    PublicCVEPage,
+    PublicCVESummary,
     PublicRelatedReports,
     PublicReportPage,
 )
 from hermes_cti.portal.repository import ReportRow
-from hermes_cti.portal.service import PortalService
+from hermes_cti.portal.service import PortalService, _source_names
 from tests.test_phase7 import _fixture
 
 
@@ -152,6 +156,75 @@ class MemoryPortalService(PortalService):
         return PrivateDraftPage(
             items=(),
             total=min(limit, 0),
+        )
+
+    async def list_cves(self, query: CVEQuery) -> PublicCVEPage:
+        cve_sources = _source_names(self.bundle, self.report.headline, self.report.slug)
+        if self.bundle.vulnerabilities:
+            summaries = [
+                PublicCVESummary(
+                    cve_id=v.cve_id,
+                    summary=v.summary or f"Vulnerability record for {v.cve_id}",
+                    cvss_score=v.cvss_score,
+                    cvss_version=v.cvss_version,
+                    cvss_vector=v.cvss_vector,
+                    epss_score=v.epss_score,
+                    epss_percentile=v.epss_percentile,
+                    known_exploited=bool(v.known_exploited),
+                    severity=Severity.CRITICAL if v.known_exploited else Severity.HIGH,
+                    badge_label="Active In-The-Wild Exploitation"
+                    if v.known_exploited
+                    else "High Severity Exposure",
+                    badge_style="danger" if v.known_exploited else "warning",
+                    cwe_ids=v.cwe_ids,
+                    affected_products=tuple(
+                        f"{p.product.vendor} {p.product.product}"
+                        for p in v.affected_products
+                    ),
+                    report_count=1,
+                    report_slugs=(self.report.slug,),
+                    source_names=cve_sources,
+                    primary_source=cve_sources[0] if cve_sources else None,
+                    published_at=str(v.kev_date_added)
+                    if v.kev_date_added
+                    else "2026-08-23",
+                    last_updated_at="2026-08-23",
+                    canonical_url=f"/vulnerabilities/{v.cve_id}",
+                )
+                for v in self.bundle.vulnerabilities
+            ]
+        else:
+            summaries = [
+                PublicCVESummary(
+                    cve_id="CVE-2027-1234",
+                    summary="Vulnerability record for CVE-2027-1234",
+                    cvss_score=8.5,
+                    cvss_version="3.1",
+                    cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                    epss_score=0.35,
+                    epss_percentile=0.92,
+                    known_exploited=True,
+                    severity=Severity.CRITICAL,
+                    badge_label="Active In-The-Wild Exploitation",
+                    badge_style="danger",
+                    cwe_ids=("CWE-787",),
+                    affected_products=("Vendor Product",),
+                    report_count=1,
+                    report_slugs=(self.report.slug,),
+                    source_names=cve_sources,
+                    primary_source=cve_sources[0] if cve_sources else None,
+                    published_at="2026-08-23",
+                    last_updated_at="2026-08-23",
+                    canonical_url="/vulnerabilities/CVE-2027-1234",
+                )
+            ]
+        return PublicCVEPage(
+            items=tuple(summaries),
+            page=1,
+            page_size=20,
+            total=len(summaries),
+            total_pages=1,
+            query=query,
         )
 
 

@@ -227,11 +227,16 @@ def test_report_and_cve_rows_render_source_feed_tags() -> None:
         # 1. Reports page source tag
         resp_reports = client.get("/reports")
         assert resp_reports.status_code == 200
-        assert "Origin Source Feed:" in resp_reports.text or "Updated " in resp_reports.text
+        assert (
+            "Origin Source Feed:" in resp_reports.text
+            or "Updated " in resp_reports.text
+        )
 
         # 2. CVEs page source tag
         resp_cves = client.get("/cves")
         assert resp_cves.status_code == 200
         assert "CVE-2027-1234" in resp_cves.text
-        assert "Origin Source Feed:" in resp_cves.text or "Active In-The-Wild" in resp_cves.text
-
+        assert (
+            "Origin Source Feed:" in resp_cves.text
+            or "Active In-The-Wild" in resp_cves.text
+        )
