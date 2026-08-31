@@ -286,11 +286,9 @@ def synthesize_cve_analyst_assessment(
         pct_rank = epss_percentile * 100
         prob_pct = (epss_score or 0) * 100
         tlm_parts.append(
-            
-                f"Statistical Exploit Likelihood (EPSS): Ranked in "
-                f"the {pct_rank:.1f}th percentile globally (30-day "
-                f"weaponization probability: {prob_pct:.1f}%)."
-            
+            f"Statistical Exploit Likelihood (EPSS): Ranked in "
+            f"the {pct_rank:.1f}th percentile globally (30-day "
+            f"weaponization probability: {prob_pct:.1f}%)."
         )
     if kev_due_date:
         tlm_parts.append(f"Federal Compliance Due Date: {kev_due_date}.")
