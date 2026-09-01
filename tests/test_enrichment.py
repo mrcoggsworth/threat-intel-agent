@@ -5,6 +5,8 @@ Covers CISA KEV, FIRST EPSS, AbuseIPDB, and VirusTotal enrichment.
 
 from __future__ import annotations
 
+import subprocess
+import sys
 from unittest.mock import patch
 
 import httpx
@@ -92,6 +94,17 @@ VT_IP_MOCK_DATA = {
         },
     }
 }
+
+
+def test_provider_module_imports_before_ingestion_package() -> None:
+    result = subprocess.run(
+        [sys.executable, "-c", "import hermes_cti.enrichment.providers"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
 
 
 @pytest.mark.asyncio
