@@ -380,8 +380,15 @@ class EPSSProvider(BaseProvider):
     async def _retrieve(
         self, request: ProviderRequest
     ) -> tuple[dict[str, Any], FetchResult]:
+        query_keys = tuple(
+            dict.fromkeys(
+                value.strip().upper()
+                for value in request.query_key.split(",")
+                if value.strip()
+            )
+        )
         payload, fetch = await self._fetch_json(
-            self.url, params={"cve": request.query_key.upper()}
+            self.url, params={"cve": ",".join(query_keys)}
         )
         entries = payload.get("data")
         if not isinstance(entries, list):
@@ -435,6 +442,21 @@ class EPSSProvider(BaseProvider):
             "epss_percentile": percentile,
             "epss_date": match.get("date"),
         }, fetch
+
+    @staticmethod
+    def _score_fields(entry: dict[str, Any]) -> dict[str, Any]:
+        try:
+            epss = float(entry["epss"])
+            percentile = float(entry["percentile"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ProviderSchemaError("EPSS score fields malformed") from exc
+        if not 0 <= epss <= 1 or not 0 <= percentile <= 1:
+            raise ProviderSchemaError("EPSS values outside [0,1]")
+        return {
+            "epss_score": epss,
+            "epss_percentile": percentile,
+            "epss_date": entry.get("date"),
+        }
 
 
 class NVDProvider(BaseProvider):

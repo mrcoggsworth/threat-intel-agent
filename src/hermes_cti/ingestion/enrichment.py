@@ -378,6 +378,7 @@ class IngestionEnrichmentService:
         from hermes_cti.enrichment.service import EnrichmentService
 
         self.cache: EnrichmentCache = cache or EnrichmentCache()
+        self.cache = cache or EnrichmentCache()
         self.semaphore = asyncio.Semaphore(max_concurrency)
         if providers is not None:
             self._service = EnrichmentService(providers, cache=self.cache)
