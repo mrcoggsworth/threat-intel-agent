@@ -10,10 +10,21 @@ import os
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import uuid4
 
 import httpx
 
+from hermes_cti.enrichment.cache import EnrichmentCache
+from hermes_cti.enrichment.providers import (
+    AbuseIPDBProvider,
+    CISAKEVProvider,
+    EnrichmentProvider,
+    EPSSProvider,
+    ProviderRuntimeConfig,
+    VirusTotalProvider,
+)
+from hermes_cti.enrichment.service import EnrichmentService
 from hermes_cti.models.contracts import (
     EnrichmentRunResult,
     EnrichmentStatus,
@@ -79,11 +90,14 @@ class KEVEnricher:
 
         self.url = url
         self._provider: CISAKEVProvider = CISAKEVProvider(
+        self.url = url
+        self._provider = CISAKEVProvider(
             url,
             config=ProviderRuntimeConfig(ttl_seconds=ttl_seconds),
             transport=transport,
         )
         self._cache: EnrichmentCache = EnrichmentCache()
+        self._cache = EnrichmentCache()
 
     async def get_kev_details(self, cve_id: str) -> dict[str, Any] | None:
         """Lookup CVE in CISA KEV catalog."""
@@ -134,6 +148,9 @@ class EPSSEnricher:
         self.url = url.rstrip("/")
         self._provider: EPSSProvider = EPSSProvider(url, transport=transport)
         self._cache: EnrichmentCache = EnrichmentCache()
+        self.url = url.rstrip("/")
+        self._provider = EPSSProvider(url, transport=transport)
+        self._cache = EnrichmentCache()
 
     @staticmethod
     def _score_from_normalized(
@@ -248,12 +265,16 @@ class AbuseIPDBEnricher:
         self.url = url.rstrip("/")
         self.api_key = api_key or os.environ.get("ABUSEIPDB_API_KEY")
         self._provider: AbuseIPDBProvider = AbuseIPDBProvider(
+        self.url = url.rstrip("/")
+        self.api_key = api_key or os.environ.get("ABUSEIPDB_API_KEY")
+        self._provider = AbuseIPDBProvider(
             url,
             api_key=self.api_key,
             enabled=bool(self.api_key),
             transport=transport,
         )
         self._cache: EnrichmentCache = EnrichmentCache()
+        self._cache = EnrichmentCache()
 
     async def check_ip(self, ip_address: str) -> dict[str, Any] | None:
         """Lookup IP address in AbuseIPDB."""
@@ -309,12 +330,16 @@ class VirusTotalEnricher:
         self.url = url.rstrip("/")
         self.api_key = api_key or os.environ.get("VIRUSTOTAL_API_KEY")
         self._provider: VirusTotalProvider = VirusTotalProvider(
+        self.url = url.rstrip("/")
+        self.api_key = api_key or os.environ.get("VIRUSTOTAL_API_KEY")
+        self._provider = VirusTotalProvider(
             url,
             api_key=self.api_key,
             enabled=bool(self.api_key),
             transport=transport,
         )
         self._cache: EnrichmentCache = EnrichmentCache()
+        self._cache = EnrichmentCache()
 
     async def enrich_indicator(self, kind: str, value: str) -> dict[str, Any] | None:
         """Query VirusTotal for an indicator (ip, domain, url, hash)."""
@@ -347,6 +372,12 @@ class VirusTotalEnricher:
                 "malicious_count": _int_value(stats_dict.get("malicious")),
                 "suspicious_count": _int_value(stats_dict.get("suspicious")),
                 "harmless_count": _int_value(stats_dict.get("harmless")),
+            stats_value = res.normalized_result.get("last_analysis_stats")
+            stats = stats_value if isinstance(stats_value, dict) else {}
+            return {
+                "malicious_count": _int_value(stats.get("malicious")),
+                "suspicious_count": _int_value(stats.get("suspicious")),
+                "harmless_count": _int_value(stats.get("harmless")),
                 "reputation": res.normalized_result.get("reputation"),
                 "tags": res.normalized_result.get("tags", []),
                 "graph_url": res.normalized_result.get("graph_url"),
@@ -378,6 +409,7 @@ class IngestionEnrichmentService:
         from hermes_cti.enrichment.service import EnrichmentService
 
         self.cache: EnrichmentCache = cache or EnrichmentCache()
+        self.cache = cache or EnrichmentCache()
         self.semaphore = asyncio.Semaphore(max_concurrency)
         if providers is not None:
             self._service = EnrichmentService(providers, cache=self.cache)

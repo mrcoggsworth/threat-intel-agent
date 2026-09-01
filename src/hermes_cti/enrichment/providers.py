@@ -380,8 +380,15 @@ class EPSSProvider(BaseProvider):
     async def _retrieve(
         self, request: ProviderRequest
     ) -> tuple[dict[str, Any], FetchResult]:
+        query_keys = tuple(
+            dict.fromkeys(
+                value.strip().upper()
+                for value in request.query_key.split(",")
+                if value.strip()
+            )
+        )
         payload, fetch = await self._fetch_json(
-            self.url, params={"cve": request.query_key.upper()}
+            self.url, params={"cve": ",".join(query_keys)}
         )
         entries = payload.get("data")
         if not isinstance(entries, list):
@@ -419,22 +426,44 @@ class EPSSProvider(BaseProvider):
             ),
             None,
         )
+        matches = {
+            str(entry.get("cve", "")).upper(): entry
+            for entry in entries
+            if isinstance(entry, dict) and entry.get("cve")
+        }
+        if len(query_keys) > 1:
+            scores: dict[str, dict[str, Any]] = {}
+            for cve_id in query_keys:
+                match = matches.get(cve_id)
+                if match is None:
+                    continue
+                scores[cve_id] = self._score_fields(match)
+            return {"cve_ids": list(query_keys), "scores": scores}, fetch
+
+        cve_id = query_keys[0] if query_keys else request.query_key.upper()
+        match = matches.get(cve_id)
         if match is None:
-            return {"cve_id": request.query_key.upper(), "found": False}, fetch
+            return {"cve_id": cve_id, "found": False}, fetch
+        return {
+            "cve_id": cve_id,
+            "found": True,
+            **self._score_fields(match),
+        }, fetch
+
+    @staticmethod
+    def _score_fields(entry: dict[str, Any]) -> dict[str, Any]:
         try:
-            epss = float(match["epss"])
-            percentile = float(match["percentile"])
+            epss = float(entry["epss"])
+            percentile = float(entry["percentile"])
         except (KeyError, TypeError, ValueError) as exc:
             raise ProviderSchemaError("EPSS score fields malformed") from exc
         if not 0 <= epss <= 1 or not 0 <= percentile <= 1:
             raise ProviderSchemaError("EPSS values outside [0,1]")
         return {
-            "cve_id": request.query_key.upper(),
-            "found": True,
             "epss_score": epss,
             "epss_percentile": percentile,
-            "epss_date": match.get("date"),
-        }, fetch
+            "epss_date": entry.get("date"),
+        }
 
 
 class NVDProvider(BaseProvider):
