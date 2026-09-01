@@ -21,6 +21,7 @@ class PublicVulnerability(ContractModel):
     cvss_score: float | None = Field(default=None, ge=0, le=10)
     cvss_version: str | None = None
     cvss_vector: str | None = None
+    epss_score: float | None = Field(default=None, ge=0, le=1)
     epss_percentile: float | None = Field(default=None, ge=0, le=1)
     cwe_ids: tuple[str, ...] = ()
     known_exploited: bool | None = None

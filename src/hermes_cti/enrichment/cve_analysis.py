@@ -403,10 +403,20 @@ def synthesize_cve_analyst_assessment(
             known_exploited = True
 
     if epss_data:
-        if epss_score is None and epss_data.get("epss") is not None:
-            epss_score = float(epss_data["epss"])
-        if epss_percentile is None and epss_data.get("percentile") is not None:
-            epss_percentile = float(epss_data["percentile"])
+        canonical_score = epss_data.get("epss_score")
+        legacy_score = epss_data.get("epss")
+        if epss_score is None:
+            if canonical_score is not None:
+                epss_score = float(canonical_score)
+            elif legacy_score is not None:
+                epss_score = float(legacy_score)
+        canonical_percentile = epss_data.get("epss_percentile")
+        legacy_percentile = epss_data.get("percentile")
+        if epss_percentile is None:
+            if canonical_percentile is not None:
+                epss_percentile = float(canonical_percentile)
+            elif legacy_percentile is not None:
+                epss_percentile = float(legacy_percentile)
 
     if kev_data and kev_data.get("found"):
         known_exploited = True

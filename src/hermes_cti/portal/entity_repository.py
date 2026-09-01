@@ -55,6 +55,7 @@ def _vulnerability_projection(kind: EntityType, record: Any) -> dict[str, Any] |
         "cvss_score": record.cvss_score,
         "cvss_version": record.cvss_version,
         "cvss_vector": record.cvss_vector,
+        "epss_score": record.epss_score,
         "epss_percentile": record.epss_percentile,
         "cwe_ids": tuple(record.cwe_ids or ()),
         "known_exploited": record.known_exploited,

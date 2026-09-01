@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
@@ -13,7 +15,9 @@ from hermes_cti.portal.entity_contracts import (
     PublicEntityReference,
     PublicRelationship,
     PublicRelationshipPage,
+    PublicVulnerability,
 )
+from hermes_cti.portal.entity_repository import _vulnerability_projection
 from hermes_cti.portal.service import PortalService
 
 
@@ -30,6 +34,10 @@ class MemoryEntityService(PortalService):
             entity_type=EntityType.VULNERABILITY,
             public_key="CVE-2026-1234",
             display_name="CVE-2026-1234",
+            vulnerability=PublicVulnerability(
+                epss_score=0.42,
+                epss_percentile=0.9,
+            ),
         )
 
     async def public_relationships(
@@ -84,8 +92,45 @@ def test_public_entity_projection_omits_internal_database_identifiers() -> None:
         "first_seen_at": None,
         "last_seen_at": None,
         "source_count": 0,
+        "vulnerability": {
+            "schema_version": "1.0",
+            "cvss_score": None,
+            "cvss_version": None,
+            "cvss_vector": None,
+            "epss_score": 0.42,
+            "epss_percentile": 0.9,
+            "cwe_ids": [],
+            "known_exploited": None,
+            "exploitation_state": "unknown",
+            "kev_date_added": None,
+            "kev_due_date": None,
+            "kev_required_action": None,
+        },
     }
     assert "entity_id" not in response.json()
+
+
+def test_vulnerability_projection_includes_epss_score() -> None:
+    projection = _vulnerability_projection(
+        EntityType.VULNERABILITY,
+        SimpleNamespace(
+            cvss_score=8.0,
+            cvss_version="3.1",
+            cvss_vector=None,
+            epss_score=0.42,
+            epss_percentile=0.9,
+            cwe_ids=[],
+            known_exploited=False,
+            exploitation_state="not_known_exploited",
+            kev_date_added=None,
+            kev_due_date=None,
+            kev_required_action=None,
+        ),
+    )
+
+    assert projection is not None
+    assert projection["epss_score"] == 0.42
+    assert projection["epss_percentile"] == 0.9
 
 
 def test_public_relationship_filter_requires_a_complete_pair() -> None:

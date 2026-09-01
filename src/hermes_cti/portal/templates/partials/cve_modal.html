@@ -96,7 +96,7 @@
           </div>
           <div class="p-2 rounded bg-slate-50 border border-slate-200">
             <span class="block text-[11px] text-slate-500 font-medium">EPSS Probability</span>
-            <span class="block font-bold text-slate-900 text-sm mt-0.5">{{ "%.2f"|format(analyst_assessment.epss_score * 100) if analyst_assessment.epss_score is not none else 'N/A' }}%</span>
+            <span class="block font-bold text-slate-900 text-sm mt-0.5">{% if analyst_assessment.epss_score is not none %}{{ "%.2f"|format(analyst_assessment.epss_score * 100) }}%{% else %}N/A{% endif %}</span>
           </div>
         </div>
         {% if analyst_assessment.cvss_vector %}
