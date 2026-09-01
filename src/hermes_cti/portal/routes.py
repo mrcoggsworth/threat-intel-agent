@@ -249,6 +249,57 @@ async def public_detections(
     )
 
 
+@router.get("/api/v1/reports/{identifier}/stix")
+@router.get("/api/v1/public/reports/{identifier}/stix")
+async def public_report_stix(
+    request: Request,
+    identifier: str,
+    service: PortalService = Depends(get_portal_service),
+) -> Response:  # noqa: B008
+    from hermes_cti.publisher.stix_exporter import STIXExporter
+
+    detail = await _public_detail(service, identifier)
+    iocs_dict: dict[str, list[str]] = {}
+    for ioc in detail.iocs:
+        iocs_dict.setdefault(ioc.indicator_type, []).append(ioc.display_value)
+
+    cves_list = [
+        {"cve_id": v.cve_id, "summary": v.summary} for v in detail.vulnerabilities
+    ]
+    techniques_list = [
+        {
+            "attack_id": m.attack_id,
+            "technique_name": getattr(m, "technique_name", getattr(m, "name", "")),
+        }
+        for m in detail.attack_mappings
+    ]
+
+    exporter = STIXExporter()
+
+    # If detail has no direct iocs, extract indicator candidates
+    # from evidence and detection rules
+    if not iocs_dict:
+        for det in detail.detections:
+            if det.detection_type.value == "sigma":
+                iocs_dict.setdefault("sigma", []).append(det.title)
+            elif det.detection_type.value == "yara":
+                iocs_dict.setdefault("yara", []).append(det.title)
+        for ev in detail.evidence:
+            if "cve" in ev.statement.lower():
+                pass
+
+    bundle = exporter.create_stix_bundle(
+        report_title=detail.summary.headline,
+        summary=detail.executive_summary,
+        published_date=detail.summary.last_updated_at,
+        iocs=iocs_dict,
+        cves=cves_list,
+        techniques=techniques_list,
+        confidence=detail.confidence,
+    )
+    return _json_response(request, bundle)
+
+
 @router.get(
     "/api/v1/public/entities/{entity_type}/{identifier}", response_model=PublicEntity
 )

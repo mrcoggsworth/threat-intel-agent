@@ -9,21 +9,11 @@ import asyncio
 import os
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import httpx
 
-from hermes_cti.enrichment.cache import EnrichmentCache
-from hermes_cti.enrichment.providers import (
-    AbuseIPDBProvider,
-    CISAKEVProvider,
-    EnrichmentProvider,
-    EPSSProvider,
-    ProviderRuntimeConfig,
-    VirusTotalProvider,
-)
-from hermes_cti.enrichment.service import EnrichmentService
 from hermes_cti.models.contracts import (
     EnrichmentRunResult,
     EnrichmentStatus,
@@ -31,6 +21,16 @@ from hermes_cti.models.contracts import (
     EntityType,
     ProviderRequest,
 )
+
+if TYPE_CHECKING:
+    from hermes_cti.enrichment.cache import EnrichmentCache
+    from hermes_cti.enrichment.providers import (
+        AbuseIPDBProvider,
+        CISAKEVProvider,
+        EnrichmentProvider,
+        EPSSProvider,
+        VirusTotalProvider,
+    )
 
 
 def _float_value(value: object, default: float = 0.0) -> float:
@@ -71,13 +71,19 @@ class KEVEnricher:
         ttl_seconds: int = 43_200,  # 12 hours
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
+        from hermes_cti.enrichment.cache import EnrichmentCache
+        from hermes_cti.enrichment.providers import (
+            CISAKEVProvider,
+            ProviderRuntimeConfig,
+        )
+
         self.url = url
-        self._provider = CISAKEVProvider(
+        self._provider: CISAKEVProvider = CISAKEVProvider(
             url,
             config=ProviderRuntimeConfig(ttl_seconds=ttl_seconds),
             transport=transport,
         )
-        self._cache = EnrichmentCache()
+        self._cache: EnrichmentCache = EnrichmentCache()
 
     async def get_kev_details(self, cve_id: str) -> dict[str, Any] | None:
         """Lookup CVE in CISA KEV catalog."""
@@ -122,9 +128,12 @@ class EPSSEnricher:
         *,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
+        from hermes_cti.enrichment.cache import EnrichmentCache
+        from hermes_cti.enrichment.providers import EPSSProvider
+
         self.url = url.rstrip("/")
-        self._provider = EPSSProvider(url, transport=transport)
-        self._cache = EnrichmentCache()
+        self._provider: EPSSProvider = EPSSProvider(url, transport=transport)
+        self._cache: EnrichmentCache = EnrichmentCache()
 
     @staticmethod
     def _score_from_normalized(
@@ -233,15 +242,18 @@ class AbuseIPDBEnricher:
         api_key: str | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
+        from hermes_cti.enrichment.cache import EnrichmentCache
+        from hermes_cti.enrichment.providers import AbuseIPDBProvider
+
         self.url = url.rstrip("/")
         self.api_key = api_key or os.environ.get("ABUSEIPDB_API_KEY")
-        self._provider = AbuseIPDBProvider(
+        self._provider: AbuseIPDBProvider = AbuseIPDBProvider(
             url,
             api_key=self.api_key,
             enabled=bool(self.api_key),
             transport=transport,
         )
-        self._cache = EnrichmentCache()
+        self._cache: EnrichmentCache = EnrichmentCache()
 
     async def check_ip(self, ip_address: str) -> dict[str, Any] | None:
         """Lookup IP address in AbuseIPDB."""
@@ -291,15 +303,18 @@ class VirusTotalEnricher:
         api_key: str | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
+        from hermes_cti.enrichment.cache import EnrichmentCache
+        from hermes_cti.enrichment.providers import VirusTotalProvider
+
         self.url = url.rstrip("/")
         self.api_key = api_key or os.environ.get("VIRUSTOTAL_API_KEY")
-        self._provider = VirusTotalProvider(
+        self._provider: VirusTotalProvider = VirusTotalProvider(
             url,
             api_key=self.api_key,
             enabled=bool(self.api_key),
             transport=transport,
         )
-        self._cache = EnrichmentCache()
+        self._cache: EnrichmentCache = EnrichmentCache()
 
     async def enrich_indicator(self, kind: str, value: str) -> dict[str, Any] | None:
         """Query VirusTotal for an indicator (ip, domain, url, hash)."""
@@ -326,12 +341,12 @@ class VirusTotalEnricher:
         if res.status is EnrichmentStatus.SUCCESS and not res.normalized_result.get(
             "not_found"
         ):
-            stats_value = res.normalized_result.get("last_analysis_stats")
-            stats = stats_value if isinstance(stats_value, dict) else {}
+            stats = res.normalized_result.get("last_analysis_stats")
+            stats_dict: dict[str, Any] = stats if isinstance(stats, dict) else {}
             return {
-                "malicious_count": _int_value(stats.get("malicious")),
-                "suspicious_count": _int_value(stats.get("suspicious")),
-                "harmless_count": _int_value(stats.get("harmless")),
+                "malicious_count": _int_value(stats_dict.get("malicious")),
+                "suspicious_count": _int_value(stats_dict.get("suspicious")),
+                "harmless_count": _int_value(stats_dict.get("harmless")),
                 "reputation": res.normalized_result.get("reputation"),
                 "tags": res.normalized_result.get("tags", []),
                 "graph_url": res.normalized_result.get("graph_url"),
@@ -353,6 +368,16 @@ class IngestionEnrichmentService:
         cache: EnrichmentCache | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
+        from hermes_cti.enrichment.cache import EnrichmentCache
+        from hermes_cti.enrichment.providers import (
+            AbuseIPDBProvider,
+            CISAKEVProvider,
+            EPSSProvider,
+            VirusTotalProvider,
+        )
+        from hermes_cti.enrichment.service import EnrichmentService
+
+        self.cache: EnrichmentCache = cache or EnrichmentCache()
         self.cache = cache or EnrichmentCache()
         self.semaphore = asyncio.Semaphore(max_concurrency)
         if providers is not None:

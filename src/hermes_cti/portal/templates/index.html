@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Hermes CTI · Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+  <section class="space-y-4" aria-labelledby="metrics-heading">
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-sky-700">Autonomous Threat Intelligence</p>
+        <h1 id="metrics-heading" class="text-3xl font-extrabold tracking-tight text-slate-900">CTI Operations &amp; Intelligence Portal</h1>
+        <p class="text-sm text-slate-600">Real-time threat monitoring, OASIS STIX 2.1 bundle generation, EPSS vs CVSS prioritization, and detection playbooks.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="data/stix2_bundle.json" download="hermes_stix2_bundle.json" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-sky-700 hover:bg-sky-800 text-white transition shadow-xs">
+          <span>⬇️</span> Download STIX 2.1 Bundle
+        </a>
+        <a href="data/cti_database.json" download="cti_database.json" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition shadow-xs">
+          <span>💾</span> Export JSON Feed
+        </a>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-xs font-semibold text-slate-500 block">Total Reports</span>
+        <span class="text-2xl font-bold text-slate-900">{{ metrics.total_reports }}</span>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-xs font-semibold text-slate-500 block">Indexed CVEs</span>
+        <span class="text-2xl font-bold text-slate-900">{{ metrics.total_cves }}</span>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-xs font-semibold text-slate-500 block">Extracted IoCs</span>
+        <span class="text-2xl font-bold text-sky-700">{{ metrics.total_iocs }}</span>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-xs font-semibold text-slate-500 block">Critical Flaws</span>
+        <span class="text-2xl font-bold text-rose-600">{{ metrics.critical_cves }}</span>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-xs font-semibold text-slate-500 block">CISA KEV Listed</span>
+        <span class="text-2xl font-bold text-rose-700">{{ metrics.active_kev_count }}</span>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-xs font-semibold text-slate-500 block">Urgent Action (Q1)</span>
+        <span class="text-2xl font-bold text-amber-600">{{ metrics.urgent_action_cves }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- EPSS vs CVSS Exploitability Quadrant Matrix -->
+  <section class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4" aria-labelledby="quadrant-heading">
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+      <div>
+        <h2 id="quadrant-heading" class="text-lg font-bold text-slate-900">EPSS vs. CVSS Exploitability Matrix</h2>
+        <p class="text-xs text-slate-500">Mathematical risk prioritization: Probability of exploitation in the wild (EPSS) vs. Technical Severity (CVSS v3.1).</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200 font-semibold">Q1: Urgent Action ({{ metrics.quadrant_counts[1] }})</span>
+        <span class="text-xs px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 font-semibold">Q2: High Impact ({{ metrics.quadrant_counts[2] }})</span>
+        <span class="text-xs px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">Q3: Low Priority ({{ metrics.quadrant_counts[3] }})</span>
+        <span class="text-xs px-2 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200 font-semibold">Q4: Fast Attack ({{ metrics.quadrant_counts[4] }})</span>
+      </div>
+    </div>
+
+    <div class="epss-quadrant-container relative border border-slate-200 rounded-lg p-4 bg-slate-900 text-slate-100 overflow-x-auto min-h-[300px]">
+      <div class="grid grid-cols-2 gap-4 h-full min-h-[260px]">
+        <div class="p-4 rounded-lg bg-slate-800/60 border border-amber-500/30 flex flex-col justify-between" data-quadrant="2">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Quadrant II: High Impact</span>
+            <p class="text-xs text-slate-400 mt-1">CVSS &ge; 7.0, EPSS &lt; 0.15 (High Severity, Low Exploit Probability)</p>
+          </div>
+          <div class="pt-2 text-2xl font-extrabold text-amber-300">{{ metrics.quadrant_counts[2] }} CVEs</div>
+        </div>
+
+        <div class="p-4 rounded-lg bg-rose-950/40 border border-rose-500/40 flex flex-col justify-between" data-quadrant="1">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-rose-400">Quadrant I: Urgent Action</span>
+            <p class="text-xs text-slate-300 mt-1">CVSS &ge; 7.0, EPSS &ge; 0.15 (Active Exploitation &amp; Weaponized)</p>
+          </div>
+          <div class="pt-2 text-2xl font-extrabold text-rose-400">{{ metrics.quadrant_counts[1] }} CVEs</div>
+        </div>
+
+        <div class="p-4 rounded-lg bg-slate-800/40 border border-slate-700/40 flex flex-col justify-between" data-quadrant="3">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Quadrant III: Low Priority</span>
+            <p class="text-xs text-slate-400 mt-1">CVSS &lt; 7.0, EPSS &lt; 0.15 (Standard patch cycle)</p>
+          </div>
+          <div class="pt-2 text-2xl font-extrabold text-emerald-300">{{ metrics.quadrant_counts[3] }} CVEs</div>
+        </div>
+
+        <div class="p-4 rounded-lg bg-slate-800/60 border border-purple-500/30 flex flex-col justify-between" data-quadrant="4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-purple-400">Quadrant IV: Fast Attack</span>
+            <p class="text-xs text-slate-400 mt-1">CVSS &lt; 7.0, EPSS &ge; 0.15 (Weaponized opportunistic spray)</p>
+          </div>
+          <div class="pt-2 text-2xl font-extrabold text-purple-300">{{ metrics.quadrant_counts[4] }} CVEs</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Threat Reports -->
+  <section class="space-y-4" aria-labelledby="latest-reports-heading">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+      <h2 id="latest-reports-heading" class="text-lg font-bold text-slate-900">Latest Intelligence Reports</h2>
+      <a href="reports.html" class="text-xs font-semibold text-sky-700 hover:text-sky-900">View All Reports →</a>
+    </div>
+
+    <div class="space-y-3">
+      {% for rep in reports %}
+      <article class="p-4 bg-white rounded-xl border border-slate-200 hover:border-slate-300 shadow-xs transition space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200">{{ rep.report_type or 'Threat Advisory' }}</span>
+          <span class="text-xs font-semibold uppercase text-slate-500">{{ rep.severity or 'medium' }}</span>
+        </div>
+        <h3 class="text-base font-bold text-slate-900">{{ rep.headline or rep.title }}</h3>
+        <p class="text-xs text-slate-600 line-clamp-2">{{ rep.executive_summary or rep.summary }}</p>
+      </article>
+      {% else %}
+      <div class="p-6 bg-white rounded-xl border border-slate-200 text-center text-slate-500 text-sm italic">
+        No reports currently published.
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Recent IOC Drop -->
+  <section class="space-y-4" aria-labelledby="iocs-heading">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+      <h2 id="iocs-heading" class="text-lg font-bold text-slate-900">Recent Indicators of Compromise (IoCs)</h2>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead class="bg-slate-50 border-b border-slate-200 font-semibold text-slate-700">
+          <tr>
+            <th class="p-3">Type</th>
+            <th class="p-3">Indicator Value</th>
+            <th class="p-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for ioc in iocs %}
+          <tr class="hover:bg-slate-50/80">
+            <td class="p-3 font-mono font-medium text-slate-600">{{ ioc.indicator_type or ioc.type or 'indicator' }}</td>
+            <td class="p-3 font-mono text-slate-900 select-all">{{ ioc.display_value or ioc.value }}</td>
+            <td class="p-3 text-right">
+              <button type="button" class="px-2 py-1 text-[11px] font-medium rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition cursor-pointer" data-copy-target aria-label="Copy IoC">
+                <span class="copy-label">Copy</span>
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" class="p-6 text-center text-slate-500 italic">No indicators found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

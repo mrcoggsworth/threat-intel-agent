@@ -393,28 +393,54 @@ class EPSSProvider(BaseProvider):
         entries = payload.get("data")
         if not isinstance(entries, list):
             raise ProviderSchemaError("EPSS data list missing")
-        matches = {
-            str(entry.get("cve", "")).upper(): entry
-            for entry in entries
-            if isinstance(entry, dict) and entry.get("cve")
-        }
-        if len(query_keys) > 1:
-            scores: dict[str, dict[str, Any]] = {}
-            for cve_id in query_keys:
-                match = matches.get(cve_id)
-                if match is None:
-                    continue
-                scores[cve_id] = self._score_fields(match)
-            return {"cve_ids": list(query_keys), "scores": scores}, fetch
 
-        cve_id = query_keys[0] if query_keys else request.query_key.upper()
-        match = matches.get(cve_id)
+        if "," in request.query_key:
+            scores: dict[str, dict[str, Any]] = {}
+            for entry in entries:
+                if not isinstance(entry, dict) or "cve" not in entry:
+                    continue
+                cve_key = str(entry["cve"]).upper()
+                try:
+                    epss = float(entry["epss"])
+                    percentile = float(entry["percentile"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if 0 <= epss <= 1 and 0 <= percentile <= 1:
+                    scores[cve_key] = {
+                        "epss_score": epss,
+                        "epss_percentile": percentile,
+                        "epss_date": entry.get("date"),
+                    }
+            return {
+                "cve_id": request.query_key.upper(),
+                "found": bool(scores),
+                "scores": scores,
+            }, fetch
+
+        match = next(
+            (
+                entry
+                for entry in entries
+                if isinstance(entry, dict)
+                and str(entry.get("cve", "")).upper() == request.query_key.upper()
+            ),
+            None,
+        )
         if match is None:
-            return {"cve_id": cve_id, "found": False}, fetch
+            return {"cve_id": request.query_key.upper(), "found": False}, fetch
+        try:
+            epss = float(match["epss"])
+            percentile = float(match["percentile"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ProviderSchemaError("EPSS score fields malformed") from exc
+        if not 0 <= epss <= 1 or not 0 <= percentile <= 1:
+            raise ProviderSchemaError("EPSS values outside [0,1]")
         return {
-            "cve_id": cve_id,
+            "cve_id": request.query_key.upper(),
             "found": True,
-            **self._score_fields(match),
+            "epss_score": epss,
+            "epss_percentile": percentile,
+            "epss_date": match.get("date"),
         }, fetch
 
     @staticmethod
