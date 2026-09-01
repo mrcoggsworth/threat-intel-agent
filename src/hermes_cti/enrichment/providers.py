@@ -386,6 +386,30 @@ class EPSSProvider(BaseProvider):
         entries = payload.get("data")
         if not isinstance(entries, list):
             raise ProviderSchemaError("EPSS data list missing")
+
+        if "," in request.query_key:
+            scores: dict[str, dict[str, Any]] = {}
+            for entry in entries:
+                if not isinstance(entry, dict) or "cve" not in entry:
+                    continue
+                cve_key = str(entry["cve"]).upper()
+                try:
+                    epss = float(entry["epss"])
+                    percentile = float(entry["percentile"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if 0 <= epss <= 1 and 0 <= percentile <= 1:
+                    scores[cve_key] = {
+                        "epss_score": epss,
+                        "epss_percentile": percentile,
+                        "epss_date": entry.get("date"),
+                    }
+            return {
+                "cve_id": request.query_key.upper(),
+                "found": bool(scores),
+                "scores": scores,
+            }, fetch
+
         match = next(
             (
                 entry
