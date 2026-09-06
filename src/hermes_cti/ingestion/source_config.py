@@ -134,7 +134,12 @@ def load_source_registry(path: Path | None = None) -> SourceRegistry:
     parsed: list[SourceConfig] = []
     for index, raw_source in enumerate(raw_sources):
         source_name_value = raw_source.get("name")
-        source_name = source_name_value if isinstance(source_name_value, str) else None
+        source_id_value = raw_source.get("source_id")
+        source_name = (
+            source_id_value
+            if isinstance(source_id_value, str)
+            else (source_name_value if isinstance(source_name_value, str) else None)
+        )
         secret_path = _secret_field(raw_source, f"sources[{index}]")
         if secret_path:
             raise SourceConfigurationError(

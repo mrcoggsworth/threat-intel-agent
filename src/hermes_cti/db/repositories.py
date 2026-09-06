@@ -47,6 +47,7 @@ from hermes_cti.models.contracts import (
     SourceConfig,
     SourceDocument,
     SourceRegistry,
+    SourceRunResult,
 )
 
 
@@ -300,6 +301,23 @@ class PersistenceRepository:
         )
         return result.scalar_one()
 
+    async def _update_source_freshness(
+        self, session: AsyncSession, result: SourceRunResult
+    ) -> None:
+        """Project source outcomes into freshness fields without changing evidence."""
+
+        source = await session.scalar(
+            select(Source).where(Source.source_id == result.source_id)
+        )
+        if source is None:
+            raise RuntimeError(f"source {result.source_id} was not upserted")
+        if result.status is RunStatus.COMPLETED and result.completed_at is not None:
+            source.last_successful_retrieval = result.completed_at
+            source.consecutive_failure_count = 0
+        elif result.status is RunStatus.FAILED and result.completed_at is not None:
+            source.last_failure = result.completed_at
+            source.consecutive_failure_count += 1
+
     async def create_or_get_run(
         self, session: AsyncSession, manifest: IngestionRunManifest
     ) -> IngestionRun:
@@ -360,6 +378,7 @@ class PersistenceRepository:
                     error_detail=result.error_detail,
                 )
             )
+            await self._update_source_freshness(session, result)
         for artifact in collection.raw_artifacts:
             await self.persist_raw_artifact(session, artifact)
         for document in collection.source_documents:

@@ -4,13 +4,22 @@ from __future__ import annotations
 
 import asyncio
 import email.utils
+import json
 import random
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Final
+from urllib.parse import urlencode
 
 import httpx
+
+from hermes_cti.models.contracts import (
+    BodyEncoding,
+    HTTPMethod,
+    RetryPolicy,
+    SourceRequest,
+)
 
 Sleep = Callable[[float], Awaitable[None]]
 TransientStatus: Final = frozenset({408, 425, 429, 500, 502, 503, 504})
@@ -31,6 +40,10 @@ class HTTPClientConfig:
     retry_backoff_seconds: float = 0.5
     retry_max_delay_seconds: float = 30.0
     retry_jitter_seconds: float = 0.25
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.max_retries <= 8:
+            raise ValueError("max_retries must be between 0 and 8")
 
     @classmethod
     def from_settings(cls, settings: object) -> HTTPClientConfig:
@@ -153,7 +166,89 @@ class AsyncHTTPClient:
             pool=min(self.config.pool_timeout_seconds, source_timeout_seconds),
         )
 
-    def _retry_delay(self, attempt: int, retry_after: str | None) -> float:
+    @staticmethod
+    def _encode_body(request: SourceRequest) -> tuple[bytes | None, str | None]:
+        if request.body is None:
+            return None, None
+        if request.body_encoding is BodyEncoding.JSON:
+            return (
+                json.dumps(
+                    request.body, sort_keys=True, separators=(",", ":")
+                ).encode(),
+                "application/json",
+            )
+        if request.body_encoding is BodyEncoding.FORM:
+            if not isinstance(request.body, dict):
+                raise FetchError(
+                    "request_policy_error",
+                    "form request bodies must be JSON objects",
+                )
+            values = {key: str(value) for key, value in request.body.items()}
+            return urlencode(values).encode(), "application/x-www-form-urlencoded"
+        if request.body_encoding is BodyEncoding.TEXT:
+            if not isinstance(request.body, str):
+                raise FetchError(
+                    "request_policy_error",
+                    "text request bodies must be strings",
+                )
+            return request.body.encode(), "text/plain; charset=utf-8"
+        raise FetchError("request_policy_error", "unsupported request body encoding")
+
+    def _request_arguments(
+        self,
+        url: str,
+        request: SourceRequest,
+        headers: Mapping[str, str] | None,
+    ) -> tuple[
+        str, str, tuple[tuple[str, str], ...] | None, dict[str, str], bytes | None
+    ]:
+        body, body_content_type = self._encode_body(request)
+        request_headers = dict(request.headers)
+        if body_content_type and not any(
+            key.casefold() == "content-type" for key in request_headers
+        ):
+            request_headers["Content-Type"] = body_content_type
+        request_headers.update(headers or {})
+        if request.method is HTTPMethod.GET and body is not None:
+            raise FetchError(
+                "request_policy_error", "GET source requests must not contain a body"
+            )
+        return (
+            request.method.value,
+            url,
+            tuple(request.url_params) or None,
+            request_headers,
+            body,
+        )
+
+    @staticmethod
+    def _content_type_matches(
+        content_type: str | None, expected: tuple[str, ...]
+    ) -> bool:
+        if not expected:
+            return True
+        if not content_type:
+            return False
+        actual = content_type.split(";", 1)[0].strip().casefold()
+        for candidate in expected:
+            wanted = candidate.casefold()
+            if wanted == "*/*" or (
+                wanted.endswith("/*") and actual.startswith(wanted[:-1])
+            ):
+                return True
+            if wanted.startswith("application/*+") and actual.startswith(
+                "application/"
+            ):
+                suffix = wanted.removeprefix("application/*+")
+                if actual.endswith("+" + suffix):
+                    return True
+            if actual == wanted:
+                return True
+        return False
+
+    def _retry_delay(
+        self, attempt: int, retry_after: str | None, policy: RetryPolicy
+    ) -> float:
         if retry_after:
             try:
                 requested = max(0.0, float(retry_after))
@@ -164,45 +259,61 @@ class AsyncHTTPClient:
                     parsed = None
                 if parsed is None:
                     return min(
-                        self.config.retry_backoff_seconds * float(2**attempt),
-                        self.config.retry_max_delay_seconds,
+                        policy.backoff_seconds * float(2**attempt),
+                        policy.max_delay_seconds,
                     )
                 if parsed.tzinfo is None:
                     parsed = parsed.replace(tzinfo=UTC)
                 requested = max(0.0, (parsed - datetime.now(UTC)).total_seconds())
-            return min(requested, self.config.retry_max_delay_seconds)
-        exponential: float = self.config.retry_backoff_seconds * float(2**attempt)
-        jitter = self.config.retry_jitter_seconds * float(self._random_value())
-        return min(exponential + jitter, self.config.retry_max_delay_seconds)
+            return min(requested, policy.max_delay_seconds)
+        exponential = policy.backoff_seconds * float(2**attempt)
+        jitter = policy.jitter_seconds * float(self._random_value())
+        return min(exponential + jitter, policy.max_delay_seconds)
 
     async def fetch(
         self,
         url: str,
         *,
+        request: SourceRequest | None = None,
         headers: Mapping[str, str] | None = None,
-        timeout_seconds: float = 30.0,
+        timeout_seconds: float | None = 30.0,
         max_response_bytes: int = 10_485_760,
     ) -> FetchResult:
-        """Fetch one URL while never buffering more than the configured limit."""
+        """Fetch one typed source request with bounded reads and retries."""
 
         await self._open()
         if self._client is None:
             raise RuntimeError("HTTP client failed to initialize")
 
-        request_headers = dict(headers or {})
-        for attempt in range(self.config.max_retries + 1):
+        contract = request or SourceRequest()
+        policy = contract.retry_policy.model_copy(
+            update={
+                "max_retries": min(
+                    contract.retry_policy.max_retries, self.config.max_retries
+                )
+            }
+        )
+        method, request_url, params, request_headers, body = self._request_arguments(
+            url, contract, headers
+        )
+        timeout = timeout_seconds or self.config.read_timeout_seconds
+        for attempt in range(policy.max_retries + 1):
             try:
                 async with self._client.stream(
-                    "GET",
-                    url,
+                    method,
+                    request_url,
+                    params=params,
                     headers=request_headers,
-                    timeout=self._timeout(timeout_seconds),
+                    content=body,
+                    timeout=self._timeout(timeout),
                 ) as response:
-                    if response.status_code in TransientStatus:
-                        if attempt < self.config.max_retries:
+                    if response.status_code in policy.retryable_status_codes:
+                        if attempt < policy.max_retries:
                             await self._sleep(
                                 self._retry_delay(
-                                    attempt, response.headers.get("retry-after")
+                                    attempt,
+                                    response.headers.get("retry-after"),
+                                    policy,
                                 )
                             )
                             continue
@@ -237,6 +348,16 @@ class AsyncHTTPClient:
                             attempt,
                             status_code=response.status_code,
                         )
+                    if not self._content_type_matches(
+                        response.headers.get("content-type"),
+                        contract.expected_content_types,
+                    ):
+                        raise FetchError(
+                            "content_type_error",
+                            "response content type did not match source policy",
+                            attempt,
+                            status_code=response.status_code,
+                        )
                     length = response.headers.get("content-length")
                     if length is not None and int(length) > max_response_bytes:
                         raise FetchError(
@@ -268,6 +389,10 @@ class AsyncHTTPClient:
                 raise FetchError(
                     "too_many_redirects", "redirect limit exceeded", attempt
                 ) from exc
+            except httpx.UnsupportedProtocol as exc:
+                raise FetchError(
+                    "invalid_url", "unsupported source URL", attempt
+                ) from exc
             except httpx.ConnectError as exc:
                 detail = str(exc).casefold()
                 classification = (
@@ -275,17 +400,24 @@ class AsyncHTTPClient:
                     if any(word in detail for word in ("certificate", "tls", "ssl"))
                     else "connection_error"
                 )
+                if (
+                    classification == "connection_error"
+                    and policy.retry_on_connection_error
+                    and attempt < policy.max_retries
+                ):
+                    await self._sleep(self._retry_delay(attempt, None, policy))
+                    continue
                 raise FetchError(
                     classification, "network connection failed", attempt
                 ) from exc
             except httpx.TimeoutException as exc:
-                if attempt < self.config.max_retries:
-                    await self._sleep(self._retry_delay(attempt, None))
+                if policy.retry_on_timeout and attempt < policy.max_retries:
+                    await self._sleep(self._retry_delay(attempt, None, policy))
                     continue
                 raise FetchError("timeout", "request timed out", attempt) from exc
             except httpx.NetworkError as exc:
-                if attempt < self.config.max_retries:
-                    await self._sleep(self._retry_delay(attempt, None))
+                if policy.retry_on_connection_error and attempt < policy.max_retries:
+                    await self._sleep(self._retry_delay(attempt, None, policy))
                     continue
                 raise FetchError(
                     "connection_error", "network connection failed", attempt
