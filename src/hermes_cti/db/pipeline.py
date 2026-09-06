@@ -30,6 +30,31 @@ class DailyRunResult:
     acquired_lock: bool
     ingestion_run_id: UUID | None = None
     collection: CollectionResult | None = None
+    run_status: RunStatus | None = None
+    total_sources: int = 0
+    successful_sources: int = 0
+    failed_sources: int = 0
+    error_summary: str | None = None
+
+    @property
+    def is_full_success(self) -> bool:
+        """Whether the persisted parent run completed with full coverage."""
+
+        return (
+            self.run_status is RunStatus.COMPLETED
+            and self.total_sources > 0
+            and self.failed_sources == 0
+            and self.successful_sources == self.total_sources
+        )
+
+    @property
+    def is_usable(self) -> bool:
+        """Whether at least one source produced usable results."""
+
+        return (
+            self.run_status in (RunStatus.COMPLETED, RunStatus.FAILED)
+            and self.successful_sources > 0
+        )
 
 
 class DailyPipeline:
@@ -112,6 +137,11 @@ class DailyPipeline:
                             acquired_lock=True,
                             ingestion_run_id=run.id,
                             collection=collection,
+                            run_status=RunStatus(run.status),
+                            total_sources=run.total_sources,
+                            successful_sources=run.successful_sources,
+                            failed_sources=run.failed_sources,
+                            error_summary=run.error_summary,
                         )
                     for document in collection.source_documents:
                         extraction = extract_document(document, ExtractionConfig())
@@ -133,6 +163,11 @@ class DailyPipeline:
                     acquired_lock=True,
                     ingestion_run_id=run.id,
                     collection=collection,
+                    run_status=RunStatus(run.status),
+                    total_sources=run.total_sources,
+                    successful_sources=run.successful_sources,
+                    failed_sources=run.failed_sources,
+                    error_summary=run.error_summary,
                 )
             finally:
                 await self.runs.release_daily_lock(session, DAILY_LOCK_KEY)

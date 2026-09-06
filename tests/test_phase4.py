@@ -1024,3 +1024,64 @@ async def test_publish_bundle_with_unmatched_source_document_id(
     async with database.transaction() as session:
         report = await pipeline.publish(session, bundle_with_source_doc)
         assert getattr(report, "state", None) == "published"
+
+
+@pytest.mark.asyncio
+async def test_run_health_selectors_distinguish_partial_failure(
+    database: Database,
+) -> None:
+    now = datetime(2099, 8, 25, 12, tzinfo=UTC)
+    full = IngestionRun(
+        id=uuid4(),
+        run_type="daily",
+        idempotency_key="health-full",
+        started_at=now,
+        completed_at=now,
+        status=RunStatus.COMPLETED.value,
+        triggering_origin="test",
+        application_version="test",
+        configuration_hash=sha256_text("health-full"),
+        total_sources=2,
+        successful_sources=2,
+        failed_sources=0,
+    )
+    partial = IngestionRun(
+        id=uuid4(),
+        run_type="daily",
+        idempotency_key="health-partial",
+        started_at=now + timedelta(minutes=1),
+        completed_at=now + timedelta(minutes=1),
+        status=RunStatus.FAILED.value,
+        triggering_origin="test",
+        application_version="test",
+        configuration_hash=sha256_text("health-partial"),
+        total_sources=2,
+        successful_sources=1,
+        failed_sources=1,
+        error_summary="1 source(s) failed",
+    )
+    pending = IngestionRun(
+        id=uuid4(),
+        run_type="daily",
+        idempotency_key="health-pending",
+        started_at=now + timedelta(minutes=2),
+        status=RunStatus.RUNNING.value,
+        triggering_origin="test",
+        application_version="test",
+        configuration_hash=sha256_text("health-pending"),
+        total_sources=2,
+    )
+
+    async with database.transaction() as session:
+        session.add_all([full, partial, pending])
+
+    async with database.session() as session:
+        attempt, full_success, usable = await RunRepository().health_snapshot(session)
+
+    assert attempt.run_id == pending.id
+    assert attempt.status is RunStatus.RUNNING
+    assert full_success.run_id == full.id
+    assert full_success.status is RunStatus.COMPLETED
+    assert usable.run_id == partial.id
+    assert usable.status is RunStatus.FAILED
+    assert usable.limitations == ("1 source(s) failed", "source coverage is partial")

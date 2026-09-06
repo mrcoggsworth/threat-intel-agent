@@ -44,8 +44,14 @@ from hermes_cti.db.models import (
     SourceDocument,
     SourceRun,
 )
+from hermes_cti.db.repositories import RunRepository
 from hermes_cti.db.session import Database
-from hermes_cti.models.contracts import RelationshipProposal, ReportState, RunStatus
+from hermes_cti.models.contracts import (
+    RelationshipProposal,
+    ReportState,
+    RunHealthSummary,
+    RunStatus,
+)
 from hermes_cti.reporting.contracts import ReportBundle, ValidationManifest
 from hermes_cti.reporting.service import ReportPipeline
 
@@ -119,21 +125,14 @@ def _run_model(run: IngestionRun, source_runs: tuple[SourceRun, ...]) -> Analyst
 
 async def _latest_run(database: Database) -> IngestionRun | None:
     async with database.session() as session:
-        return cast(
-            IngestionRun | None,
-            await session.scalar(
-                select(IngestionRun)
-                .where(
-                    (IngestionRun.status == RunStatus.COMPLETED.value)
-                    | (
-                        (IngestionRun.status == RunStatus.FAILED.value)
-                        & (IngestionRun.successful_sources > 0)
-                    )
-                )
-                .order_by(desc(IngestionRun.completed_at), desc(IngestionRun.id))
-                .limit(1)
-            ),
-        )
+        return await RunRepository().latest_usable(session)
+
+
+async def _run_health_snapshot(
+    database: Database,
+) -> tuple[RunHealthSummary, ...]:
+    async with database.session() as session:
+        return await RunRepository().health_snapshot(session)
 
 
 async def _run_with_sources(database: Database, run: IngestionRun) -> AnalystRun:
@@ -151,7 +150,12 @@ async def analyst_status(
     request: Request, database: Database = Depends(get_database)
 ) -> AnalystStatus:
     readiness = await request.app.state.readiness_checker.check()
-    run = await _latest_run(database) if readiness.database == "ok" else None
+    snapshots = (
+        await _run_health_snapshot(database) if readiness.database == "ok" else ()
+    )
+    latest_attempt = snapshots[0] if snapshots else None
+    latest_full_success = snapshots[1] if snapshots else None
+    latest_usable = snapshots[2] if snapshots else None
     heartbeat_file = request.app.state.settings.scheduler_heartbeat_file
     heartbeat: str | None = None
     if heartbeat_file:
@@ -164,8 +168,15 @@ async def analyst_status(
         application_version=request.app.state.settings.app_version,
         database=readiness.database,
         scheduler_heartbeat=heartbeat,
-        latest_completed_run_id=run.id if run else None,
-        latest_completed_at=run.completed_at if run else None,
+        latest_attempt=latest_attempt,
+        latest_full_success=latest_full_success,
+        latest_usable=latest_usable,
+        latest_completed_run_id=(
+            latest_full_success.run_id if latest_full_success else None
+        ),
+        latest_completed_at=(
+            latest_full_success.completed_at if latest_full_success else None
+        ),
     )
 
 

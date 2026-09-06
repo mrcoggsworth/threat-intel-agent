@@ -69,17 +69,27 @@ def check() -> list[str]:
     ready_status, _ = _request(f"{private_base}/health/ready", token, private_host)
     if ready_status != 200:
         failures.append("private readiness")
-    last_status, last_payload = _request(
-        f"{private_base}/api/v1/ops/last-success", token, private_host
+    run_status, run_payload = _request(
+        f"{private_base}/api/v1/ops/run-status", token, private_host
     )
-    if last_status != 200:
-        failures.append("last-success endpoint")
+    if run_status != 200:
+        failures.append("run-status endpoint")
     else:
-        last_age = _age(last_payload.get("last_success") if last_payload else None)
+        full_success = run_payload.get("latest_full_success") if run_payload else None
+        if not isinstance(full_success, dict):
+            failures.append("no full-success run")
+            full_success = {}
+        last_age = _age(full_success.get("completed_at"))
         if last_age is None or last_age > float(
             _env("HERMES_LAST_SUCCESS_MAX_AGE_SECONDS", "172800")
         ):
             failures.append("last successful run stale")
+        latest_attempt = run_payload.get("latest_attempt") if run_payload else None
+        if (
+            isinstance(latest_attempt, dict)
+            and latest_attempt.get("status") == "failed"
+        ):
+            failures.append("latest ingestion attempt failed")
     heartbeat = Path(_env("HERMES_HEARTBEAT_FILE", "/runtime/scheduler.heartbeat"))
     if not heartbeat.is_file() or time.time() - heartbeat.stat().st_mtime > float(
         _env("HERMES_HEARTBEAT_MAX_AGE_SECONDS", "120")

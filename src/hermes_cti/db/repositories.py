@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID, uuid5
 
-from sqlalchemy import desc, select, text
+from sqlalchemy import desc, func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -33,6 +33,7 @@ from hermes_cti.db.models import (
 from hermes_cti.db.models import (
     SourceDocument as SourceDocumentRecord,
 )
+from hermes_cti.db.run_status import summarize_run
 from hermes_cti.db.vulnerability_repository import VulnerabilityRepository
 from hermes_cti.extraction.contracts import ExtractionResult
 from hermes_cti.ingestion.service import CollectionResult
@@ -41,6 +42,7 @@ from hermes_cti.models.contracts import (
     PriorityScore,
     ProviderResponse,
     RawArtifactMetadata,
+    RunHealthSummary,
     RunStatus,
     SourceConfig,
     SourceDocument,
@@ -88,23 +90,81 @@ class RunRepository:
         )
         return result.scalar_one_or_none()
 
-    async def last_successful(self, session: AsyncSession) -> IngestionRun | None:
+    @staticmethod
+    def _attempt_timestamp() -> Any:
+        """Return the latest known event timestamp for an ingestion run."""
+
+        return func.coalesce(
+            IngestionRun.completed_at,
+            IngestionRun.started_at,
+            IngestionRun.scheduled_for,
+        )
+
+    async def latest_attempt(self, session: AsyncSession) -> IngestionRun | None:
+        """Return the newest run, including pending and failed attempts."""
+
         result = await session.execute(
             select(IngestionRun)
-            .where(
-                (
-                    (IngestionRun.status == RunStatus.COMPLETED.value)
-                    | (
-                        (IngestionRun.status == RunStatus.FAILED.value)
-                        & (IngestionRun.successful_sources > 0)
-                    )
-                ),
-                IngestionRun.completed_at.is_not(None),
+            .order_by(
+                desc(self._attempt_timestamp()).nullslast(),
+                desc(IngestionRun.id),
             )
-            .order_by(desc(IngestionRun.completed_at))
             .limit(1)
         )
         return result.scalar_one_or_none()
+
+    async def latest_full_success(self, session: AsyncSession) -> IngestionRun | None:
+        """Return only a completed run with complete source coverage."""
+
+        result = await session.execute(
+            select(IngestionRun)
+            .where(
+                IngestionRun.status == RunStatus.COMPLETED.value,
+                IngestionRun.completed_at.is_not(None),
+                IngestionRun.total_sources > 0,
+                IngestionRun.failed_sources == 0,
+                IngestionRun.successful_sources == IngestionRun.total_sources,
+            )
+            .order_by(desc(IngestionRun.completed_at), desc(IngestionRun.id))
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    async def latest_usable(self, session: AsyncSession) -> IngestionRun | None:
+        """Return the newest terminal run with at least one good source."""
+
+        result = await session.execute(
+            select(IngestionRun)
+            .where(
+                IngestionRun.status.in_(
+                    (RunStatus.COMPLETED.value, RunStatus.FAILED.value)
+                ),
+                IngestionRun.completed_at.is_not(None),
+                IngestionRun.successful_sources > 0,
+            )
+            .order_by(desc(IngestionRun.completed_at), desc(IngestionRun.id))
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    async def health_snapshot(
+        self, session: AsyncSession
+    ) -> tuple[RunHealthSummary, ...]:
+        """Return attempt, full-success, and usable selections in fixed order."""
+
+        attempt = await self.latest_attempt(session)
+        full_success = await self.latest_full_success(session)
+        usable = await self.latest_usable(session)
+        return (
+            summarize_run(attempt, kind="latest_attempt"),
+            summarize_run(full_success, kind="latest_full_success"),
+            summarize_run(usable, kind="latest_usable"),
+        )
+
+    async def last_successful(self, session: AsyncSession) -> IngestionRun | None:
+        """Return only a full-success run for backward-compatible callers."""
+
+        return await self.latest_full_success(session)
 
     async def stale_runs(
         self, session: AsyncSession, *, older_than: datetime
