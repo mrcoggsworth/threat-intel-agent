@@ -16,7 +16,7 @@ from hermes_cti.correlation import CorrelationService
 from hermes_cti.correlation.repository import CorrelationRepository
 from hermes_cti.db.migrations import run_migrations
 from hermes_cti.db.models import Vulnerability
-from hermes_cti.db.pipeline import DailyPipeline
+from hermes_cti.db.pipeline import DailyPipeline, DailyRunResult
 from hermes_cti.db.query_plans import verify_query_plans
 from hermes_cti.db.repositories import PersistenceRepository, RunRepository
 from hermes_cti.db.session import Database
@@ -24,6 +24,7 @@ from hermes_cti.enrichment import EnrichmentCache, EnrichmentService, build_prov
 from hermes_cti.ingestion.source_config import load_source_registry
 from hermes_cti.models.contracts import (
     RelationshipProposal,
+    RunStatus,
     SourceRegistry,
     normalize_cve_id,
 )
@@ -57,16 +58,24 @@ def run_daily(
     registry = load_source_registry(source_path)
     database = Database(settings)
 
-    async def execute() -> bool:
+    async def execute() -> DailyRunResult:
         try:
             result = await DailyPipeline(settings, database).run_once(registry)
-            return result.acquired_lock
+            return result
         finally:
             await database.dispose()
 
-    if not asyncio.run(execute()):
+    result = asyncio.run(execute())
+    if not result.acquired_lock:
         typer.echo("Daily run not started: another scheduler holds the lock.", err=True)
         raise typer.Exit(code=2)
+    if result.run_status is not RunStatus.COMPLETED:
+        detail = result.error_summary or "the persisted parent run failed"
+        typer.echo(f"Daily run failed: {detail}", err=True)
+        raise typer.Exit(code=1)
+    if not result.is_full_success:
+        typer.echo("Daily run failed: no full-success source coverage.", err=True)
+        raise typer.Exit(code=1)
     typer.echo("Daily run completed.")
 
 

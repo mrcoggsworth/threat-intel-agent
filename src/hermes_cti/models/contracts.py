@@ -231,6 +231,22 @@ class ContractModel(BaseModel):
         return self.model_dump_json(exclude_none=True, by_alias=True)
 
 
+class RunHealthSummary(ContractModel):
+    """Typed private projection of one ingestion-health selection."""
+
+    kind: Literal["latest_attempt", "latest_full_success", "latest_usable"]
+    run_id: UUID | None = None
+    status: RunStatus | None = None
+    scheduled_for: UTCDateTime | None = None
+    started_at: UTCDateTime | None = None
+    completed_at: UTCDateTime | None = None
+    total_sources: int = Field(default=0, ge=0)
+    successful_sources: int = Field(default=0, ge=0)
+    failed_sources: int = Field(default=0, ge=0)
+    error_summary: str | None = None
+    limitations: tuple[str, ...] = ()
+
+
 def normalize_utc(value: datetime) -> datetime:
     """Require timezone-aware timestamps and normalize them to UTC."""
 

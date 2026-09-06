@@ -7,7 +7,12 @@ from uuid import UUID
 
 from pydantic import Field
 
-from hermes_cti.models.contracts import ContractModel, ReportState, RunStatus
+from hermes_cti.models.contracts import (
+    ContractModel,
+    ReportState,
+    RunHealthSummary,
+    RunStatus,
+)
 from hermes_cti.reporting.contracts import ReportBundle, ValidationManifest
 
 
@@ -48,6 +53,9 @@ class AnalystStatus(ContractModel):
     application_version: str
     database: str
     scheduler_heartbeat: str | None = None
+    latest_attempt: RunHealthSummary | None = None
+    latest_full_success: RunHealthSummary | None = None
+    latest_usable: RunHealthSummary | None = None
     latest_completed_run_id: UUID | None = None
     latest_completed_at: datetime | None = None
 

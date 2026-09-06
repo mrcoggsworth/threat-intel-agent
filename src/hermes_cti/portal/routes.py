@@ -1000,19 +1000,50 @@ async def ops_version(request: Request) -> dict[str, str]:
 
 
 @router.get("/api/v1/ops/last-success", dependencies=[Depends(require_admin_token)])
-async def ops_last_success(request: Request) -> dict[str, None | str]:
+async def ops_last_success(request: Request) -> dict[str, object]:
     database = getattr(request.app.state.portal_service, "database", None)
     if database is None:
-        return {"scope": "private", "last_success": None}
+        return {
+            "scope": "private",
+            "kind": "latest_full_success",
+            "last_success": None,
+            "run_id": None,
+            "status": None,
+        }
     from hermes_cti.db.repositories import RunRepository
 
     async with database.session() as session:
         last = await RunRepository().last_successful(session)
     return {
         "scope": "private",
+        "kind": "latest_full_success",
         "last_success": last.completed_at.isoformat()
         if last and last.completed_at
         else None,
+        "run_id": str(last.id) if last else None,
+        "status": last.status if last else None,
+    }
+
+
+@router.get("/api/v1/ops/run-status", dependencies=[Depends(require_admin_token)])
+async def ops_run_status(request: Request) -> dict[str, object]:
+    """Return distinct latest-attempt, full-success, and usable projections."""
+
+    database = getattr(request.app.state.portal_service, "database", None)
+    if database is None:
+        return {
+            "scope": "private",
+            "latest_attempt": None,
+            "latest_full_success": None,
+            "latest_usable": None,
+        }
+    from hermes_cti.db.repositories import RunRepository
+
+    async with database.session() as session:
+        snapshots = await RunRepository().health_snapshot(session)
+    return {
+        "scope": "private",
+        **{snapshot.kind: snapshot.model_dump(mode="json") for snapshot in snapshots},
     }
 
 

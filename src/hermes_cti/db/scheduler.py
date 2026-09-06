@@ -8,7 +8,7 @@ from datetime import UTC, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from hermes_cti.core.settings import Settings
-from hermes_cti.db.pipeline import DailyPipeline
+from hermes_cti.db.pipeline import DailyPipeline, DailyRunResult
 from hermes_cti.models.contracts import SourceRegistry
 
 Sleep = Callable[[float], Awaitable[None]]
@@ -62,9 +62,9 @@ class DailyScheduler:
             target += timedelta(days=1)
         return target.astimezone(UTC)
 
-    async def run_once(self, now: datetime | None = None) -> None:
+    async def run_once(self, now: datetime | None = None) -> DailyRunResult:
         scheduled = self.scheduled_for(now or self._clock())
-        await self.pipeline.run_once(self.registry, scheduled_for=scheduled)
+        return await self.pipeline.run_once(self.registry, scheduled_for=scheduled)
 
     async def run_forever(self) -> None:
         """Keep scheduling independent of web workers or host cron."""
