@@ -260,7 +260,6 @@ class ContractModel(BaseModel):
         return self.model_dump_json(exclude_none=True, by_alias=True)
 
 
-
 class RunHealthSummary(ContractModel):
     """Typed private projection of one ingestion-health selection."""
 
