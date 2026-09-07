@@ -193,8 +193,7 @@ and configure a service later.
 
 ## Safe re-runs and migration from an existing setup
 
-The installer does not delete existing directories. By default, it refuses to
-replace an existing destination. To migrate an existing profile:
+The normal installer invocation is a non-destructive reconciliation. It updates managed files and preserves protected runtime state. To migrate an existing profile:
 
 1. Stop its Hermes gateway and cron jobs.
 2. Back up the complete existing profile home, especially `.env`, sessions,
@@ -241,3 +240,48 @@ If a command or Hermes release uses different CLI syntax, stop and consult
 that release's `hermes --help`; do not guess a profile-home or permission
 override. The repository manifests remain the policy reference, while the
 installed Hermes CLI remains the source of truth for native profile state.
+
+
+## Non-destructive reconciliation (Plan 04)
+
+The normal installer invocation reconciles the selected runtime profiles. It
+updates only repository-owned managed files and preserves `.env`, sessions,
+logs, gateway state, audit history, memories, and unknown operator extensions.
+It no longer requires a new runtime root for an existing profile.
+
+Pass resolved model and provider values before writing:
+
+```sh
+scripts/install-hermes-profiles.sh \
+  --runtime-root "$HOME/.hermes/profiles" \
+  --model "your-pinned-model" \
+  --provider "your-provider" \
+  --dry-run
+```
+
+A dry run writes no profile files and prints a machine-readable JSON report.
+Remove `--dry-run` only after reviewing the report. Every profile keeps
+`.hermes-reconciler/managed-manifest.json`, which records source hash,
+destination hash, owner, and timestamp. Changed managed files are backed up
+under `.hermes-reconciler/backups/<timestamp>/` before atomic replacement.
+
+The reconciler resolves repository/profile paths, service URLs, model/provider
+values, and recovery-context tokens before writing. It blocks unresolved
+placeholders, staging paths, invalid URLs, and symlinks escaping the selected
+profile root. The runtime `.env` is initialized from `.env.example` with
+mode `0600` and is protected on later runs. Protected runtime directories
+use mode `0700`.
+
+The cron manifest is the policy source for schedule, profile, absolute
+workdir, prompt or script, model, provider, toolsets, preflight, monitor, and
+wake behavior. Job installation refuses to replace a same-name job unless the
+reconciler has recorded ownership; unmanaged conflicts are reported for review.
+The maintainer watchdog is script-only, has `preflight: always`, and keeps
+`wakeAgent: false`.
+
+Use `--replace --yes` only for an explicitly approved destructive replacement.
+The complete prior profile is copied to a timestamped
+`<profile>.replacement-backup.*` sibling before replacement. Roll back a
+normal reconciliation by restoring only managed files from the timestamped
+backup and rerunning verification. Never restore protected runtime state from
+repository staging assets.

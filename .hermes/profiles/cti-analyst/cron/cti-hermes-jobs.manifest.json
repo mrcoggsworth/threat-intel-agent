@@ -1,6 +1,7 @@
 [
   {
     "id": "cti-analyst-daily-analysis",
+    "profile": "cti-analyst",
     "schedule": "0 3 * * *",
     "description": "Analyze the latest completed public CTI ingestion run",
     "prompt_file": ".hermes/profiles/cti-analyst/prompts/daily-analysis.md",
@@ -15,6 +16,7 @@
   },
   {
     "id": "cti-analyst-feed-quality",
+    "profile": "cti-analyst",
     "schedule": "30 3 * * *",
     "description": "Review source and feed data quality",
     "prompt_file": ".hermes/profiles/cti-analyst/prompts/feed-quality.md",
@@ -29,6 +31,7 @@
   },
   {
     "id": "cti-analyst-historical-resurfacing",
+    "profile": "cti-analyst",
     "schedule": "0 4 * * 1",
     "description": "Find materially changed historical public technology risk",
     "prompt_file": ".hermes/profiles/cti-analyst/prompts/historical-resurfacing.md",
@@ -43,6 +46,7 @@
   },
   {
     "id": "cti-analyst-monthly-retrospective",
+    "profile": "cti-analyst",
     "schedule": "0 5 1 * *",
     "description": "Produce a stored-record monthly CTI retrospective",
     "prompt_file": ".hermes/profiles/cti-analyst/prompts/monthly-retrospective.md",

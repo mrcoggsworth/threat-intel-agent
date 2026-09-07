@@ -1,6 +1,7 @@
 [
   {
     "id": "cti-maintainer-weekly-maintenance",
+    "profile": "cti-maintainer",
     "schedule": "0 6 * * 1",
     "description": "Diagnose repository, service, CI, dependency, and backup issues",
     "prompt_file": ".hermes/profiles/cti-maintainer/prompts/weekly-maintenance.md",
@@ -15,6 +16,7 @@
   },
   {
     "id": "cti-maintainer-approved-release",
+    "profile": "cti-maintainer",
     "schedule": "0 7 * * 1",
     "description": "Run only if an explicit approved immutable release is present",
     "prompt_file": ".hermes/profiles/cti-maintainer/prompts/approved-release.md",
@@ -29,6 +31,7 @@
   },
   {
     "id": "cti-maintainer-recovery",
+    "profile": "cti-maintainer",
     "schedule": "*/15 * * * *",
     "description": "Diagnose health failures and perform only safe reversible recovery",
     "prompt_file": ".hermes/profiles/cti-maintainer/prompts/recovery.md",
@@ -43,11 +46,13 @@
   },
   {
     "id": "cti-maintainer-health-watchdog",
+    "profile": "cti-maintainer",
     "schedule": "*/5 * * * *",
     "description": "Script-only health checks; no model invocation",
     "command": "/home/$USER/code/threat-intel-agent/.hermes/profiles/cti-maintainer/scripts/health-watchdog.sh",
     "workdir": "/home/$USER/code/threat-intel-agent/",
     "toolsets": [],
+    "preflight": "always",
     "wakeAgent": false,
     "success_output": "SILENT"
   }
