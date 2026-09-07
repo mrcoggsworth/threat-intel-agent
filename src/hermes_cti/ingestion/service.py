@@ -25,12 +25,15 @@ from hermes_cti.ingestion.http_client import (
 from hermes_cti.ingestion.normalization import (
     NormalizationError,
     normalize_feed,
+    normalize_html,
     normalize_json,
+    normalize_pdf,
 )
 from hermes_cti.ingestion.source_config import source_configuration_hash
 from hermes_cti.models.contracts import (
     CacheState,
     IngestionRunManifest,
+    ParserAdapter,
     RawArtifactMetadata,
     RunStatus,
     SourceConfig,
@@ -146,6 +149,7 @@ class IngestionService:
             try:
                 fetch = await client.fetch(
                     str(source.url),
+                    request=source.request,
                     headers=cached.headers,
                     timeout_seconds=source.timeout_seconds,
                     max_response_bytes=source.max_response_bytes,
@@ -172,10 +176,19 @@ class IngestionService:
                     return SourceCollection(result=result)
 
                 artifact = self._artifact(source, fetch, run_id, self._now())
-                if source.source_type.value == "json":
+                parser = source.request.parser_adapter
+                if parser is ParserAdapter.JSON:
                     documents = normalize_json(source, fetch, artifact)
-                else:
+                elif parser in {ParserAdapter.RSS, ParserAdapter.ATOM}:
                     documents = normalize_feed(source, fetch, artifact)
+                elif parser is ParserAdapter.HTML:
+                    documents = normalize_html(source, fetch, artifact)
+                elif parser is ParserAdapter.PDF:
+                    documents = normalize_pdf(source, fetch, artifact)
+                else:
+                    raise NormalizationError(
+                        "policy_error", "source has no parser adapter"
+                    )
                 self._validators[source.source_id] = ConditionalValidators(
                     etag=fetch.header("etag"),
                     last_modified=fetch.header("last-modified"),

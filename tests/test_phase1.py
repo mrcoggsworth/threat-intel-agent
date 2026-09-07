@@ -55,6 +55,8 @@ def test_current_source_registry_is_valid_and_backward_compatible() -> None:
     assert all(source.enabled for source in registry.sources)
     assert all(source.timeout_seconds == 30 for source in registry.sources)
     assert all(source.max_response_bytes == 10_485_760 for source in registry.sources)
+    assert all(source.request.parser_adapter is not None for source in registry.sources)
+    assert all(source.request.expected_content_types for source in registry.sources)
     assert registry.sources[0].source_type.value in {"rss", "json", "atom"}
 
 

@@ -17,6 +17,7 @@ from uuid import UUID
 
 from pydantic import (
     AfterValidator,
+    AliasChoices,
     AnyHttpUrl,
     BaseModel,
     BeforeValidator,
@@ -45,6 +46,34 @@ class SourceType(StrEnum):
     RSS = "rss"
     ATOM = "atom"
     JSON = "json"
+    HTML = "html"
+    PDF = "pdf"
+
+
+class HTTPMethod(StrEnum):
+    """HTTP methods supported by a configured public source."""
+
+    GET = "GET"
+    POST = "POST"
+
+
+class BodyEncoding(StrEnum):
+    """Encodings supported for source request bodies."""
+
+    NONE = "none"
+    JSON = "json"
+    FORM = "form"
+    TEXT = "text"
+
+
+class ParserAdapter(StrEnum):
+    """Deterministic response adapter selected by source configuration."""
+
+    JSON = "json"
+    RSS = "rss"
+    ATOM = "atom"
+    HTML = "html"
+    PDF = "pdf"
 
 
 class SourceCategory(StrEnum):
@@ -247,6 +276,96 @@ class RunHealthSummary(ContractModel):
     limitations: tuple[str, ...] = ()
 
 
+def _pairs(value: object) -> tuple[tuple[str, str], ...]:
+    """Normalize JSON mappings or pair sequences into immutable request pairs."""
+
+    if isinstance(value, dict):
+        candidates = tuple(value.items())
+    elif isinstance(value, (list, tuple)):
+        candidates = tuple(value)
+    else:
+        raise TypeError("must be a mapping or sequence of name/value pairs")
+    result: list[tuple[str, str]] = []
+    for candidate in candidates:
+        if not isinstance(candidate, (list, tuple)) or len(candidate) != 2:
+            raise TypeError("each request pair must contain a name and value")
+        name, item = candidate
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("request names must be non-empty strings")
+        if not isinstance(item, str):
+            raise TypeError("request values must be strings")
+        result.append((name.strip(), item))
+    return tuple(result)
+
+
+RequestPairs = Annotated[tuple[tuple[str, str], ...], BeforeValidator(_pairs)]
+
+
+def _media_type(value: str) -> str:
+    """Normalize and validate an HTTP media type without parameters."""
+
+    normalized = value.split(";", 1)[0].strip().casefold()
+    if not re.fullmatch(r"[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+*-]+", normalized):
+        raise ValueError("must be a valid media type")
+    return normalized
+
+
+class RetryPolicy(ContractModel):
+    """Bounded, observable retry policy for one configured source."""
+
+    max_retries: int = Field(default=3, ge=0, le=8)
+    retryable_status_codes: tuple[int, ...] = Field(
+        default=(408, 425, 429, 500, 502, 503, 504)
+    )
+    retry_on_timeout: bool = True
+    retry_on_connection_error: bool = True
+    backoff_seconds: float = Field(default=0.5, ge=0.0, le=60.0)
+    max_delay_seconds: float = Field(default=30.0, gt=0.0, le=300.0)
+    jitter_seconds: float = Field(default=0.25, ge=0.0, le=30.0)
+
+    @field_validator("retryable_status_codes")
+    @classmethod
+    def validate_status_codes(cls, value: tuple[int, ...]) -> tuple[int, ...]:
+        if any(status < 400 or status > 599 for status in value):
+            raise ValueError("retryable status codes must be HTTP error statuses")
+        return tuple(sorted(set(value)))
+
+
+class SourceRequest(ContractModel):
+    """Immutable HTTP request and response contract for one source."""
+
+    method: HTTPMethod = HTTPMethod.GET
+    url_params: RequestPairs = Field(
+        default=(), validation_alias=AliasChoices("url_params", "query_params")
+    )
+    headers: RequestPairs = ()
+    body: JSONValue | None = None
+    body_encoding: BodyEncoding = BodyEncoding.NONE
+    expected_content_types: tuple[str, ...] = ()
+    parser_adapter: ParserAdapter | None = None
+    retry_policy: RetryPolicy = Field(default_factory=RetryPolicy)
+
+    @field_validator("method", mode="before")
+    @classmethod
+    def normalize_method(cls, value: object) -> object:
+        return value.upper() if isinstance(value, str) else value
+
+    @field_validator("expected_content_types")
+    @classmethod
+    def validate_content_types(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        return tuple(dict.fromkeys(_media_type(item) for item in value))
+
+    @model_validator(mode="after")
+    def validate_body(self) -> SourceRequest:
+        if self.body is None and self.body_encoding is not BodyEncoding.NONE:
+            raise ValueError("body_encoding requires a body")
+        if self.body is not None and self.body_encoding is BodyEncoding.NONE:
+            raise ValueError("body_encoding must be set when body is provided")
+        if self.method is HTTPMethod.GET and self.body is not None:
+            raise ValueError("GET source requests must not contain a body")
+        return self
+
+
 def normalize_utc(value: datetime) -> datetime:
     """Require timezone-aware timestamps and normalize them to UTC."""
 
@@ -356,6 +475,10 @@ class SourceConfig(ContractModel):
         description="Evidence-quality classification.",
     )
     tags: tuple[str, ...] = Field(default=(), description="Stable source labels.")
+    request: SourceRequest = Field(
+        default_factory=SourceRequest,
+        description="Typed HTTP request, response, parser, and retry contract.",
+    )
     adapter_settings: dict[str, JSONValue] = Field(
         default_factory=dict,
         description="Non-secret adapter options; credentials are forbidden.",
@@ -366,8 +489,80 @@ class SourceConfig(ContractModel):
     def sort_tags(cls, value: tuple[str, ...]) -> tuple[str, ...]:
         return tuple(sorted(set(value)))
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_request_shape(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        data = dict(value)
+        raw_request = data.get("request")
+        if isinstance(raw_request, SourceRequest):
+            return data
+        request = dict(raw_request) if isinstance(raw_request, dict) else {}
+        request_fields = (
+            "method",
+            "url_params",
+            "query_params",
+            "headers",
+            "body",
+            "body_encoding",
+            "expected_content_types",
+            "parser_adapter",
+            "retry_policy",
+        )
+        for field_name in request_fields:
+            if field_name in data and field_name not in request:
+                request[field_name] = data.pop(field_name)
+        adapter_settings = data.get("adapter_settings")
+        if isinstance(adapter_settings, dict):
+            for field_name in request_fields:
+                if field_name in adapter_settings and field_name not in request:
+                    request[field_name] = adapter_settings[field_name]
+        data["request"] = request
+        return data
+
     @model_validator(mode="after")
     def derive_source_id(self) -> SourceConfig:
+        parser = self.request.parser_adapter
+        if parser is None:
+            parser = {
+                SourceType.JSON: ParserAdapter.JSON,
+                SourceType.RSS: ParserAdapter.RSS,
+                SourceType.ATOM: ParserAdapter.ATOM,
+                SourceType.HTML: ParserAdapter.HTML,
+                SourceType.PDF: ParserAdapter.PDF,
+            }[self.source_type]
+        expected = self.request.expected_content_types
+        if not expected:
+            expected = {
+                ParserAdapter.JSON: ("application/json", "application/*+json"),
+                ParserAdapter.RSS: (
+                    "application/rss+xml",
+                    "application/xml",
+                    "text/xml",
+                ),
+                ParserAdapter.ATOM: (
+                    "application/atom+xml",
+                    "application/xml",
+                    "text/xml",
+                ),
+                ParserAdapter.HTML: ("text/html", "application/xhtml+xml"),
+                ParserAdapter.PDF: ("application/pdf",),
+            }[parser]
+        if (
+            parser is not self.request.parser_adapter
+            or expected != self.request.expected_content_types
+        ):
+            object.__setattr__(
+                self,
+                "request",
+                self.request.model_copy(
+                    update={
+                        "parser_adapter": parser,
+                        "expected_content_types": expected,
+                    }
+                ),
+            )
         if self.source_id:
             return self
         slug = re.sub(r"[^a-z0-9]+", "-", self.name.lower()).strip("-")

@@ -14,6 +14,10 @@ from uuid import NAMESPACE_URL, uuid5
 from xml.etree import ElementTree
 
 from hermes_cti.ingestion.http_client import FetchResult
+from hermes_cti.ingestion.web_scraper import (
+    clean_html_content,
+    extract_pdf_text_fallback,
+)
 from hermes_cti.models.contracts import (
     DocumentType,
     RawArtifactMetadata,
@@ -393,6 +397,67 @@ def _kev_text(entry: dict[str, Any]) -> str:
     if isinstance(cwes, list) and cwes:
         values.append("CWEs: " + ", ".join(str(value) for value in cwes))
     return "\n".join(values)
+
+
+def normalize_html(
+    source: SourceConfig, fetch: FetchResult, artifact: RawArtifactMetadata
+) -> tuple[SourceDocument, ...]:
+    """Normalize one HTML response into a provenance-linked source document."""
+
+    decoded = _decode(fetch.body, fetch.encoding)
+    text = clean_html_content(decoded)
+    if not text:
+        raise NormalizationError("empty_html", "HTML payload contained no visible text")
+    title_match = re.search(
+        r"<title[^>]*>(.*?)</title>", decoded, re.IGNORECASE | re.DOTALL
+    )
+    title = normalize_html_text(title_match.group(1)) if title_match else source.name
+    return (
+        _source_document(
+            source=source,
+            artifact=artifact,
+            external_id=None,
+            canonical_url=str(source.url),
+            title=title or source.name,
+            authors=(),
+            published_at=None,
+            updated_at=None,
+            normalized_text=text,
+            summary=text[:300],
+            language=None,
+            content_type=fetch.content_type or "text/html",
+        ),
+    )
+
+
+def normalize_pdf(
+    source: SourceConfig, fetch: FetchResult, artifact: RawArtifactMetadata
+) -> tuple[SourceDocument, ...]:
+    """Normalize one PDF response using the bounded text extraction fallback."""
+
+    text = extract_pdf_text_fallback(fetch.body)
+    if not text:
+        raise NormalizationError(
+            "empty_pdf", "PDF payload contained no extractable text"
+        )
+    normalized = normalize_html_text(text)
+    title = normalized.split(" ", 1)[0] if normalized else source.name
+    return (
+        _source_document(
+            source=source,
+            artifact=artifact,
+            external_id=None,
+            canonical_url=str(source.url),
+            title=title or source.name,
+            authors=(),
+            published_at=None,
+            updated_at=None,
+            normalized_text=normalized,
+            summary=normalized[:300],
+            language=None,
+            content_type=fetch.content_type or "application/pdf",
+        ),
+    )
 
 
 def normalize_kev(
