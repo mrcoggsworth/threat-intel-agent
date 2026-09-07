@@ -167,6 +167,8 @@ class CorrelationRepository:
             "observed_values": list(contradiction.observed_values),
             "evidence_ids": [str(item) for item in contradiction.evidence_ids],
             "justification": contradiction.justification,
+            "review_state": "proposed",
+            "confidence": 0.0,
         }
         await session.execute(
             insert(CorrelationContradictionRecord)
@@ -181,6 +183,8 @@ class CorrelationRepository:
                     "observed_values": values["observed_values"],
                     "evidence_ids": values["evidence_ids"],
                     "justification": values["justification"],
+                    "review_state": values["review_state"],
+                    "confidence": values["confidence"],
                 },
             )
         )

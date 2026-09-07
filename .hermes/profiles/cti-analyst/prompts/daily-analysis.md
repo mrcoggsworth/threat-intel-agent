@@ -9,6 +9,10 @@ Use these supported service operations:
 - GET /api/v1/analyst/runs/latest
 - GET /api/v1/analyst/runs/{run_id}
 - GET /api/v1/analyst/evidence?run_id={run_id}&limit={limit}&source_id={source_id}&offset={offset}
+- GET /api/v1/analyst/corpus/cves?cve_id={cve_id}&limit=50
+- GET /api/v1/analyst/corpus/iocs?indicator_type={type}&value={safe_value}&limit=50
+- GET /api/v1/analyst/corpus/relationships?entity_type={type}&entity_id={id}&review_state=reviewed&limit=50
+- GET /api/v1/analyst/corpus/contradictions?entity_type={type}&entity_id={id}&review_state=proposed&limit=50
 - POST /api/v1/analyst/proposals
 - POST /api/v1/analyst/reports/validate
 - POST /api/v1/analyst/reports
