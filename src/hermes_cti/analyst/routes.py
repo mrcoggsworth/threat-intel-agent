@@ -25,7 +25,10 @@ from hermes_cti.analyst.contracts import (
     AnalystSourceRun,
     AnalystStatus,
     AnalystSubmissionResponse,
+    CorpusQuery,
+    CorpusResource,
 )
+from hermes_cti.analyst.corpus_repository import CorpusRepository
 from hermes_cti.api.dependencies import (
     get_database,
     require_analyst_token,
@@ -428,3 +431,68 @@ async def submit_report(
         else None,
         validation=manifest,
     )
+
+
+def _corpus_query(
+    limit: int = Query(default=50, ge=1, le=100),
+    cursor: str | None = Query(default=None, max_length=512),
+    search: str | None = Query(default=None, max_length=200),
+    record_status: str | None = Query(default=None),
+    review_state: str | None = Query(default=None),
+    published: bool | None = Query(default=None),
+    entity_type: str | None = Query(default=None),
+    entity_id: UUID | None = Query(default=None),
+    source_id: str | None = Query(default=None, max_length=128),
+    cve_id: str | None = Query(default=None, max_length=32),
+    indicator_type: str | None = Query(default=None, max_length=64),
+    value: str | None = Query(default=None, max_length=1024),
+    vendor: str | None = Query(default=None, max_length=255),
+    product: str | None = Query(default=None, max_length=255),
+    ecosystem: str | None = Query(default=None, max_length=128),
+    attack_id: str | None = Query(default=None, max_length=32),
+    framework_version: str | None = Query(default=None, max_length=32),
+    relationship_type: str | None = Query(default=None, max_length=128),
+    sort: str = Query(default="updated_desc"),
+) -> CorpusQuery:
+    try:
+        return CorpusQuery(
+            limit=limit,
+            cursor=cursor,
+            search=search,
+            record_status=record_status,
+            review_state=review_state,
+            published=published,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            source_id=source_id,
+            cve_id=cve_id,
+            indicator_type=indicator_type,
+            value=value,
+            vendor=vendor,
+            product=product,
+            ecosystem=ecosystem,
+            attack_id=attack_id,
+            framework_version=framework_version,
+            relationship_type=relationship_type,
+            sort=sort,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/corpus/{resource}", response_model=None)
+async def analyst_corpus(
+    resource: CorpusResource,
+    request: Request,
+    query: CorpusQuery = Depends(_corpus_query),
+) -> Any:
+    """Return one bounded private corpus page for historical correlation."""
+    try:
+        query.validate_for(resource)
+        database = getattr(request.app.state, "database", None)
+        if database is None:
+            raise HTTPException(status_code=503, detail="database is not configured")
+        async with database.session() as session:
+            return await CorpusRepository().query(session, resource, query)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

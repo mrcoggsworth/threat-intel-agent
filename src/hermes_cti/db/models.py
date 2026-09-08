@@ -634,6 +634,17 @@ class CorrelationContradictionRecord(TimestampMixin, Base):
             "claim_key",
             name="uq_correlation_contradiction_subject_claim",
         ),
+        CheckConstraint(
+            "confidence >= 0 AND confidence <= 1",
+            name="ck_correlation_contradiction_confidence",
+        ),
+        Index(
+            "ix_correlation_contradiction_subject",
+            "subject_entity_type",
+            "subject_entity_id",
+            "updated_at",
+            "id",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
@@ -647,6 +658,13 @@ class CorrelationContradictionRecord(TimestampMixin, Base):
     )
     evidence_ids: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     justification: Mapped[str] = mapped_column(Text, nullable=False)
+    review_state: Mapped[str] = mapped_column(
+        String(32), default="proposed", nullable=False
+    )
+    confidence: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    supersedes_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("correlation_contradiction.id")
+    )
 
 
 class ResurfacingEventRecord(TimestampMixin, Base):

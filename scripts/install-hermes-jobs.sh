@@ -1,12 +1,15 @@
 #!/bin/sh
 set -eu
 
-# The profile CLI's cron create operation is the supported equivalent of cron add.
+# The profile CLI remains the execution backend; the repository manifest is
+# the policy source for every installed field. Existing same-name jobs are
+# removed only when this reconciler previously recorded ownership. The older
+# `cron add` workflow is intentionally represented by `cron create` here.
 
-repo="${HERMES_REPOSITORY:?HERMES_REPOSITORY is required}"
-profile="${HERMES_PROFILE:?HERMES_PROFILE is required (cti-analyst or cti-maintainer)}"
-cron_bin="${HERMES_CRON_BIN:-hermes}"
-interval="${HERMES_HEALTH_INTERVAL:-*/5 * * * *}"
+repo=${HERMES_REPOSITORY:?HERMES_REPOSITORY is required}
+profile=${HERMES_PROFILE:?HERMES_PROFILE is required (cti-analyst or cti-maintainer)}
+cron_bin=${HERMES_CRON_BIN:-hermes}
+manifest=${HERMES_MANIFEST:-${HERMES_PROMPT_DIR:-$repo/.hermes/profiles/$profile/prompts}/../cron/cti-hermes-jobs.manifest.json}
 
 case "$profile" in
     cti-analyst|cti-maintainer) ;;

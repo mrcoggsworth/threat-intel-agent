@@ -73,6 +73,7 @@ LIFECYCLE_FIELDS: dict[tuple[str, str], tuple[str, ...]] = {
     ),
     ("risk_assessment", "review_state"): _values(ReviewState),
     ("relationship", "review_state"): _values(ReviewState),
+    ("correlation_contradiction", "review_state"): _values(ReviewState),
     ("resurfacing_event", "review_state"): _values(ReviewState),
     ("report", "state"): _values(ReportState),
     ("report_version", "validation_status"): _values(ReportState),
