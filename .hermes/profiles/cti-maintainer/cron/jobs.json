@@ -15,21 +15,6 @@
     "success_output": "SILENT"
   },
   {
-    "id": "cti-maintainer-approved-release",
-    "profile": "cti-maintainer",
-    "schedule": "0 7 * * 1",
-    "description": "Run only if an explicit approved immutable release is present",
-    "prompt_file": ".hermes/profiles/cti-maintainer/prompts/approved-release.md",
-    "workdir": "/home/$USER/code/threat-intel-agent/",
-    "model": "__SET_AND_PIN_MODEL__",
-    "provider": "__SET_AND_PIN_PROVIDER__",
-    "toolsets": ["private_operations_api", "docker_compose_approved_workflows", "one_shot_migration_deployment_with_approval"],
-    "preflight": "require_explicit_approval_and_immutable_release",
-    "wakeAgent": true,
-    "wakeAgentWhenPreflightEmpty": false,
-    "success_output": "SILENT"
-  },
-  {
     "id": "cti-maintainer-recovery",
     "profile": "cti-maintainer",
     "schedule": "*/15 * * * *",

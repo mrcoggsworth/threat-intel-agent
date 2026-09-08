@@ -151,10 +151,12 @@ services:
       HERMES_HEARTBEAT_FILE: /runtime/scheduler.heartbeat
       HERMES_BACKUP_METADATA_FILE: /backups/latest.metadata
       HERMES_DISK_USED_FRACTION: ${HERMES_DISK_USED_FRACTION:-0.85}
+      HERMES_MONITOR_EVIDENCE_FILE: /runtime/monitor-evidence.json
+      HERMES_MONITOR_EVENT_LOG: /runtime/monitor-events.jsonl
     secrets:
       - hermes_admin_token
     volumes:
-      - hermes-runtime:/runtime:ro
+      - hermes-runtime:/runtime:rw
       - hermes-backups:/backups:ro
     networks:
       - backend
