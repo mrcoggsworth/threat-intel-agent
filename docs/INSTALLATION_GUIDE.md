@@ -1,6 +1,6 @@
 # CTI-Hermes Self-Hosting & Installation Guide
 
-This guide provides step-by-step instructions for cloning the repository, provisioning file-backed secrets, spinning up the containerized CTI-Hermes services, configuring host Nginx with split-port TLS routing, setting up a local LLM inference engine (**llama.cpp** or **Ollama**), and connecting the **Hermes AI Agent** profiles.
+This guide provides step-by-step instructions for cloning the repository, provisioning file-backed secrets, spinning up the containerized CTI-Hermes services, configuring Caddy container with split-port TLS routing, setting up a local LLM inference engine (**llama.cpp** or **Ollama**), and connecting the **Hermes AI Agent** profiles.
 
 ---
 
@@ -13,7 +13,7 @@ This guide provides step-by-step instructions for cloning the repository, provis
 6. [Step 4: Set Up Local LLM Inference (llama.cpp or Ollama)](#step-4-set-up-local-llm-inference-llamacpp-or-ollama)
    - [Option A: llama.cpp Server (OpenAI-compatible)](#option-a-llamacpp-server-docker-or-native)
    - [Option B: Ollama](#option-b-ollama-docker-or-native)
-7. [Step 5: Configure Host Nginx & TLS Termination](#step-5-configure-host-nginx--tls-termination)
+7. [Step 5: Configure Caddy & TLS Termination](#step-5-configure-caddy--tls-termination)
 8. [Step 6: Configure Hermes Agent Profiles](#step-6-configure-hermes-agent-profiles)
 9. [Step 7: Automated Ingestion & Daily Operations](#step-7-automated-ingestion--daily-operations)
 10. [Updating the Application](#updating-the-application)
@@ -24,7 +24,7 @@ This guide provides step-by-step instructions for cloning the repository, provis
 
 ```mermaid
 flowchart TB
-    subgraph Ingress ["Host Nginx (Ingress & TLS)"]
+    subgraph Ingress ["Caddy (Ingress & TLS)"]
         N1["Port 9443 (Public & Analyst API)"]
         N2["Port 9444 (Private Ops & Health)"]
     end
@@ -66,7 +66,7 @@ Ensure your host system (Linux / Ubuntu 22.04+ or Debian 12+ recommended) has th
 * **Docker Engine** & **Docker Compose** (v2.20+)
 * **Python** (v3.12+) and [**uv**](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 * **Node.js** (v20+) & **npm** (for building Tailwind CSS assets)
-* **Nginx** (installed on the host for SSL/TLS termination)
+* **Caddy Docker container** (installed on the host for SSL/TLS termination)
 * **cURL**, **Git**, and **OpenSSL**
 
 ---
@@ -188,25 +188,21 @@ curl http://127.0.0.1:11434/v1/models
 
 ---
 
-## Step 5: Configure Host Nginx & TLS Termination
+## Step 5: Configure Caddy & TLS Termination
 
-Host Nginx manages TLS termination and separates **Public/Analyst** traffic (port 9443) from **Private Operations** traffic (port 9444).
+Caddy manages TLS termination and separates **Public/Analyst** traffic (port 9443) from **Private Operations** traffic (port 9444).
 
-1. Copy the example configuration template from [`deploy/host-nginx/cti-hermes`](deploy/host-nginx/cti-hermes):
+1. Keep the existing Caddy configuration in `~/caddy/Caddyfile`. The Caddy
+   container uses host networking and proxies the public and private Hermes
+   surfaces to `127.0.0.1:18000`; do not expose the web container directly.
+
+2. Validate and reload Caddy through Docker:
    ```bash
-   sudo cp deploy/host-nginx/cti-hermes /etc/nginx/sites-available/cti-hermes
+   docker exec caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+   docker compose --file ~/caddy/docker-compose.yml up --detach caddy
    ```
 
-2. Edit `/etc/nginx/sites-available/cti-hermes` to configure your server name, IP address, and TLS certificates (Let's Encrypt, Tailscale certs, or self-signed certs).
-
-3. Enable the site configuration:
-   ```bash
-   sudo ln -s /etc/nginx/sites-available/cti-hermes /etc/nginx/sites-enabled/
-   sudo nginx -t
-   sudo systemctl reload nginx
-   ```
-
-4. Verify endpoint isolation:
+3. Verify endpoint isolation:
    ```bash
    # Public portal liveness (200 OK)
    curl -k https://<YOUR_IP_OR_HOST>:9443/health/live

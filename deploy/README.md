@@ -3,15 +3,15 @@
 This deployment is internal-only. The sanitized portal is not exposed to the public Internet.
 
 This package prepares, but does not perform, an internal-only Docker Compose
-deployment behind the existing host-level Nginx. It expects Docker Engine and
-the Compose plugin on the existing Linux home-lab server. Host Nginx remains
-the only TLS and ingress proxy for Hermes and llama.cpp; the Hermes web
+deployment behind the existing Caddy Docker container. It expects Docker Engine and
+the Compose plugin on the existing Linux home-lab server. Caddy is the only TLS
+and ingress proxy for Hermes and llama.cpp; the Hermes web
 container is published only on a loopback port for that host proxy. The
 application image is the same immutable HERMES_IMAGE for web, worker,
 scheduler, monitor, and the controlled migration service.
 
 Read [INTERNAL_ACCESS_MATRIX.md](INTERNAL_ACCESS_MATRIX.md) before exposing
-host Nginx to the LAN or Tailscale interface, and complete
+Caddy to the LAN or Tailscale interface, and complete
 [OPERATIONS_ACCEPTANCE.md](OPERATIONS_ACCEPTANCE.md) before deployment.
 
 ## Prerequisites
@@ -19,7 +19,7 @@ host Nginx to the LAN or Tailscale interface, and complete
 Use an absolute checkout such as /opt/cti-hermes/app, a protected
 environment file outside the repository, a protected Compose secret directory,
 a restricted backup destination, internal DNS for the private hostnames,
-synchronized UTC time, and TLS files managed by the host Nginx installation.
+synchronized UTC time, and TLS files managed by the Caddy container.
 Do not commit an environment file or secret.
 
 Create protected file-backed Compose secrets with the normal user:
@@ -36,7 +36,7 @@ different protected directory. The files are mounted into containers under
 `/run/secrets/`; their values are never written to the repository, logs,
 prompts, or chat.
 
-Configure the existing host Nginx with an upstream to
+Configure the existing Caddy container with an upstream to
 127.0.0.1:${HERMES_WEB_PORT:-18000}. The analyst API is served on
 `https://matrix-1.taild27e3c.ts.net:9443` and the web container remains
 loopback-only. Confirm the dashboard and API hostname resolve only from the
@@ -52,7 +52,7 @@ reachable from the network.
     # edit only non-secret values and set HERMES_IMAGE to the approved digest
     scripts/setup-docker-secrets.sh
     scripts/start-cti-hermes-local.sh
-    # Then validate the host-Nginx public and private URLs from the deployment host.
+    # Then validate the Caddy public and private URLs from the deployment host.
 
 Do not start production until the image, secrets, TLS, backup destination,
 firewall, and approval gates are verified. The first bootstrap must be
@@ -93,9 +93,9 @@ container. It never targets the production volume.
 
 The web container has only a loopback host port, no Docker socket, repository
 write mount, or migration side effect. PostgreSQL is private and has no host
-port. All external requests reach the existing host Nginx; requests for admin
+port. All external requests reach the existing Caddy container; requests for admin
 and operations paths.
-require the private hostname and application admin token. Host Nginx must be restricted to RFC1918 and Tailscale ranges, while the host
+require the private hostname and application admin token. Caddy must be restricted to RFC1918 and Tailscale ranges, while the host
 firewall remains a required second control.
 
 Use scripts/health-watchdog.sh from a script-only Hermes cron job. It checks

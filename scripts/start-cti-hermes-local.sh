@@ -10,6 +10,8 @@ repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 compose_file=${HERMES_COMPOSE_FILE:-$repo_root/deploy/docker-compose.yml}
 env_file=${HERMES_ENV_FILE:-/opt/cti-hermes/env/production.env}
 web_url=${HERMES_WEB_URL:-http://127.0.0.1:18000}
+caddy_container=${HERMES_CADDY_CONTAINER:-caddy}
+caddyfile=${HERMES_CADDYFILE:-/etc/caddy/Caddyfile}
 user_home=${HOME:-}
 if [ -z "$user_home" ] || [ ! -d "$user_home" ]; then
     echo "HOME must name the current user home directory" >&2
@@ -58,13 +60,12 @@ wait_for_health() {
 wait_for_health liveness /health/live
 wait_for_health readiness /health/ready
 
-echo "Validating host Nginx"
-if [ "$(id -u)" -eq 0 ]; then
-    nginx -t
-    systemctl reload nginx
-else
-    sudo nginx -t
-    sudo systemctl reload nginx
-fi
+echo "Validating Caddy"
+caddy_status=$(docker inspect --format '{{.State.Status}}' "$caddy_container" 2>/dev/null || true)
+[ "$caddy_status" = "running" ] || {
+    echo "Caddy container is not running: $caddy_container" >&2
+    exit 1
+}
+docker exec "$caddy_container" caddy validate --config "$caddyfile" --adapter caddyfile
 
 echo "CTI-Hermes local stack is running"

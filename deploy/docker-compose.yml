@@ -11,7 +11,7 @@ services:
   web:
     image: ${HERMES_IMAGE:?HERMES_IMAGE must be an immutable application image}
     command: ["uvicorn", "hermes_cti.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
-    # Host Nginx owns ports 80/443. Keep the application reachable only from
+    # Caddy owns TLS and ingress. Keep the application reachable only from
     # the host through a loopback-published port.
     ports:
       - "${HERMES_WEB_BIND_ADDRESS:-127.0.0.1}:${HERMES_WEB_PORT:-18000}:8000"
@@ -183,7 +183,7 @@ services:
   smoke:
     image: curlimages/curl:8.11.1
     # This validates the application boundary from the private Docker network.
-    # Host-Nginx ingress is validated separately from the deployment host.
+    # Caddy ingress is validated separately from the deployment host.
     command: ["/opt/hermes/smoke-test.sh", "http://web:8000", "http://web:8000", "/run/secrets/hermes_admin_token"]
     environment:
       SMOKE_CONNECT_TIMEOUT_SECONDS: "5"

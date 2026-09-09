@@ -49,7 +49,7 @@ an organization’s exposure.
 
 ## Installation & Deployment Guide
 
-For a complete, step-by-step walkthrough covering full self-hosting, file-backed secret creation, local LLM inference engines (**llama.cpp** or **Ollama**), host Nginx split-port TLS routing (9443/9444), and **Hermes AI Agent** profiles, see:
+For a complete, step-by-step walkthrough covering full self-hosting, file-backed secret creation, local LLM inference engines (**llama.cpp** or **Ollama**), Caddy split-port TLS routing (9443/9444), and **Hermes AI Agent** profiles, see:
 
 👉 **[Comprehensive Self-Hosting & Installation Guide](docs/INSTALLATION_GUIDE.md)**
 
@@ -142,7 +142,7 @@ docker compose --file deploy/docker-compose.dev.yml up --build
 The development Compose file includes web, PostgreSQL, and a dedicated scheduler.
 Migrations remain explicit via `uv run hermes-cti db migrate`; web workers do not
 run migrations automatically. The authenticated analyst API is exposed at
-`/api/v1/analyst/*`; production host Nginx serves it at
+`/api/v1/analyst/*`; production Caddy serves it at
 `https://matrix-1.taild27e3c.ts.net:9443` and forwards to the loopback-only web
 port.
 

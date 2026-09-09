@@ -20,19 +20,19 @@ Never run both CTI profiles against the same home, and never commit a runtime
 
 ### Service endpoints
 
-The home-lab analyst API is served by host Nginx at
-`https://matrix-1.taild27e3c.ts.net:9443`. Nginx forwards that endpoint to the
+The home-lab analyst API is served by the Caddy container at
+`https://matrix-1.taild27e3c.ts.net:9443`. Caddy forwards that endpoint to the
 loopback-published Hermes web container at `127.0.0.1:18000`; the Hermes
 analyst profile must use the HTTPS URL, not the loopback address. The 9443
 surface is allowlisted to Tailscale clients and requires `X-Analyst-Token`.
 
 The separate operations surface remains `ops.cti-hermes.home.arpa` on the
-private Nginx listener. For direct local Compose testing before Nginx and DNS
+private Caddy listener. For direct local Compose testing before Caddy and DNS
 are ready, use `http://127.0.0.1:18000` for the analyst API. `/etc/hosts` maps
 only names to IP addresses; ports belong in the URL.
 
-If an endpoint changes later, update local DNS or hosts files, the Nginx
-`server_name` and proxy routing, the TLS certificate name, the production
+If an endpoint changes later, update local DNS or hosts files, the Caddy
+site blocks and proxy routing in `~/caddy/Caddyfile`, the TLS certificate name, the production
 environment, and the Hermes profile URL values and prompt assets.
 
 ## Choose an installation path
