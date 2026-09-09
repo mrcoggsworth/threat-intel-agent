@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "name": "hermes-plan06-disposable-canary",
+  "objectives": [
+    {
+      "id": "ingestion",
+      "entrypoint": "IngestionService.collect_once",
+      "fixture": "fixture-http-responses",
+      "expected_status": "completed|failed-partial",
+      "evidence": "ingestion-manifest.json"
+    },
+    {
+      "id": "analyst",
+      "entrypoint": "GET /api/v1/analyst/corpus/{resource}",
+      "fixture": "historical-corpus-contracts",
+      "expected_status": "bounded-private-page",
+      "evidence": "analyst-query.json"
+    },
+    {
+      "id": "profiles",
+      "entrypoint": "install-hermes-profiles.sh",
+      "fixture": "temporary-profile-roots",
+      "expected_status": "reconciled-preserving-protected-state",
+      "evidence": "reconciler-report.json"
+    },
+    {
+      "id": "operations",
+      "entrypoint": "monitor.py + recovery_gate.py",
+      "fixture": "health-and-recovery-signals",
+      "expected_status": "healthy-suppressed-actionable-gated",
+      "evidence": "monitor-evidence.jsonl"
+    },
+    {
+      "id": "deployment",
+      "entrypoint": "deploy-approved.sh + deployment_receipt.py",
+      "fixture": "immutable-artifact-and-rollback-receipt",
+      "expected_status": "mutable-rejected-receipt-verified",
+      "evidence": "deployment-receipt.json"
+    },
+    {
+      "id": "canary",
+      "entrypoint": "plan06 harness",
+      "fixture": "disposable-canary-record",
+      "expected_status": "stop-triggers-predeclared",
+      "evidence": "canary-record.json"
+    }
+  ],
+  "stop_triggers": [
+    "monitor state is unknown or actionable without an approved recovery decision",
+    "profile isolation, protected-state preservation, or placeholder validation fails",
+    "analyst credentials can access maintainer-only routes or records",
+    "artifact or rollback target is not digest pinned",
+    "deployment receipt, migration compatibility, or backup preflight is invalid",
+    "any required repository gate fails"
+  ],
+  "rollback": {
+    "required": true,
+    "target": "last-verified-immutable-receipt",
+    "retain_failed_evidence": true,
+    "authorize_production": false
+  }
+}

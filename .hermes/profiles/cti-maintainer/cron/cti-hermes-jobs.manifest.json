@@ -39,6 +39,7 @@
     "toolsets": [],
     "preflight": "always",
     "wakeAgent": false,
+    "preflight": "always",
     "success_output": "SILENT"
   }
 ]
