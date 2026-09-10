@@ -19,8 +19,8 @@
   },
   {
     "name": "Australian Cyber Security Centre (ACSC) Alerts",
-    "type": "html",
-    "url": "https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories",
+    "type": "rss",
+    "url": "https://www.cyber.gov.au/rss/alerts",
     "category": "cert_advisories"
   },
   {
