@@ -125,7 +125,10 @@ class DailyPipeline:
                     scheduled_for=scheduled,
                 )
                 async with session.begin():
-                    run = await self.repository.persist_collection(
+                    (
+                        run,
+                        persisted_documents,
+                    ) = await self.repository.persist_collection_with_documents(
                         session, registry, collection
                     )
                     if (
@@ -143,8 +146,15 @@ class DailyPipeline:
                             failed_sources=run.failed_sources,
                             error_summary=run.error_summary,
                         )
-                    for document in collection.source_documents:
-                        extraction = extract_document(document, ExtractionConfig())
+                    for document, persisted_document in zip(
+                        collection.source_documents, persisted_documents, strict=True
+                    ):
+                        extraction_document = document.model_copy(
+                            update={"source_document_id": persisted_document.id}
+                        )
+                        extraction = extract_document(
+                            extraction_document, ExtractionConfig()
+                        )
                         observed_at = (
                             collection.manifest.completed_at
                             or collection.manifest.started_at

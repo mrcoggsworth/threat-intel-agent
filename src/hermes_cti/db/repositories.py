@@ -372,10 +372,29 @@ class PersistenceRepository:
     ) -> IngestionRun:
         """Persist one complete collection atomically, including partial outcomes."""
 
+        run, _ = await self.persist_collection_with_documents(
+            session, registry, collection
+        )
+        return run
+
+    async def persist_collection_with_documents(
+        self,
+        session: AsyncSession,
+        registry: SourceRegistry,
+        collection: CollectionResult,
+    ) -> tuple[IngestionRun, tuple[SourceDocumentRecord, ...]]:
+        """Persist a collection and return the identities used by the database.
+
+        A newly collected document can resolve to an existing database row when
+        its canonical identity and content hash are already present. Callers
+        that create foreign-keyed evidence must use these returned records
+        rather than assuming the incoming contract UUID was inserted.
+        """
+
         manifest = collection.manifest
         run = await self.create_or_get_run(session, manifest)
         if run.status == RunStatus.COMPLETED.value and run.completed_at is not None:
-            return run
+            return run, ()
         for source_config in registry.sources:
             await self.upsert_source(session, source_config)
         for result in manifest.source_results:
@@ -397,8 +416,12 @@ class PersistenceRepository:
             await self._update_source_freshness(session, result)
         for artifact in collection.raw_artifacts:
             await self.persist_raw_artifact(session, artifact)
-        for document in collection.source_documents:
-            await self.persist_source_document(session, document)
+        persisted_documents = tuple(
+            [
+                await self.persist_source_document(session, document)
+                for document in collection.source_documents
+            ]
+        )
         run.status = manifest.status.value
         run.started_at = manifest.started_at
         run.completed_at = manifest.completed_at
@@ -408,7 +431,7 @@ class PersistenceRepository:
         run.changed_documents = manifest.changed_documents
         run.unchanged_documents = manifest.unchanged_documents
         run.error_summary = manifest.error_summary
-        return run
+        return run, persisted_documents
 
     async def persist_raw_artifact(
         self,
