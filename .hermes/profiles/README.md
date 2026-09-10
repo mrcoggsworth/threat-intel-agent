@@ -55,6 +55,12 @@ no-agent job with `wakeAgent: false`; successful checks are silent. Manually
 trigger every job, verify failure history and output, then enable recurrence.
 Cron prompts are self-contained and must not create cron jobs.
 
+The maintainer profile also exposes the on-demand skill slash command
+`/ad-hoc-collection`. It uses the private authenticated collection endpoint
+through Caddy and must run from the `cti-maintainer` profile because it requires
+the admin operations token. After it returns a terminal run ID, use the
+`cti-analyst` profile for evidence review and analysis.
+
 ## Verification checklist
 
 For each profile run `profile show` and `doctor`; verify native home, absolute

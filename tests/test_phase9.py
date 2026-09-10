@@ -183,6 +183,17 @@ def test_profiles_separate_governance_and_prompts_contain_no_secret_values() -> 
     installer = (ROOT / "scripts/install-hermes-jobs.sh").read_text()
     assert "deployment state" in analyst
     assert "draft pull requests" in maintainer
+    collection_skill = (
+        ROOT / ".hermes/profiles/cti-maintainer/skills/ad-hoc-collection/SKILL.md"
+    ).read_text()
+    maintainer_config = (
+        ROOT / ".hermes/profiles/cti-maintainer/config.yaml"
+    ).read_text()
+    assert "POST /api/v1/ops/collection" in collection_skill
+    assert "/ad-hoc-collection" in collection_skill
+    assert '    - "ad-hoc-collection"' in maintainer_config
+    assert "X-Admin-Token" in collection_skill
+    assert "admin_token" in collection_skill
     assert "cron add" in installer
     assert "jobs.json" in (ROOT / ".hermes/profiles/README.md").read_text()
     for path in (ROOT / ".hermes").rglob("*.md"):

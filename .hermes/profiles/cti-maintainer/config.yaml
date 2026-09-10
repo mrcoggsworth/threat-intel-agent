@@ -46,6 +46,7 @@ permissions:
 skills:
   path: ".hermes/profiles/cti-maintainer/skills"
   enabled:
+    - "ad-hoc-collection"
     - "repository-orientation"
     - "test-ci-diagnosis"
     - "docker-compose-operations"
