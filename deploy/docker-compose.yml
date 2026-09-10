@@ -76,8 +76,10 @@ services:
       HERMES_DATABASE_URL_FILE: /run/secrets/hermes_database_url
       HERMES_SCHEDULER_HEARTBEAT_FILE: /runtime/scheduler.heartbeat
       HERMES_HEARTBEAT_INTERVAL_SECONDS: "30"
+      HERMES_ABUSECH_API_KEY_FILE: /run/secrets/hermes_abusech_api_key
     secrets:
       - hermes_database_url
+      - hermes_abusech_api_key
     volumes:
       - hermes-runtime:/runtime
     networks:
@@ -228,3 +230,5 @@ secrets:
     file: ${HERMES_SECRET_DIR:?HERMES_SECRET_DIR must point to the protected secret directory}/abuseipdb-api-key
   hermes_nvd_api_key:
     file: ${HERMES_SECRET_DIR:?HERMES_SECRET_DIR must point to the protected secret directory}/nvd-api-key
+  hermes_abusech_api_key:
+    file: ${HERMES_SECRET_DIR:?HERMES_SECRET_DIR must point to the protected secret directory}/abusech-api-key

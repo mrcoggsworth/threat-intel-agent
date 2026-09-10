@@ -10,6 +10,7 @@ from uuid import UUID
 
 import httpx
 import pytest
+from pydantic import SecretStr
 
 from hermes_cti.core.settings import Settings
 from hermes_cti.ingestion.http_client import (
@@ -440,6 +441,48 @@ def test_ingestion_continues_after_one_source_fails_and_emits_manifest() -> None
         collection.manifest.source_results[0].error_classification == "connection_error"
     )
     assert len(collection.raw_artifacts) == 1
+
+
+def test_abusech_key_is_injected_for_abusech_sources() -> None:
+    configured = source(
+        name="ThreatFox Recent Indicators (Abuse.ch)",
+        source_type="json",
+        url="https://threatfox-api.abuse.ch/api/v1/",
+        category="tactical_iocs",
+        request={
+            "method": "POST",
+            "body": {"query": "get_iocs", "days": 7},
+            "body_encoding": "json",
+        },
+    )
+    seen: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(
+            200,
+            headers={"content-type": "application/json"},
+            json={"data": []},
+            request=request,
+        )
+
+    service = IngestionService(
+        Settings(
+            database_required=False,
+            http_max_retries=0,
+            abusech_api_key=SecretStr("fixture-abusech-key"),
+        ),
+        http_client=AsyncHTTPClient(
+            HTTPClientConfig(max_retries=0),
+            transport=httpx.MockTransport(handler),
+        ),
+    )
+    collection = asyncio.run(
+        service.collect_once(SourceRegistry(sources=(configured,)))
+    )
+
+    assert collection.manifest.status is RunStatus.COMPLETED
+    assert seen[0].headers["auth-key"] == "fixture-abusech-key"
 
 
 def test_conditional_requests_use_etag_and_return_not_modified() -> None:

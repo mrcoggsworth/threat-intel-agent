@@ -9,6 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Final
+from urllib.parse import urlsplit
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 from pydantic import ValidationError
@@ -45,6 +46,9 @@ from hermes_cti.models.contracts import (
 logger = logging.getLogger(__name__)
 Clock = Callable[[], datetime]
 _DEFAULT_ORIGIN: Final = "hermes-cti"
+_ABUSECH_API_HOSTS: Final = frozenset(
+    {"threatfox-api.abuse.ch", "urlhaus-api.abuse.ch"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +119,16 @@ class IngestionService:
             HTTPClientConfig.from_settings(self.settings),
         )
 
+    def _request_headers(
+        self, source: SourceConfig, cached: ConditionalValidators
+    ) -> dict[str, str]:
+        headers = cached.headers
+        hostname = urlsplit(str(source.url)).hostname
+        api_key = self.settings.abusech_api_key
+        if hostname and hostname.casefold() in _ABUSECH_API_HOSTS and api_key:
+            headers["Auth-Key"] = api_key.get_secret_value()
+        return headers
+
     async def _collect_source(
         self,
         client: AsyncHTTPClient,
@@ -150,7 +164,7 @@ class IngestionService:
                 fetch = await client.fetch(
                     str(source.url),
                     request=source.request,
-                    headers=cached.headers,
+                    headers=self._request_headers(source, cached),
                     timeout_seconds=source.timeout_seconds,
                     max_response_bytes=source.max_response_bytes,
                 )

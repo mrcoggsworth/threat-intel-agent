@@ -83,6 +83,7 @@ class Settings(BaseSettings):
     abuseipdb_enabled: bool = False
     abuseipdb_api_key: SecretStr | None = None
     abuseipdb_url: str = "https://api.abuseipdb.com/api/v2"
+    abusech_api_key: SecretStr | None = None
 
 
 def _default_config_path() -> Path:

@@ -114,7 +114,7 @@ install_secret_file "$temp_dir/backup-key" "$secret_dir/backup-key"
 
 # Import enrichment keys from profile .env if available, or create placeholders
 analyst_env="${HERMES_PROFILES_DIR:-$user_home/.hermes/profiles}/cti-analyst/.env"
-for key_name in virustotal-api-key otx-api-key abuseipdb-api-key nvd-api-key; do
+for key_name in virustotal-api-key otx-api-key abuseipdb-api-key nvd-api-key abusech-api-key; do
     target="$secret_dir/$key_name"
     if [ ! -f "$target" ]; then
         extracted=""

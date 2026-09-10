@@ -94,7 +94,11 @@ def configure_logging(settings: Settings) -> None:
 
     secret_values = [
         value.get_secret_value()
-        for value in (settings.database_url, settings.secret_key)
+        for value in (
+            settings.database_url,
+            settings.secret_key,
+            settings.abusech_api_key,
+        )
         if value is not None
     ]
     handler = logging.StreamHandler(sys.stdout)
