@@ -25,6 +25,7 @@ from hermes_cti.db.lifecycle import (
 from hermes_cti.db.migrations import run_migrations
 from hermes_cti.db.models import (
     Base,
+    EvidenceClaim,
     IndicatorObservation,
     IngestionRun,
     ModelRun,
@@ -320,6 +321,55 @@ async def test_idempotency_and_changed_document_version(
         assert len(list(runs)) == 1
         assert [record.document_version for record in versions] == [1, 2]
         assert versions[1].supersedes_id == versions[0].id
+
+
+@pytest.mark.asyncio
+async def test_extraction_uses_reconciled_source_document_identity(
+    database: Database,
+) -> None:
+    source = _source("reconciled-source", "https://research.example/feed")
+    repository = PersistenceRepository()
+    first = _collection(
+        run_id=uuid4(),
+        source=source,
+        content="CVE-2026-1234",
+    )
+    second = _collection(
+        run_id=uuid4(),
+        source=source,
+        content="CVE-2026-1234",
+    )
+
+    async with database.transaction() as session:
+        await repository.persist_collection(
+            session, SourceRegistry(sources=(source,)), first
+        )
+
+    async with database.transaction() as session:
+        _, persisted_documents = await repository.persist_collection_with_documents(
+            session, SourceRegistry(sources=(source,)), second
+        )
+        persisted_document = persisted_documents[0]
+        incoming_document = second.source_documents[0]
+        assert persisted_document.id != incoming_document.source_document_id
+
+        extraction_document = incoming_document.model_copy(
+            update={"source_document_id": persisted_document.id}
+        )
+        await repository.persist_extraction(
+            session,
+            extract_document(extraction_document, ExtractionConfig()),
+            second.manifest.ingestion_run_id,
+            second.manifest.started_at,
+        )
+
+    async with database.session() as session:
+        claim_count = await session.scalar(
+            select(func.count())
+            .select_from(EvidenceClaim)
+            .where(EvidenceClaim.source_document_id == persisted_document.id)
+        )
+        assert claim_count == 1
 
 
 @pytest.mark.asyncio
