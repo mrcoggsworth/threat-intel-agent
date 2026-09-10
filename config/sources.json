@@ -174,7 +174,7 @@
   },
   {
     "name": "SigmaHQ Rule Releases",
-    "type": "rss",
+    "type": "atom",
     "url": "https://github.com/SigmaHQ/sigma/releases.atom",
     "category": "detection_engineering"
   },
