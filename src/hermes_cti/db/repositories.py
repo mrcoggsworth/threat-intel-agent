@@ -249,10 +249,18 @@ class PersistenceRepository:
                 SourceConfigurationHistory.configuration_hash == configuration_hash,
             )
         )
+        latest_history_version = await session.scalar(
+            select(func.max(SourceConfigurationHistory.configuration_version)).where(
+                SourceConfigurationHistory.source_id == source.source_id
+            )
+        )
         configuration_version = (
             history.configuration_version
             if history is not None
-            else (existing.configuration_version + 1 if existing is not None else 1)
+            else max(
+                existing.configuration_version + 1 if existing is not None else 1,
+                int(latest_history_version or 0) + 1,
+            )
         )
         values = {
             "source_id": source.source_id,
