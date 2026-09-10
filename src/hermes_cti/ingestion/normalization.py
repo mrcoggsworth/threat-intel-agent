@@ -512,6 +512,60 @@ def normalize_kev(
     return tuple(documents)
 
 
+def normalize_nvd(
+    source: SourceConfig,
+    fetch: FetchResult,
+    artifact: RawArtifactMetadata,
+    payload: dict[str, Any],
+) -> tuple[SourceDocument, ...]:
+    """Normalize an NVD 2.0 JSON feed into one document per CVE."""
+
+    documents: list[SourceDocument] = []
+    for raw_entry in payload.get("vulnerabilities", []):
+        if not isinstance(raw_entry, dict):
+            continue
+        cve = raw_entry.get("cve")
+        if not isinstance(cve, dict):
+            continue
+        cve_id = str(cve.get("id") or "").strip().upper()
+        if not re.fullmatch(r"CVE-\d{4}-\d{4,}", cve_id):
+            continue
+        descriptions: list[str] = []
+        for raw_description in cve.get("descriptions", []):
+            if not isinstance(raw_description, dict):
+                continue
+            if raw_description.get("lang") == "en" and raw_description.get("value"):
+                descriptions.append(normalize_html_text(str(raw_description["value"])))
+        description = next((value for value in descriptions if value), "")
+        references = [
+            str(reference["url"])
+            for reference in cve.get("references", [])
+            if isinstance(reference, dict) and reference.get("url")
+        ]
+        text_parts = [f"CVE: {cve_id}"]
+        if description:
+            text_parts.append(f"Description: {description}")
+        if references:
+            text_parts.append("References: " + ", ".join(references))
+        documents.append(
+            _source_document(
+                source=source,
+                artifact=artifact,
+                external_id=cve_id,
+                canonical_url=f"https://nvd.nist.gov/vuln/detail/{quote(cve_id)}",
+                title=f"{cve_id}: {description}" if description else cve_id,
+                authors=("NIST NVD",),
+                published_at=_parse_datetime(str(cve.get("published") or "")),
+                updated_at=_parse_datetime(str(cve.get("lastModified") or "")),
+                normalized_text="\n".join(text_parts),
+                summary=description or None,
+                language="en",
+                content_type=fetch.content_type or "application/json",
+            )
+        )
+    return _sort_documents(documents)
+
+
 def normalize_json(
     source: SourceConfig, fetch: FetchResult, artifact: RawArtifactMetadata
 ) -> tuple[SourceDocument, ...]:
@@ -523,6 +577,9 @@ def normalize_json(
         raise NormalizationError(
             "invalid_json", "JSON payload could not be parsed"
         ) from exc
+
+    if isinstance(payload, dict) and payload.get("format") == "NVD_CVE":
+        return normalize_nvd(source, fetch, artifact, payload)
 
     if isinstance(payload, dict) and "vulnerabilities" in payload:
         return normalize_kev(source, fetch, artifact)

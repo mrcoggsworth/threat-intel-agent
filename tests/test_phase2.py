@@ -21,6 +21,7 @@ from hermes_cti.ingestion.normalization import (
     NormalizationError,
     normalize_feed,
     normalize_html,
+    normalize_json,
     normalize_kev,
     normalize_pdf,
 )
@@ -187,6 +188,50 @@ def test_malformed_xml_is_classified() -> None:
 
     with pytest.raises(NormalizationError, match="could not be parsed"):
         normalize_feed(configured, fetch, raw)
+
+
+def test_nvd_normalization_produces_one_document_per_cve() -> None:
+    configured = source(
+        name="NIST National Vulnerability Database (NVD)",
+        source_type="json",
+        url="https://example.test/nvd.json",
+        category="vulnerabilities",
+    )
+    body = json.dumps(
+        {
+            "format": "NVD_CVE",
+            "vulnerabilities": [
+                {
+                    "cve": {
+                        "id": "CVE-2026-1234",
+                        "published": "2026-02-01T12:00:00.000",
+                        "lastModified": "2026-02-02T12:00:00.000",
+                        "descriptions": [
+                            {"lang": "en", "value": "An NVD test vulnerability."}
+                        ],
+                        "references": [{"url": "https://example.test/advisory"}],
+                    }
+                }
+            ],
+        }
+    ).encode()
+    response, raw = response_fetch(configured, body, "application/json")
+    fetch = asyncio.run(
+        AsyncHTTPClient(
+            HTTPClientConfig(max_retries=0),
+            transport=httpx.MockTransport(lambda request: response),
+        ).fetch(str(configured.url), max_response_bytes=10_000)
+    )
+
+    documents = normalize_json(configured, fetch, raw)
+
+    assert len(documents) == 1
+    assert documents[0].external_source_id == "CVE-2026-1234"
+    assert (
+        str(documents[0].canonical_url)
+        == "https://nvd.nist.gov/vuln/detail/CVE-2026-1234"
+    )
+    assert "An NVD test vulnerability." in documents[0].normalized_text
 
 
 def test_kev_normalization_produces_complete_documents() -> None:
