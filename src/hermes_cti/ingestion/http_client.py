@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import email.utils
+import gzip
+import io
 import json
 import random
 from collections.abc import Awaitable, Callable, Mapping
@@ -246,6 +248,35 @@ class AsyncHTTPClient:
                 return True
         return False
 
+    @staticmethod
+    def _decompress_gzip(body: bytes, max_response_bytes: int) -> bytes:
+        """Decompress a gzip archive while preserving the response-size bound."""
+
+        chunks: list[bytes] = []
+        total = 0
+        try:
+            with gzip.GzipFile(fileobj=io.BytesIO(body)) as stream:
+                while True:
+                    chunk = stream.read(
+                        min(1024 * 1024, max_response_bytes - total + 1)
+                    )
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > max_response_bytes:
+                        raise FetchError(
+                            "oversized_response",
+                            f"decompressed response exceeds {max_response_bytes} bytes",
+                        )
+                    chunks.append(chunk)
+        except FetchError:
+            raise
+        except (EOFError, OSError) as exc:
+            raise FetchError(
+                "decompression_error", "gzip response could not be decompressed"
+            ) from exc
+        return b"".join(chunks)
+
     def _retry_delay(
         self, attempt: int, retry_after: str | None, policy: RetryPolicy
     ) -> float:
@@ -376,10 +407,22 @@ class AsyncHTTPClient:
                                 attempt,
                             )
                         chunks.append(chunk)
+                    body = b"".join(chunks)
+                    content_type = (
+                        response.headers.get("content-type", "")
+                        .split(";", 1)[0]
+                        .strip()
+                        .casefold()
+                    )
+                    if content_type in {
+                        "application/gzip",
+                        "application/x-gzip",
+                    } or str(response.url).casefold().split("?", 1)[0].endswith(".gz"):
+                        body = self._decompress_gzip(body, max_response_bytes)
                     return FetchResult(
                         str(response.url),
                         response.status_code,
-                        b"".join(chunks),
+                        body,
                         tuple(response.headers.multi_items()),
                         attempt,
                     )

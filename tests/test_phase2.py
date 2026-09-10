@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import gzip
 import json
 from datetime import UTC, datetime
 from uuid import UUID
@@ -252,6 +253,41 @@ def test_duplicates_are_deduplicated_but_changed_content_is_a_new_version() -> N
 
     assert len(documents) == 2
     assert {document.normalized_content_hash for document in documents}.__len__() == 2
+
+
+def test_http_client_decompresses_bounded_gzip_archives() -> None:
+    payload = b"x" * 100
+    compressed = gzip.compress(payload)
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={"content-type": "application/gzip"},
+            content=compressed,
+            request=request,
+        )
+
+    client = AsyncHTTPClient(
+        HTTPClientConfig(max_retries=0),
+        transport=httpx.MockTransport(handler),
+    )
+    result = asyncio.run(
+        client.fetch(
+            "https://example.test/feed.json.gz",
+            request=SourceRequest(expected_content_types=("application/gzip",)),
+            max_response_bytes=200,
+        )
+    )
+    assert result.body == payload
+
+    with pytest.raises(FetchError, match="decompressed response exceeds"):
+        asyncio.run(
+            client.fetch(
+                "https://example.test/feed.json.gz",
+                request=SourceRequest(expected_content_types=("application/gzip",)),
+                max_response_bytes=len(compressed),
+            )
+        )
 
 
 def test_http_client_retries_rate_limit_and_respects_retry_after() -> None:

@@ -19,32 +19,32 @@
   },
   {
     "name": "Australian Cyber Security Centre (ACSC) Alerts",
-    "type": "rss",
-    "url": "https://www.cyber.gov.au/rss/alerts.xml",
+    "type": "html",
+    "url": "https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories",
     "category": "cert_advisories"
   },
   {
     "name": "CERT-EU Security Advisories",
     "type": "rss",
-    "url": "https://cert.europa.eu/publications/security-advisories/rss.xml",
+    "url": "https://cert.europa.eu/publications/security-advisories-rss",
     "category": "cert_advisories"
   },
   {
     "name": "Canadian Centre for Cyber Security Alerts",
     "type": "rss",
-    "url": "https://cyber.gc.ca/api/sitrep/en/rss/alerts",
+    "url": "https://www.cyber.gc.ca/api/cccs/rss/v1/get?feed=alerts_advisories&lang=en",
     "category": "cert_advisories"
   },
   {
     "name": "Google Cloud Threat Intelligence (Mandiant)",
     "type": "rss",
-    "url": "https://cloud.google.com/blog/topics/threat-intelligence/rss",
+    "url": "https://cloudblog.withgoogle.com/topics/threat-intelligence/rss",
     "category": "threat_research"
   },
   {
     "name": "Google Threat Analysis Group",
     "type": "rss",
-    "url": "https://blog.google/threat-analysis-group/rss/",
+    "url": "https://security.googleblog.com/feeds/posts/default",
     "category": "threat_research"
   },
   {
@@ -128,7 +128,7 @@
   {
     "name": "Symantec Threat Intelligence",
     "type": "rss",
-    "url": "https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/rss",
+    "url": "https://sed-cms.broadcom.com/rss/v1/blogs/rss.xml",
     "category": "threat_research"
   },
   {
@@ -140,7 +140,7 @@
   {
     "name": "Microsoft Security Response Center",
     "type": "rss",
-    "url": "https://msrc.microsoft.com/blog/feed",
+    "url": "https://api.msrc.microsoft.com/update-guide/rss",
     "category": "vendor_advisories"
   },
   {
@@ -151,14 +151,19 @@
   },
   {
     "name": "NIST National Vulnerability Database (NVD)",
-    "type": "rss",
-    "url": "https://nvd.nist.gov/feeds/xml/cve/misc/nvd-rss.xml",
+    "type": "json",
+    "url": "https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-recent.json.gz",
+    "max_response_bytes": 52428800,
+    "request": {
+      "expected_content_types": ["application/gzip", "application/x-gzip"]
+    },
     "category": "vulnerabilities"
   },
   {
     "name": "Google Project Zero",
     "type": "rss",
     "url": "https://googleprojectzero.blogspot.com/feeds/posts/default?alt=rss",
+    "max_response_bytes": 52428800,
     "category": "vulnerabilities"
   },
   {
@@ -188,7 +193,13 @@
   {
     "name": "ThreatFox Recent Indicators (Abuse.ch)",
     "type": "json",
-    "url": "https://threatfox-api.abuse.ch/api/v1/get_iocs/",
+    "url": "https://threatfox-api.abuse.ch/api/v1/",
+    "request": {
+      "method": "POST",
+      "body": {"query": "get_iocs", "days": 7},
+      "body_encoding": "json",
+      "expected_content_types": ["application/json"]
+    },
     "category": "tactical_iocs"
   },
   {
@@ -230,7 +241,7 @@
   {
     "name": "Ars Technica Security",
     "type": "rss",
-    "url": "https://feeds.arstechnica.com/arstechnica/security",
+    "url": "https://feeds.arstechnica.com/arstechnica/index",
     "category": "news"
   }
 ]
