@@ -18,12 +18,6 @@
     "category": "cert_advisories"
   },
   {
-    "name": "Australian Cyber Security Centre (ACSC) Alerts",
-    "type": "rss",
-    "url": "https://www.cyber.gov.au/rss/alerts",
-    "category": "cert_advisories"
-  },
-  {
     "name": "CERT-EU Security Advisories",
     "type": "rss",
     "url": "https://cert.europa.eu/publications/security-advisories-rss",
