@@ -91,6 +91,14 @@ class RunRepository:
         )
         return result.scalar_one_or_none()
 
+    async def by_id(self, session: AsyncSession, run_id: UUID) -> IngestionRun | None:
+        """Return one persisted ingestion run by its stable identifier."""
+
+        result = await session.execute(
+            select(IngestionRun).where(IngestionRun.id == run_id)
+        )
+        return result.scalar_one_or_none()
+
     @staticmethod
     def _attempt_timestamp() -> Any:
         """Return the latest known event timestamp for an ingestion run."""

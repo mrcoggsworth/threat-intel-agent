@@ -48,7 +48,7 @@ def _source(**overrides: object) -> dict[str, object]:
 def test_current_source_registry_is_valid_and_backward_compatible() -> None:
     registry = load_source_registry()
 
-    assert len(registry.sources) == 39
+    assert len(registry.sources) == 38
     assert registry.sources == tuple(
         sorted(registry.sources, key=lambda item: item.source_id)
     )

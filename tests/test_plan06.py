@@ -118,7 +118,7 @@ def test_plan06_matrix_and_canary_contract_are_complete() -> None:
 
 def test_ingestion_fixtures_preserve_full_partial_and_failed_semantics() -> None:
     registry = load_source_registry(ROOT / "config/sources.json")
-    assert len(registry.sources) >= 39
+    assert len(registry.sources) == 38
     assert len({source.category for source in registry.sources}) == 8
 
     full = collect_fixture_run(set())

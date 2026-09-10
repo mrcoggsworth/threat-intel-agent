@@ -22,6 +22,7 @@ from hermes_cti.core.settings import Settings, load_settings
 from hermes_cti.db.readiness import DatabaseReadinessChecker, ReadinessChecker
 from hermes_cti.db.session import Database
 from hermes_cti.enrichment.service import EnrichmentService
+from hermes_cti.ops.collection_trigger import CollectionTriggerManager
 from hermes_cti.portal.routes import router as portal_router
 from hermes_cti.portal.security import PortalSecurityHeadersMiddleware
 from hermes_cti.portal.service import PortalService, PortalUnavailableError
@@ -53,6 +54,7 @@ def create_app(
         else None
     )
     app.state.database = database
+    app.state.collection_trigger_manager = CollectionTriggerManager()
     app.state.portal_service = portal_service or PortalService(database=database)
     if portal_service is not None and database is None:
         app.state.database = getattr(portal_service, "database", None)

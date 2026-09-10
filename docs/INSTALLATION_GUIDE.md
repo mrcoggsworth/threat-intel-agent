@@ -245,8 +245,18 @@ HERMES_ANALYST_SERVICE_TOKEN_FILE=/home/YOUR_USER/.local/state/cti-hermes/secret
 ### 1. Trigger Initial Ingestion Run
 To fetch all feeds from `config/sources.json`, extract IOCs/CVEs, and persist data:
 ```bash
-docker exec cti-hermes-web-1 hermes-cti db run-daily
+ADMIN_TOKEN=$(cat ~/.local/state/cti-hermes/secrets/admin-token)
+curl -k --fail --show-error \
+  -X POST \
+  -H "X-Admin-Token: $ADMIN_TOKEN" \
+  https://YOUR_PRIVATE_HOST:9444/api/v1/ops/collection
 ```
+
+The endpoint returns HTTP `202` with a `trigger_id`, `run_id`, and `status_url`.
+Poll the returned `status_url` with the same `X-Admin-Token` header until the
+status is `completed`, `failed`, or `lock_busy`. A `lock_busy` result means the
+scheduler or another manual request is already collecting; do not start a
+second CLI run.
 
 ### 2. Verify Database Persistence
 ```bash

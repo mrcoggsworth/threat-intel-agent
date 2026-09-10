@@ -71,7 +71,7 @@ First add tests for contract parsing and request snapshots. Then cover:
 - fixture-based parsing for every configured adapter family;
 - duplicate/canonical URL behavior and idempotent reruns;
 - source freshness, failure count, and last-success updates;
-- all 39 configured source entries load successfully.
+- all 38 configured source entries load successfully.
 
 Run Ruff, strict mypy, pytest, and the full frozen environment verification.
 Use network-free fixtures in unit tests; reserve live-source checks for an
@@ -102,4 +102,3 @@ Keep the prior adapter behavior behind a compatibility path while validating
 the registry. Roll back the client and config changes together if a production
 source cannot be represented by the typed contract; do not silently reintroduce
 source-specific behavior outside the registry.
-

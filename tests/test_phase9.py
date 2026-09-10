@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 import yaml
@@ -12,6 +13,7 @@ from pydantic import SecretStr
 
 from hermes_cti.api.main import create_app
 from hermes_cti.core.settings import Settings, load_settings
+from hermes_cti.ops.collection_trigger import ManualCollectionTrigger
 from tests.test_phase8 import MemoryPortalService
 
 ROOT = Path(__file__).parents[1]
@@ -120,6 +122,59 @@ def test_scheduler_heartbeat_is_private_and_safe(tmp_path: Path) -> None:
         "heartbeat": "2026-08-24T12:00:00Z",
     }
     assert client.get("/api/v1/ops/scheduler-heartbeat").status_code == 404
+
+
+def test_manual_collection_trigger_is_authenticated_and_returns_status_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings(
+        admin_token=SecretStr("test-admin"),
+        database_required=False,
+    )
+    app = create_app(settings=settings, portal_service=MemoryPortalService())
+    app.state.database = object()
+    trigger = ManualCollectionTrigger(
+        trigger_id=uuid4(),
+        run_id=uuid4(),
+        idempotency_key="manual:test",
+        total_sources=38,
+    )
+    app.state.collection_trigger_manager._triggers[trigger.trigger_id] = trigger
+    monkeypatch.setattr(
+        "hermes_cti.portal.routes.CollectionTriggerManager.submit",
+        lambda *_args: trigger,
+    )
+
+    with TestClient(app) as client:
+        assert client.post("/api/v1/ops/collection").status_code == 404
+        response = client.post(
+            "/api/v1/ops/collection",
+            headers={"X-Admin-Token": "test-admin"},
+        )
+        assert response.status_code == 202
+        body = response.json()
+        assert body["status"] == "queued"
+        assert body["total_sources"] == 38
+        assert body["status_url"].endswith(
+            f"/api/v1/ops/collection/{trigger.trigger_id}"
+        )
+        status_response = client.get(
+            f"/api/v1/ops/collection/{trigger.trigger_id}",
+            headers={"X-Admin-Token": "test-admin"},
+        )
+        assert status_response.status_code == 200
+        assert status_response.json()["run_id"] == str(trigger.run_id)
+
+
+def test_manual_collection_trigger_requires_database() -> None:
+    settings = Settings(admin_token=SecretStr("test-admin"), database_required=False)
+    with TestClient(create_app(settings=settings)) as client:
+        response = client.post(
+            "/api/v1/ops/collection",
+            headers={"X-Admin-Token": "test-admin"},
+        )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "database is not configured"
 
 
 def test_profiles_separate_governance_and_prompts_contain_no_secret_values() -> None:

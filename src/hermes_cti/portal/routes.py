@@ -23,18 +23,22 @@ from hermes_cti.api.dependencies import (
     require_admin_token,
 )
 from hermes_cti.core.settings import load_settings
+from hermes_cti.db.pipeline import DailyPipeline
+from hermes_cti.db.repositories import RunRepository
 from hermes_cti.enrichment.cache import EnrichmentCache
 from hermes_cti.enrichment.cve_analysis import synthesize_cve_analyst_assessment
 from hermes_cti.enrichment.ioc_analysis import synthesize_ioc_analyst_assessment
 from hermes_cti.enrichment.providers import build_providers
 from hermes_cti.enrichment.service import EnrichmentService
 from hermes_cti.extraction.pipeline import refang_text
+from hermes_cti.ingestion.source_config import load_source_registry
 from hermes_cti.models.contracts import (
     AttackTechniqueMapping,
     Remediation,
     Severity,
     ThreatHunt,
 )
+from hermes_cti.ops.collection_trigger import CollectionTriggerManager
 from hermes_cti.portal.contracts import (
     CVEQuery,
     CVESort,
@@ -1037,13 +1041,78 @@ async def ops_run_status(request: Request) -> dict[str, object]:
             "latest_full_success": None,
             "latest_usable": None,
         }
-    from hermes_cti.db.repositories import RunRepository
-
     async with database.session() as session:
         snapshots = await RunRepository().health_snapshot(session)
     return {
         "scope": "private",
         **{snapshot.kind: snapshot.model_dump(mode="json") for snapshot in snapshots},
+    }
+
+
+@router.post(
+    "/api/v1/ops/collection",
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(require_admin_token)],
+)
+async def ops_start_collection(request: Request) -> dict[str, object]:
+    """Queue one authenticated collection against the authoritative registry."""
+
+    database = getattr(request.app.state, "database", None)
+    if database is None:
+        raise HTTPException(status_code=503, detail="database is not configured")
+    try:
+        registry = load_source_registry()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503, detail="source registry is unavailable"
+        ) from exc
+
+    manager: CollectionTriggerManager = request.app.state.collection_trigger_manager
+    trigger = manager.submit(request.app.state.settings, database, registry)
+    return {
+        **trigger.as_dict(),
+        "status_url": str(
+            request.url_for("ops_collection_status", trigger_id=trigger.trigger_id)
+        ),
+    }
+
+
+@router.get(
+    "/api/v1/ops/collection/{trigger_id}",
+    name="ops_collection_status",
+    dependencies=[Depends(require_admin_token)],
+)
+async def ops_collection_status(
+    trigger_id: UUID, request: Request
+) -> dict[str, object]:
+    """Return live trigger state, or its persisted run after a web restart."""
+
+    manager: CollectionTriggerManager = request.app.state.collection_trigger_manager
+    trigger = manager.get(trigger_id)
+    if trigger is not None:
+        return trigger.as_dict()
+
+    database = getattr(request.app.state, "database", None)
+    if database is None:
+        raise HTTPException(status_code=404, detail="collection trigger not found")
+    run_id = DailyPipeline.run_id(f"manual:{trigger_id}")
+    async with database.session() as session:
+        run = await RunRepository().by_id(session, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="collection trigger not found")
+    return {
+        "scope": "private",
+        "trigger_id": str(trigger_id),
+        "run_id": str(run.id),
+        "idempotency_key": run.idempotency_key,
+        "status": run.status,
+        "total_sources": run.total_sources,
+        "successful_sources": run.successful_sources,
+        "failed_sources": run.failed_sources,
+        "queued_at": None,
+        "started_at": run.started_at.isoformat() if run.started_at else None,
+        "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+        "error_summary": run.error_summary,
     }
 
 
