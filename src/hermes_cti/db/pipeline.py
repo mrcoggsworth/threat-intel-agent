@@ -134,8 +134,7 @@ class DailyPipeline:
                     if (
                         run.status == RunStatus.COMPLETED.value
                         and run.completed_at is not None
-                        and run.id != collection.manifest.ingestion_run_id
-                    ):
+                    ) or not persisted_documents:
                         return DailyRunResult(
                             acquired_lock=True,
                             ingestion_run_id=run.id,

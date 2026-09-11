@@ -42,6 +42,7 @@ from hermes_cti.db.models import (
     SourceDocument as SourceDocumentRecord,
 )
 from hermes_cti.db.query_plans import verify_query_plans
+from hermes_cti.db.pipeline import DailyPipeline
 from hermes_cti.db.repositories import PersistenceRepository, RunRepository
 from hermes_cti.db.scheduler import DailyScheduler
 from hermes_cti.db.session import Database
@@ -1135,3 +1136,60 @@ async def test_run_health_selectors_distinguish_partial_failure(
     assert usable.run_id == partial.id
     assert usable.status is RunStatus.FAILED
     assert usable.limitations == ("1 source(s) failed", "source coverage is partial")
+
+
+class _ReplayIngestionService:
+    def __init__(self, source: SourceConfig, content: str) -> None:
+        self.source = source
+        self.content = content
+
+    async def collect_once(
+        self,
+        registry: SourceRegistry,
+        *,
+        ingestion_run_id: UUID,
+        idempotency_key: str,
+        scheduled_for: datetime,
+    ) -> CollectionResult:
+        res = _collection(
+            run_id=ingestion_run_id,
+            source=self.source,
+            content=self.content,
+        )
+        manifest = res.manifest.model_copy(
+            update={
+                "idempotency_key": idempotency_key,
+                "ingestion_run_id": ingestion_run_id,
+                "scheduled_for": scheduled_for,
+            }
+        )
+        return CollectionResult(
+            manifest=manifest,
+            raw_artifacts=res.raw_artifacts,
+            source_documents=res.source_documents,
+        )
+
+
+@pytest.mark.asyncio
+async def test_daily_pipeline_idempotency_replay_does_not_crash(
+    database: Database,
+) -> None:
+    source = _source("pipeline-replay-source", "https://research.example/feed")
+    registry = SourceRegistry(sources=(source,))
+    fake_service = _ReplayIngestionService(
+        source, "Public indicator 1.1.1.1 and CVE-2026-9999"
+    )
+    pipeline = DailyPipeline(Settings(), database, ingestion_service=fake_service)  # type: ignore[arg-type]
+    scheduled = datetime(2026, 8, 22, 7, tzinfo=UTC)
+
+    # First run completes normally and persists documents & extractions
+    result1 = await pipeline.run_once(registry, scheduled_for=scheduled)
+    assert result1.acquired_lock is True
+    assert result1.run_status is RunStatus.COMPLETED
+
+    # Second run with same scheduled instant replays completed run without zip() crash
+    result2 = await pipeline.run_once(registry, scheduled_for=scheduled)
+    assert result2.acquired_lock is True
+    assert result2.run_status is RunStatus.COMPLETED
+    assert result2.ingestion_run_id == result1.ingestion_run_id
+
