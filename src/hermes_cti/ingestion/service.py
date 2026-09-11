@@ -250,12 +250,20 @@ class IngestionService:
                     "normalized document was invalid",
                     0,
                 )
-            except Exception:
+            except Exception as exc:
+                logger.exception(
+                    "unexpected error during source collection",
+                    extra={
+                        "event": "source_collection_unexpected_exception",
+                        "component": "ingestion",
+                        "source_id": source.source_id,
+                    },
+                )
                 return self._failed_source(
                     source,
                     started_at,
                     "unexpected_error",
-                    "source processing failed",
+                    f"source processing failed: {exc}",
                     0,
                 )
 
