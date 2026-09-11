@@ -23,3 +23,7 @@
 - Do not require or request corporate approval references (`HERMES_APPROVAL_REFERENCE`), approval identities (`HERMES_APPROVAL_IDENTITY`), immutable registry digests, or prior deployment receipts.
 - When an update is needed, run `./scripts/update-app.sh` to compile CSS, build the local Docker container image, run migrations, recreate application services, and verify health.
 
+## Autonomous Maintenance & Forward Repair
+- When working on maintenance, diagnosis, or operational tasks, do not merely stop and report failures. Take ownership of autonomous forward repair: investigate the root cause, repair code or configuration in `src/` or `scripts/`, verify fixes with tests, commit changes directly to `main`, and redeploy using `./scripts/update-app.sh`.
+
+

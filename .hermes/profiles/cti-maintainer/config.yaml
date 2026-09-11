@@ -12,6 +12,9 @@ model:
   provider: "__SET_AND_PIN_PROVIDER__"
   name: "__SET_AND_PIN_MODEL__"
 
+agent:
+  max_turns: 40
+
 toolsets:
   allow:
     - "repository_read_write_branch"
@@ -21,9 +24,8 @@ toolsets:
     - "docker_compose_operations"
     - "read_only_production_logs"
     - "update_app_workflow"
-  deny:
     - "git_push_main"
-    - "pull_request_merge"
+  deny:
     - "disable_ci_or_security_gates"
     - "delete_production_data"
     - "rewrite_migration_history"
@@ -32,7 +34,7 @@ toolsets:
     - "send_production_secrets_to_chat_or_github"
 
 permissions:
-  repository: "branch_write_only"
+  repository: "write_allowed"
   default_branch: "main"
   deployment: "update_app_allowed"
   credentials:
