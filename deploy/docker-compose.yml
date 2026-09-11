@@ -25,6 +25,7 @@ services:
       HERMES_VIRUSTOTAL_API_KEY_FILE: /run/secrets/hermes_virustotal_api_key
       HERMES_OTX_API_KEY_FILE: /run/secrets/hermes_otx_api_key
       HERMES_ABUSEIPDB_API_KEY_FILE: /run/secrets/hermes_abuseipdb_api_key
+      HERMES_ABUSECH_API_KEY_FILE: /run/secrets/hermes_abusech_api_key
       HERMES_NVD_API_KEY_FILE: /run/secrets/hermes_nvd_api_key
       HERMES_SCHEDULER_HEARTBEAT_FILE: /runtime/scheduler.heartbeat
     secrets:
@@ -35,6 +36,7 @@ services:
       - hermes_virustotal_api_key
       - hermes_otx_api_key
       - hermes_abuseipdb_api_key
+      - hermes_abusech_api_key
       - hermes_nvd_api_key
     networks:
       - edge
