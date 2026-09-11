@@ -162,9 +162,12 @@ services:
       - hermes-backups:/backups:ro
     networks:
       - backend
+    depends_on:
+      web:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "/app/scripts/monitor.py"]
+      test: ["CMD-SHELL", "test -s /runtime/monitor-evidence.json && find /runtime/monitor-evidence.json -mmin -3 | grep -q ."]
       interval: 60s
       timeout: 15s
       retries: 3

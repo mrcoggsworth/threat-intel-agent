@@ -354,8 +354,9 @@ def main() -> int:
         failures = check()
         if failures:
             print("hermes monitor failed: " + ", ".join(failures), file=sys.stderr)
-            return 1
-        if not args.loop:
+            if not args.loop:
+                return 1
+        elif not args.loop:
             return 0
         time.sleep(float(_env("HERMES_MONITOR_INTERVAL_SECONDS", "60")))
 
