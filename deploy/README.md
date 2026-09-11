@@ -41,8 +41,9 @@ Configure the existing Caddy container with an upstream to
 `https://matrix-1.taild27e3c.ts.net:9443` and the web container remains
 loopback-only. Confirm the dashboard and API hostname resolve only from the
 LAN/Tailscale network.
-The configured private hostname is `ops.cti-hermes.home.arpa`; provide local
-DNS or `/etc/hosts` resolution for it.
+The configured private hostname is `hermes.cti.scogin.dev`, resolved by the
+internal Pi-hole DNS service. For remote access over Tailscale, use
+`https://matrix-1.taild27e3c.ts.net:9444` instead.
 Keep HERMES_WEB_BIND_ADDRESS set to 127.0.0.1 so the application is never directly
 reachable from the network.
 

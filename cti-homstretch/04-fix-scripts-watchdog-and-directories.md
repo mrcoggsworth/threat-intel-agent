@@ -9,7 +9,7 @@ You are a software engineer and script maintainer. Your objective is to fix the 
 1. **Python Indentation Bug in [`scripts/install-hermes-profiles.sh`](file:///home/cptcoggsworth/code/threat-intel-agent/scripts/install-hermes-profiles.sh#L164-L167):**
    ```python
        text = text.replace("/home/$USER/code/threat-intel-agent/", repo)
-       text = text.replace("https://ops.cti-hermes.home.arpa", service_url)
+       text = text.replace("https://hermes.cti.scogin.dev", service_url)
    text = text.replace("https://matrix-1.taild27e3c.ts.net:9443", service_url)
        text = text.replace(sentinel, destination)
    ```
@@ -37,7 +37,7 @@ You are a software engineer and script maintainer. Your objective is to fix the 
    Indent line 165 by 4 spaces so that the Python block is syntactically valid:
    ```python
        text = text.replace("/home/$USER/code/threat-intel-agent/", repo)
-       text = text.replace("https://ops.cti-hermes.home.arpa", service_url)
+       text = text.replace("https://hermes.cti.scogin.dev", service_url)
        text = text.replace("https://matrix-1.taild27e3c.ts.net:9443", service_url)
        text = text.replace(sentinel, destination)
    ```

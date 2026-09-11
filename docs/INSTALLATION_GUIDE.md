@@ -47,7 +47,7 @@ flowchart TB
     end
 
     N1 -->|Proxy 127.0.0.1:18000| WEB
-    N2 -->|Proxy Host: ops.cti-hermes.home.arpa| WEB
+    N2 -->|Proxy Host: hermes.cti.scogin.dev| WEB
     WEB --> PG
     SCHED --> PG
     BAK --> PG
@@ -270,7 +270,7 @@ UNION ALL SELECT 'evidence_claim', count(*) FROM evidence_claim;
 ### 3. Check Operations Status
 ```bash
 ADMIN_TOKEN=$(cat ~/.local/state/cti-hermes/secrets/admin-token)
-curl -s -H "X-Admin-Token: $ADMIN_TOKEN" -H "Host: ops.cti-hermes.home.arpa" http://127.0.0.1:18000/api/v1/ops/last-success
+curl -s -H "X-Admin-Token: $ADMIN_TOKEN" -H "Host: hermes.cti.scogin.dev" http://127.0.0.1:18000/api/v1/ops/last-success
 ```
 
 ---

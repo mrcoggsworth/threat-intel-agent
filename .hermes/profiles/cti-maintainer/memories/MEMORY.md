@@ -7,7 +7,6 @@ in approved runbooks and audit records.
 - Repository default branch is `main`; changes use focused branches and draft
   pull requests.
 - `config/sources.json` is authoritative; do not silently replace feeds.
-- Production uses immutable images, external Docker secrets, explicit
-  migrations, encrypted PostgreSQL backups, smoke tests, and rollback records.
-- Deployment requires an approval reference and must preserve a compatible
-  previous image.
+- Production environment is a home lab running on the matrix host.
+- Application updates and deployments are managed via `./scripts/update-app.sh`.
+- Do not require corporate approval references, approval identities, or prior deployment receipts.

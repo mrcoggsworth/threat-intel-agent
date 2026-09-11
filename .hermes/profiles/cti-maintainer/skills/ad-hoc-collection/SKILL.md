@@ -27,7 +27,7 @@ URL below, or override it with `HERMES_CTI_PRIVATE_SERVICE_URL` when the home
 lab uses a different private DNS name or port:
 
 ```text
-Private service URL: https://ops.cti-hermes.home.arpa
+Private service URL: https://hermes.cti.scogin.dev
 Manual trigger: POST /api/v1/ops/collection
 Trigger status: GET /api/v1/ops/collection/{trigger_id}
 Authentication: X-Admin-Token
@@ -52,7 +52,7 @@ prints only the API response fields needed for operator follow-up.
 ```bash
 set -Eeuo pipefail
 
-private_service_url="${HERMES_CTI_PRIVATE_SERVICE_URL:-https://ops.cti-hermes.home.arpa}"
+private_service_url="${HERMES_CTI_PRIVATE_SERVICE_URL:-https://hermes.cti.scogin.dev}"
 token_file="${HERMES_CTI_ADMIN_TOKEN_FILE:-/home/$(id -un)/.local/state/cti-hermes/secrets/admin-token}"
 if [[ ! -r "$token_file" && -r /etc/hermes/cti-maintainer/admin-token ]]; then
     token_file="/etc/hermes/cti-maintainer/admin-token"

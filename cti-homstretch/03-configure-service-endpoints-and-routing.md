@@ -1,39 +1,41 @@
 # Task 03: Configure Service Endpoints & Network Routing
 
 ## Role & Goal
-You are a networking and API systems engineer. Your objective is to configure the service endpoint URLs in the Hermes agent profiles and host environment so that both the `cti-analyst` and `cti-maintainer` profiles can reliably communicate with the CTI FastAPI service through Nginx and local loopback.
+You are a networking and API systems engineer. Your objective is to configure the service endpoint URLs in the Hermes agent profiles and host environment so that both the `cti-analyst` and `cti-maintainer` profiles can reliably communicate with the CTI FastAPI service through the local Caddy container and loopback.
 
 ---
 
 ## Background & Diagnosis
-1. Host Nginx ([`/etc/nginx/sites-available/cti-hermes`](file:///etc/nginx/sites-available/cti-hermes)) is active and bound to Tailscale IP `100.68.61.10` with two dedicated ports:
+1. The local Caddy container is bound to Tailscale IP `100.68.61.10` with two dedicated ports:
    - **Port 9443 (`https://matrix-1.taild27e3c.ts.net:9443`)**: Analyst & Public Portal surface. It exposes `/api/v1/analyst/*` and `/reports` while explicitly returning 404 for ops/admin endpoints.
-   - **Port 9444 (`https://matrix-1.taild27e3c.ts.net:9444`)**: Private Operations & Admin surface. It sets `Host: ops.cti-hermes.home.arpa` and exposes `/health/ready`, `/version`, `/api/v1/ops/*`, and `/api/v1/admin/*`.
+   - **Port 9444 (`https://matrix-1.taild27e3c.ts.net:9444`)**: Private Operations & Admin surface. Caddy routes this surface to the loopback Hermes web port and exposes `/health/ready`, `/version`, `/api/v1/ops/*`, and `/api/v1/admin/*`.
    - **Loopback (`http://127.0.0.1:18000`)**: Direct unproxied container port mapped from `cti-hermes-web-1`.
 
 2. The existing profile `.env` and prompt files configure:
    ```dotenv
-   PRIVATE_SERVICE_URL=https://ops.cti-hermes.home.arpa
-   HERMES_PRIVATE_SERVICE_URL=https://ops.cti-hermes.home.arpa
+   PRIVATE_SERVICE_URL=https://hermes.cti.scogin.dev
+   HERMES_PRIVATE_SERVICE_URL=https://hermes.cti.scogin.dev
    ```
-   Because `ops.cti-hermes.home.arpa` is not configured in local DNS or `/etc/hosts`, all requests initiated by the agents immediately fail:
-   ```text
-   Errno -2, Name or service not known
-   ```
+   The internal DNS record is managed by Pi-hole. Do not add a local
+   `/etc/hosts` mapping; use the Tailscale URL above when off the LAN.
 
 ---
 
 ## Instructions
 
-1. **Add Host Mapping for `ops.cti-hermes.home.arpa` (if using `.home.arpa` domain):**
-   If the deployment architecture specifies using `ops.cti-hermes.home.arpa`, ensure `/etc/hosts` includes the loopback or Tailscale mapping:
-   ```bash
-   # Check if entry exists:
-   grep -q "ops.cti-hermes.home.arpa" /etc/hosts || echo "127.0.0.1 ops.cti-hermes.home.arpa" | sudo tee -a /etc/hosts
-   ```
-   *(Note: Nginx port 9444 expects TLS on `100.68.61.10:9444` and injects `Host: ops.cti-hermes.home.arpa` automatically).*
+1. **Use the internal DNS name or Tailscale alternative:**
+   On the internal network, use `https://hermes.cti.scogin.dev`. From a remote
+   Tailscale client, use `https://matrix-1.taild27e3c.ts.net:9444`.
+   Do not add a `.home.arpa` host mapping; the internal DNS record is managed
+   by Pi-hole.
 
-2. **Update Analyst Profile Environment (`~/.hermes/profiles/cti-analyst/.env`):**
+2. **Validate and reload the Caddy container:**
+   ```bash
+   docker exec caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+   docker compose --file ~/caddy/docker-compose.yml up --detach caddy
+   ```
+
+3. **Update Analyst Profile Environment (`~/.hermes/profiles/cti-analyst/.env`):**
    Update [`~/.hermes/profiles/cti-analyst/.env`](file:///home/cptcoggsworth/.hermes/profiles/cti-analyst/.env) with the accessible service endpoints:
    ```dotenv
    HERMES_ANALYST_SERVICE_URL=https://matrix-1.taild27e3c.ts.net:9443
@@ -42,7 +44,7 @@ You are a networking and API systems engineer. Your objective is to configure th
    ```
    *(For offline/local testing without Tailscale TLS verification, `http://127.0.0.1:18000` can be used directly).*
 
-3. **Update Maintainer Profile Environment (`~/.hermes/profiles/cti-maintainer/.env`):**
+4. **Update Maintainer Profile Environment (`~/.hermes/profiles/cti-maintainer/.env`):**
    Update [`~/.hermes/profiles/cti-maintainer/.env`](file:///home/cptcoggsworth/.hermes/profiles/cti-maintainer/.env):
    ```dotenv
    PRIVATE_SERVICE_URL=https://matrix-1.taild27e3c.ts.net:9444
@@ -50,7 +52,7 @@ You are a networking and API systems engineer. Your objective is to configure th
    HERMES_PUBLIC_BASE_URL=https://matrix-1.taild27e3c.ts.net:9443
    ```
 
-4. **Update Staging Prompts (Repository & Profiles):**
+5. **Update Staging Prompts (Repository & Profiles):**
    Review prompt markdown files in:
    - `~/.hermes/profiles/cti-analyst/prompts/`
    - `~/.hermes/profiles/cti-maintainer/prompts/`

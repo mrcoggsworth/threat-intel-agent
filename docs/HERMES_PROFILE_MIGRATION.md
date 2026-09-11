@@ -26,9 +26,10 @@ loopback-published Hermes web container at `127.0.0.1:18000`; the Hermes
 analyst profile must use the HTTPS URL, not the loopback address. The 9443
 surface is allowlisted to Tailscale clients and requires `X-Analyst-Token`.
 
-The separate operations surface remains `ops.cti-hermes.home.arpa` on the
-private Caddy listener. For direct local Compose testing before Caddy and DNS
-are ready, use `http://127.0.0.1:18000` for the analyst API. `/etc/hosts` maps
+The separate operations surface is `hermes.cti.scogin.dev` on the internal
+Pi-hole DNS listener. For remote access over Tailscale, use
+`https://matrix-1.taild27e3c.ts.net:9444`. For direct local Compose testing
+before Caddy and DNS are ready, use `http://127.0.0.1:18000`. `/etc/hosts` maps
 only names to IP addresses; ports belong in the URL.
 
 If an endpoint changes later, update local DNS or hosts files, the Caddy
@@ -183,7 +184,7 @@ It rewrites only the copied files, never the repository source. The following
 values are localized:
 
 - `/home/$USER/code/threat-intel-agent/` → the selected repository path.
-- `https://ops.cti-hermes.home.arpa` → `--private-service-url` when supplied.
+- `https://hermes.cti.scogin.dev` → `--private-service-url` when supplied.
 - Staging profile paths → the selected runtime profile paths.
 
 `PRIVATE_SERVICE_URL` is needed when jobs use private readiness, run-manifest,

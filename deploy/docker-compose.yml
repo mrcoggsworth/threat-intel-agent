@@ -147,7 +147,7 @@ services:
     command: ["python", "/app/scripts/monitor.py", "--loop"]
     environment:
       HERMES_PUBLIC_BASE_URL: http://web:8000
-      HERMES_PRIVATE_HOST: ${HERMES_PRIVATE_HOST:-ops.cti-hermes.home.arpa}
+      HERMES_PRIVATE_HOST: ${HERMES_PRIVATE_HOST:-hermes.cti.scogin.dev}
       HERMES_PRIVATE_BASE_URL: http://web:8000
       HERMES_ADMIN_TOKEN_FILE: /run/secrets/hermes_admin_token
       HERMES_HEARTBEAT_FILE: /runtime/scheduler.heartbeat
@@ -190,7 +190,7 @@ services:
     environment:
       SMOKE_CONNECT_TIMEOUT_SECONDS: "5"
       SMOKE_TOTAL_TIMEOUT_SECONDS: "15"
-      HERMES_PRIVATE_HOST: ${HERMES_PRIVATE_HOST:-ops.cti-hermes.home.arpa}
+      HERMES_PRIVATE_HOST: ${HERMES_PRIVATE_HOST:-hermes.cti.scogin.dev}
     secrets:
       - hermes_admin_token
     volumes:

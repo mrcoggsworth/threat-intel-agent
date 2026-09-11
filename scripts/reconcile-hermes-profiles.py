@@ -137,7 +137,7 @@ def render_bytes(
         ),
         (f".hermes/profiles/{profile}/", f"{destination.as_posix()}/"),
         ("/home/$USER/code/threat-intel-agent/", f"{inputs.repo.as_posix()}/"),
-        ("https://ops.cti-hermes.home.arpa", inputs.private_service_url),
+        ("https://hermes.cti.scogin.dev", inputs.private_service_url),
         ("https://matrix-1.taild27e3c.ts.net:9443", inputs.analyst_service_url),
         ("__SET_AND_PIN_MODEL__", inputs.model),
         ("__SET_AND_PIN_PROVIDER__", inputs.provider),

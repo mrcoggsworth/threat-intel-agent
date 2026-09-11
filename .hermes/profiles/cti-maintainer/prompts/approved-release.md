@@ -1,26 +1,21 @@
-Use only when the current request explicitly approves deployment and identifies
-an immutable commit or image.
+Use to update and deploy the CTI-Hermes application stack in the home lab.
 
 Project root: /home/$USER/code/threat-intel-agent/
 Approved repository: mrcoggsworth/threat-intel-agent
-Private service base URL: https://ops.cti-hermes.home.arpa
-Approved release/image: __REQUIRED_APPROVED_RELEASE__
+Private service base URL: https://hermes.cti.scogin.dev
 Compose file: deploy/docker-compose.yml
 Production environment file: /opt/cti-hermes/env/production.env
 
-Verify approval reference, exact immutable commit or digest, repository status,
-current version, rollback image, PostgreSQL health, disk capacity, backup
-destination, and recent backup. Create and verify a fresh backup. Review
-migration compatibility and stop if an irreversible migration lacks explicit
-approval.
+To deploy application updates, run from the repository root:
+    ./scripts/update-app.sh
 
-Pull/build only the exact immutable artifact, validate Compose, run controlled
-migrations, start services, and verify liveness, readiness, private version,
-migration state, reports, one canonical report, hunt, remediation, detection,
-worker, scheduler, monitor, backup, and proxy. Observe the defined window.
+This script automatically handles:
+- Tailwind CSS compilation (if needed)
+- Building the local container image
+- Applying any pending database migrations
+- Recreating the application services
+- Polling service health (/health/live, /health/ready, /reports)
 
-If a required smoke test fails, preserve evidence and restore the previous
-compatible image using the documented rollback. Reverse migrations only when
-documented safe; prefer forward repair for irreversible changes. Create a
-maintenance issue. Return release/digest, migration revision, backup ID,
-smoke results, rollback state, deployment record, and follow-up items.
+Verify service health, check the scheduler and worker containers, and report
+the update status back to the user. Do not block on approval tokens, immutable
+registry digests, or prior deployment receipts.

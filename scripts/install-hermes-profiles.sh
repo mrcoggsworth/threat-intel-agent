@@ -34,7 +34,7 @@ EOF
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 hermes_root="${HERMES_HOME:-$HOME/.hermes}"
 runtime_root="${HERMES_RUNTIME_ROOT:-$hermes_root/profiles}"
-private_service_url="${PRIVATE_SERVICE_URL:-${HERMES_PRIVATE_SERVICE_URL:-https://ops.cti-hermes.home.arpa}}"
+private_service_url="${PRIVATE_SERVICE_URL:-${HERMES_PRIVATE_SERVICE_URL:-https://hermes.cti.scogin.dev}}"
 analyst_service_url="${HERMES_ANALYST_SERVICE_URL:-https://matrix-1.taild27e3c.ts.net:9443}"
 model="${HERMES_MODEL:-}"
 provider="${HERMES_PROVIDER:-}"

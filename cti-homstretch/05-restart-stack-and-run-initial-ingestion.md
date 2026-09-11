@@ -71,7 +71,7 @@ You are a site reliability and operations engineer. Your objective is to recreat
 2. Verify Last Success Endpoint:
    ```bash
    ADMIN_TOKEN=$(cat /home/cptcoggsworth/.local/state/cti-hermes/secrets/admin-token)
-   curl -s -H "X-Admin-Token: $ADMIN_TOKEN" -H "Host: ops.cti-hermes.home.arpa" http://127.0.0.1:18000/api/v1/ops/last-success
+   curl -s -H "X-Admin-Token: $ADMIN_TOKEN" -H "Host: hermes.cti.scogin.dev" http://127.0.0.1:18000/api/v1/ops/last-success
    ```
    **Expected Output:**
    ```json

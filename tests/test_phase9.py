@@ -45,13 +45,13 @@ def test_production_compose_has_private_topology_and_one_application_image() -> 
     assert "HERMES_PRIVATE_HOST" in compose_text
 
 
-def test_internal_proxy_has_lan_and_tailscale_allowlist() -> None:
-    proxy = (ROOT / "deploy/proxy/nginx.conf").read_text()
-    assert "allow 100.64.0.0/10;" in proxy
-    assert "allow fd7a:115c:a1e0::/48;" in proxy
-    assert proxy.count("deny all;") >= 3
-    assert "public_rate" not in proxy
-    assert "ops.cti-hermes.home.arpa" in proxy
+def test_ingress_is_caddy_only() -> None:
+    compose_text = (ROOT / "deploy/docker-compose.yml").read_text()
+    deployment_readme = (ROOT / "deploy/README.md").read_text()
+    assert "Caddy" in compose_text or "Caddy" in deployment_readme
+    assert not (ROOT / "deploy/proxy/nginx.conf").exists()
+    assert not (ROOT / "deploy/host-nginx/cti-hermes").exists()
+    assert "nginx" not in compose_text.lower()
 
 
 def test_production_dockerfile_is_multistage_and_non_root() -> None:

@@ -30,7 +30,7 @@ flowchart TD
 | :--- | :--- | :--- |
 | **01** | [`01-fix-scheduler-network-egress.md`](file:///home/cptcoggsworth/code/threat-intel-agent/cti-homstretch/01-fix-scheduler-network-egress.md) | Grant the Docker `scheduler` container internet egress so it can fetch public threat feeds. |
 | **02** | [`02-provision-secrets-and-analyst-auth.md`](file:///home/cptcoggsworth/code/threat-intel-agent/cti-homstretch/02-provision-secrets-and-analyst-auth.md) | Generate `analyst-token`, mount it in `web`, configure profile credentials, and resolve API 404 fail-closed behavior. |
-| **03** | [`03-configure-service-endpoints-and-routing.md`](file:///home/cptcoggsworth/code/threat-intel-agent/cti-homstretch/03-configure-service-endpoints-and-routing.md) | Align host resolution and Nginx port routing (Tailscale 9443/9444 and loopback 18000). |
+| **03** | [`03-configure-service-endpoints-and-routing.md`](file:///home/cptcoggsworth/code/threat-intel-agent/cti-homstretch/03-configure-service-endpoints-and-routing.md) | Align internal DNS, Caddy container routing, and split Tailscale ports 9443/9444 with loopback 18000. |
 | **04** | [`04-fix-scripts-watchdog-and-directories.md`](file:///home/cptcoggsworth/code/threat-intel-agent/cti-homstretch/04-fix-scripts-watchdog-and-directories.md) | Fix script syntax bugs, watchdog path duplication in cron, and create `portal/analyst-output`. |
 | **05** | [`05-restart-stack-and-run-initial-ingestion.md`](file:///home/cptcoggsworth/code/threat-intel-agent/cti-homstretch/05-restart-stack-and-run-initial-ingestion.md) | Restart Compose stack, execute `hermes-cti db run-daily`, populate PostgreSQL, and clear monitor failure loop. |
 | **06** | [`06-execute-analyst-pipeline-and-verify-portal.md`](file:///home/cptcoggsworth/code/threat-intel-agent/cti-homstretch/06-execute-analyst-pipeline-and-verify-portal.md) | Trigger `cti-analyst` run, submit proposals/reports to API, and verify dynamic portal renders intelligence. |
@@ -43,7 +43,7 @@ flowchart TD
 - **CTI Application Code**: [`src/hermes_cti/`](file:///home/cptcoggsworth/code/threat-intel-agent/src/hermes_cti)
 - **Deployment Config**: [`deploy/docker-compose.yml`](file:///home/cptcoggsworth/code/threat-intel-agent/deploy/docker-compose.yml)
 - **Docker Secrets Root**: `/home/cptcoggsworth/.local/state/cti-hermes/secrets/`
-- **Host Nginx Config**: [`/etc/nginx/sites-available/cti-hermes`](file:///etc/nginx/sites-available/cti-hermes)
+- **Caddy Config**: `~/caddy/Caddyfile` in the local Caddy Docker container
 - **Analyst Profile Root**: `~/.hermes/profiles/cti-analyst/`
 - **Maintainer Profile Root**: `~/.hermes/profiles/cti-maintainer/`
 - **Authoritative Source Registry**: [`config/sources.json`](file:///home/cptcoggsworth/code/threat-intel-agent/config/sources.json)

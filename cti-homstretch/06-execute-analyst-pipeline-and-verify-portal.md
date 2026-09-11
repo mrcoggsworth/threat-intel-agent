@@ -71,7 +71,7 @@ You are a Cyber Threat Intelligence (CTI) analyst and full-stack integration eng
    ```
    **Expected Output:** HTML content containing formatted report cards.
 
-3. Verify Host Nginx HTTPS Analyst Endpoint (Port 9443):
+3. Verify Caddy HTTPS Analyst Endpoint (Port 9443):
    ```bash
    curl -sk https://matrix-1.taild27e3c.ts.net:9443/reports | grep -i "report"
    curl -sk https://matrix-1.taild27e3c.ts.net:9443/api/v1/public/reports | jq .

@@ -22,7 +22,7 @@ expect() {
 
 expect "$(status "$public_base/health/live")" 200 "public liveness"
 expect "$(status "$public_base/api/v1/public/reports")" 200 "public reports"
-expect "$(status -H "X-Admin-Token: $token" -H "Host: ${HERMES_PRIVATE_HOST:-ops.cti-hermes.local}" "$private_base/api/v1/ops/version")" 200 "private version"
+expect "$(status -H "X-Admin-Token: $token" -H "Host: ${HERMES_PRIVATE_HOST:-hermes.cti.scogin.dev}" "$private_base/api/v1/ops/version")" 200 "private version"
 expect "$(status "$public_base/api/v1/ops/version")" 404 "public/private isolation"
 
 if [ -n "$report_slug" ]; then

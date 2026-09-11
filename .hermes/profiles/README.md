@@ -31,12 +31,12 @@ For a custom installation, set `HERMES_HOME` to the parent root, for example
 Use separate homes with OS permissions that prevent either profile from reading
 the other profile .env, sessions, skills, gateway state, or logs.
 
-The current private service name is `ops.cti-hermes.home.arpa`; it must resolve through local DNS or `/etc/hosts`. It is not a public DNS name and is not automatically available.
+The current private service name is `hermes.cti.scogin.dev`; it must resolve through local DNS or `/etc/hosts`. It is not a public DNS name and is not automatically available.
 
 `PRIVATE_SERVICE_URL` is required by analyst prompts because the service's
 private surface provides readiness, run manifests, history, proposals, and
 publication validation. The repository deployment uses
-`https://ops.cti-hermes.home.arpa` as its template value; replace it if the home
+`https://hermes.cti.scogin.dev` as its template value; replace it if the home
 server uses another private DNS name or URL. It may be reachable only on the
 home LAN, but it must still be authenticated and authorized.
 

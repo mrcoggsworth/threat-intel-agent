@@ -6,11 +6,9 @@ IDs, evidence IDs, reproduction details, likely component, severity, and next
 action. The analyst does not edit code or deployment state.
 
 The maintainer reads the event, reproduces with saved artifacts or fixtures,
-creates an issue or focused branch, adds tests, implements the smallest fix,
-and creates a draft pull request. A human reviews and approves. Only then may
-the maintainer run the approved deployment; smoke failure preserves evidence
-and triggers the documented compatible rollback. The deployment record closes
-the maintenance request.
+creates a focused branch or fix, adds tests, implements the fix,
+and runs `./scripts/update-app.sh` to update the application stack.
+The analyst can then inspect and verify the resulting intelligence pipeline.
 
 Audit records must contain profile, job/session ID, action, commit or service
 run ID, tool result, approval reference, deployment record, and error/rollback
