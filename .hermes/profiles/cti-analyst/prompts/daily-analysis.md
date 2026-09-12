@@ -75,9 +75,12 @@ For each distinct qualifying threat event:
    - Validated YARA rule(s) when file/payload byte patterns or string evidence exists.
    - Complete 4-step Threat Hunt playbook (Scope, SIEM/EDR Logic, Triage & Containment, Forensic Validation).
    - Concrete, phased Remediation guidance (Vendor mitigations, Patches, Compensating controls, Credentials, Monitoring).
-3. Validate each bundle with `POST /api/v1/analyst/reports/validate`.
-4. Submit and publish with `POST /api/v1/analyst/reports` (`publish=true` using the `X-Analyst-Token` header).
-5. Maintain deduplication: If a threat event updates an existing report, increment its version and specify supersedes_id; if new, generate a distinct public_id (e.g. PUB-2026-XXX) and slug.
+3. Validate each bundle locally with `hermes-cti analyst validate-bundle <bundle.json>` before network submission. Ensure every non-stopword in the headline (length >= 5) appears case-insensitively in `evidence[].statement`.
+4. Validate each bundle with `POST /api/v1/analyst/reports/validate`.
+5. Submit and publish with `POST /api/v1/analyst/reports` (`publish=true` using the `X-Analyst-Token` header).
+6. Maintain deduplication and sequence integrity:
+   - If a threat event updates an existing report, increment its version and specify supersedes_id.
+   - If new, query the next public ID with `hermes-cti analyst next-public-id` (e.g. PUB-2026-019) and generate a distinct slug.
 
 Keep public facts separate from inference, and leave the previous publication active if validation fails.
 Never claim any organization is exposed and never modify code, dependencies,

@@ -24,6 +24,7 @@ MANIFEST_NAME = "managed-manifest.json"
 PLACEHOLDER_PATTERN = re.compile(r"(?:\$USER|\$\{USER\}|__[^\n]*__|/home/\$USER/)")
 PROTECTED_PREFIXES = ("sessions/", "logs/", "gateway/", "memories/")
 PROTECTED_FILES = {".env", "audit/events.jsonl"}
+OPERATOR_TOOL_PREFIXES = ("lsp/", "sandboxes/", "home/", ".cache/", "cache/", "bin/")
 
 
 class ReconciliationError(RuntimeError):
@@ -163,7 +164,8 @@ def validate_materialized(path: str, data: bytes, inputs: Inputs) -> None:
         return
     if PLACEHOLDER_PATTERN.search(text):
         raise ReconciliationError(f"{path} contains an unresolved placeholder")
-    if str(inputs.repo) in text and "/.hermes/profiles/" in text:
+    staging_prefix = (inputs.repo / ".hermes" / "profiles").as_posix()
+    if staging_prefix in text or str(inputs.repo / ".hermes" / "profiles") in text:
         raise ReconciliationError(f"{path} retains a staging profile path")
 
 
@@ -328,7 +330,9 @@ def reconcile_profile(inputs: Inputs, profile: str) -> dict[str, Any]:
     if inputs.dry_run and destination_root.exists():
         for candidate in destination_root.rglob("*"):
             if candidate.is_symlink():
-                ensure_safe_path(candidate, destination_root)
+                rel_symlink = relative_path(candidate, destination_root)
+                if not rel_symlink.startswith(OPERATOR_TOOL_PREFIXES):
+                    ensure_safe_path(candidate, destination_root)
         unknown = sorted(
             path
             for path in destination_root.rglob("*")
@@ -358,7 +362,9 @@ def reconcile_profile(inputs: Inputs, profile: str) -> dict[str, Any]:
 
         for candidate in destination_root.rglob("*"):
             if candidate.is_symlink():
-                ensure_safe_path(candidate, destination_root)
+                rel_symlink = relative_path(candidate, destination_root)
+                if not rel_symlink.startswith(OPERATOR_TOOL_PREFIXES):
+                    ensure_safe_path(candidate, destination_root)
 
         unknown = sorted(
             path

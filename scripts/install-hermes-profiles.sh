@@ -110,6 +110,12 @@ python3 "$reconciler" \
     --incident-summary "$incident_summary" \
     $reconciler_options
 
+if [ -x "$repo/scripts/clean-hermes-locks.sh" ]; then
+    for profile in cti-analyst cti-maintainer; do
+        "$repo/scripts/clean-hermes-locks.sh" --cron-dir "$runtime_root/$profile/cron" >/dev/null 2>&1 || true
+    done
+fi
+
 if [ "$dry_run" = true ] || [ "$no_cli" = true ] || [ "$no_cron" = true ]; then
     exit 0
 fi

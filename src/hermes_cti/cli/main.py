@@ -14,6 +14,7 @@ import typer
 from pydantic import ValidationError
 
 from hermes_cti import __version__
+from hermes_cti.cli.analyst_commands import analyst_app
 from hermes_cti.cli.database_commands import database_app
 from hermes_cti.core.settings import load_settings
 from hermes_cti.db.readiness import DatabaseReadinessChecker
@@ -39,6 +40,7 @@ app = typer.Typer(
 sources_app = typer.Typer(help="Validate the authoritative source registry.")
 app.add_typer(sources_app, name="sources")
 app.add_typer(database_app, name="db")
+app.add_typer(analyst_app, name="analyst")
 
 
 def _execute_sync_db(

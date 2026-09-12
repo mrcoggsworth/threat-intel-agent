@@ -47,6 +47,26 @@ if command -v docker >/dev/null 2>&1; then
     [ "$(docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null || true)" = healthy ] || add_failure "postgres health"
 fi
 
+cron_dir="${HERMES_CRON_DIR:-$HOME/.hermes/profiles/cti-analyst/cron}"
+if [ -d "$cron_dir" ]; then
+    stale_locks=0
+    now=$(date +%s)
+    for lf in "$cron_dir"/.*.lock "$cron_dir"/*.lock; do
+        [ -e "$lf" ] || continue
+        case "$(basename "$lf")" in .tick.lock|auth.lock) continue ;; esac
+        mtime=0
+        if stat -f %m "$lf" >/dev/null 2>&1; then
+            mtime=$(stat -f %m "$lf")
+        elif stat -c %Y "$lf" >/dev/null 2>&1; then
+            mtime=$(stat -c %Y "$lf")
+        fi
+        if [ "$mtime" -gt 0 ] && [ $((now - mtime)) -gt "${HERMES_LOCK_MAX_AGE_SECONDS:-1800}" ]; then
+            stale_locks=$((stale_locks + 1))
+        fi
+    done
+    [ "$stale_locks" -eq 0 ] || add_failure "stale cron locks detected ($stale_locks)"
+fi
+
 if [ -n "$failures" ]; then
     echo "hermes health watchdog failed: $failures" >&2
     exit 1
