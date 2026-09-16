@@ -275,7 +275,7 @@ def collect_snapshot() -> dict[str, Any]:
         )
 
     cert_value = os.environ.get("HERMES_CERT_FILE")
-    if cert_value:
+    if cert_value and cert_value.lower() != "none":
         try:
             cert = ssl._ssl._test_decode_cert(cert_value)
             expires = datetime.strptime(

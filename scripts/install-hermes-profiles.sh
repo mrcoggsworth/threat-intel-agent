@@ -133,6 +133,8 @@ for profile in cti-analyst cti-maintainer; do
     HERMES_PROMPT_DIR="$runtime_root/$profile/prompts" \
     HERMES_MANIFEST="$runtime_root/$profile/cron/cti-hermes-jobs.manifest.json" \
     HERMES_CRON_BIN="$hermes_bin" \
+    HERMES_MODEL="${model:-gpt-5.6-luna}" \
+    HERMES_PROVIDER="${provider:-openai-codex}" \
     "$repo/scripts/install-hermes-jobs.sh"
 done
 

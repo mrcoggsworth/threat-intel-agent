@@ -37,7 +37,8 @@ restore service health rather than merely reporting the error and halting.
 - In this home-lab environment on matrix, you are authorized to make focused,
   high-quality bug fixes and improvements directly on `main` (or the active
   working branch), commit changes, and deploy them. Do not require corporate pull
-  request approvals, approval tokens, or enterprise bureaucracy for routine fixes.
+  request approvals, draft pull requests, approval tokens, or enterprise
+  bureaucracy for routine fixes.
 - Application updates are simplified: deploy and update by running `./scripts/update-app.sh`.
   Do not block or refuse deployments by demanding corporate approval references
   (`HERMES_APPROVAL_REFERENCE`), approval identities (`HERMES_APPROVAL_IDENTITY`),

@@ -1,3 +1,4 @@
+# ruff: noqa: B008
 """CLI commands for CTI analyst bundle pre-flight validation and diagnostics."""
 
 from __future__ import annotations
@@ -11,7 +12,6 @@ import urllib.error
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 import typer
 from pydantic import ValidationError
@@ -21,7 +21,10 @@ from hermes_cti.reporting.contracts import ReportBundle
 from hermes_cti.reporting.validation import ReportValidator
 
 analyst_app = typer.Typer(
-    help="Analyst bundle pre-flight validation, sequence allocation, and health diagnostics."
+    help=(
+        "Analyst bundle pre-flight validation, sequence allocation, "
+        "and health diagnostics."
+    )
 )
 
 DEFAULT_ANALYST_URL = "https://matrix-1.taild27e3c.ts.net:9443"
@@ -71,9 +74,11 @@ def validate_bundle(
         ...,
         help="Path to JSON file containing ReportBundle (or '-' for stdin).",
     ),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Display full bundle metadata."),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Display full bundle metadata."
+    ),
 ) -> None:
-    """Validate a ReportBundle offline against schema, evidence coverage, and detection rules."""
+    """Validate a ReportBundle offline against schema and detection rules."""
     if str(bundle_path) == "-":
         raw_content = sys.stdin.read()
     else:
@@ -92,7 +97,10 @@ def validate_bundle(
     try:
         bundle = ReportBundle.model_validate(data)
     except ValidationError as exc:
-        typer.echo(f"[FAILED] Schema validation failed with {len(exc.errors())} error(s):", err=True)
+        typer.echo(
+            f"[FAILED] Schema validation failed with {len(exc.errors())} error(s):",
+            err=True,
+        )
         for err in exc.errors():
             loc = " -> ".join(str(p) for p in err.get("loc", []))
             msg = err.get("msg", "invalid")
@@ -105,9 +113,17 @@ def validate_bundle(
     if not coverage.valid:
         typer.echo("[FAILED] Evidence coverage validation failed:", err=True)
         if coverage.missing_sections:
-            typer.echo(f"  Missing required sections: {[s.value for s in coverage.missing_sections]}", err=True)
+            missing_secs = [s.value for s in coverage.missing_sections]
+            typer.echo(
+                f"  Missing required sections: {missing_secs}",
+                err=True,
+            )
         if coverage.unsupported_claims:
-            typer.echo("  Unsupported claims (words in headline missing from evidence or forbidden internal claims):", err=True)
+            typer.echo(
+                "  Unsupported claims (words in headline missing from evidence "
+                "or forbidden internal claims):",
+                err=True,
+            )
             for claim in coverage.unsupported_claims:
                 typer.echo(f"    * '{claim}'", err=True)
         if coverage.unsupported_remediation:
@@ -118,7 +134,7 @@ def validate_bundle(
 
     # 3. Detection and compilation validation
     try:
-        manifest = validator.validate(bundle)
+        validator.validate(bundle)
     except Exception as exc:
         typer.echo(f"[FAILED] Detection or rule validation failed: {exc}", err=True)
         raise typer.Exit(code=1) from exc
@@ -127,13 +143,21 @@ def validate_bundle(
     typer.echo(f"  Headline:     {bundle.headline}")
     typer.echo(f"  Public ID:    {bundle.public_id or '(none assigned)'}")
     typer.echo(f"  Slug:         {bundle.slug}")
-    typer.echo(f"  Severity:     {bundle.severity.value if hasattr(bundle.severity, 'value') else bundle.severity}")
+    sev = (
+        bundle.severity.value if hasattr(bundle.severity, "value") else bundle.severity
+    )
+    typer.echo(f"  Severity:     {sev}")
     typer.echo(f"  Evidence:     {len(bundle.evidence)} items")
     typer.echo(f"  IOCs:         {len(bundle.iocs)} items")
     typer.echo(f"  CVEs:         {len(bundle.vulnerabilities)} items")
     typer.echo(f"  ATT&CK:       {len(bundle.attack_mappings)} mappings")
     typer.echo(f"  Detections:   {len(bundle.detections)} artifacts")
-    typer.echo(f"  Hunt:         {'Present (' + str(len(bundle.hunt.execution_phases)) + ' phases)' if bundle.hunt else 'None'}")
+    hunt_desc = (
+        f"Present ({len(bundle.hunt.execution_phases)} phases)"
+        if bundle.hunt
+        else "None"
+    )
+    typer.echo(f"  Hunt:         {hunt_desc}")
     typer.echo(f"  Remediation:  {'Present' if bundle.remediation else 'None'}")
 
 
@@ -161,19 +185,26 @@ def next_public_id(
 
     # Strategy 1: Attempt direct PostgreSQL query if DB credentials exist
     db_url = _load_db_url()
-    if db_url:
-        os.environ["HERMES_DATABASE_URL"] = db_url
     try:
         import asyncio
+
+        from pydantic import SecretStr
+        from sqlalchemy import select
+
         from hermes_cti.db.models import Report
         from hermes_cti.db.session import Database
-        from sqlalchemy import select
 
         async def _query_db() -> list[str]:
             settings = load_settings()
+            if db_url and not settings.database_url:
+                settings = settings.model_copy(
+                    update={"database_url": SecretStr(db_url)}
+                )
             db = Database(settings)
-            async with db.session_factory() as session:
-                stmt = select(Report.public_id).where(Report.public_id.like(f"{prefix}%"))
+            async with db.session() as session:
+                stmt = select(Report.public_id).where(
+                    Report.public_id.like(f"{prefix}%")
+                )
                 res = await session.execute(stmt)
                 return [row[0] for row in res.all()]
 
@@ -189,10 +220,13 @@ def next_public_id(
     if highest_seq == 0:
         ctx = ssl._create_unverified_context()
         page = 1
+        base = analyst_url.rstrip("/")
         while page <= 5:
-            url = f"{analyst_url.rstrip('/')}/api/v1/public/reports?page={page}&page_size=100"
+            url = f"{base}/api/v1/public/reports?page={page}&page_size=100"
             try:
-                req = urllib.request.Request(url, headers={"Accept": "application/json"})
+                req = urllib.request.Request(
+                    url, headers={"Accept": "application/json"}
+                )
                 with urllib.request.urlopen(req, context=ctx, timeout=5) as resp:
                     payload = json.loads(resp.read().decode("utf-8"))
                     items = payload.get("items", [])
@@ -242,7 +276,10 @@ def health(
         masked = token[:4] + "..." + token[-4:] if len(token) >= 8 else "***"
         typer.echo(f"  [OK] Service Token found ({masked})")
     else:
-        typer.echo("  [WARNING] Service Token NOT found in standard paths or HERMES_ANALYST_TOKEN")
+        typer.echo(
+            "  [WARNING] Service Token NOT found in standard paths "
+            "or HERMES_ANALYST_TOKEN"
+        )
 
     # 2. Connectivity and public liveness
     ctx = ssl._create_unverified_context()
@@ -264,16 +301,23 @@ def health(
             )
             with urllib.request.urlopen(req, context=ctx, timeout=5) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-                typer.echo(f"  [OK] Authenticated Analyst API reachable (HTTP {resp.status})")
+                typer.echo(
+                    f"  [OK] Authenticated Analyst API reachable (HTTP {resp.status})"
+                )
                 if "application_version" in data:
                     typer.echo(f"       App Version: {data.get('application_version')}")
                 if "readiness" in data:
                     typer.echo(f"       Readiness: {data.get('readiness')}")
         except urllib.error.HTTPError as exc:
             if exc.code == 404:
-                typer.echo("  [FAIL] Analyst API returned HTTP 404 (Endpoint may require authentication or invalid token)")
+                typer.echo(
+                    "  [FAIL] Analyst API returned HTTP 404 "
+                    "(Endpoint may require authentication or invalid token)"
+                )
             else:
-                typer.echo(f"  [FAIL] Analyst API returned HTTP {exc.code}: {exc.reason}")
+                typer.echo(
+                    f"  [FAIL] Analyst API returned HTTP {exc.code}: {exc.reason}"
+                )
         except Exception as exc:
             typer.echo(f"  [FAIL] Analyst API connection error: {exc}")
 
@@ -294,4 +338,7 @@ def health(
         if not locks:
             typer.echo("    - No locks currently held.")
         if stale_count > 0:
-            typer.echo(f"    [ACTION REQUIRED] {stale_count} stale lock(s) detected. Run scripts/clean-hermes-locks.sh to clear.")
+            typer.echo(
+                f"    [ACTION REQUIRED] {stale_count} stale lock(s) detected. "
+                "Run scripts/clean-hermes-locks.sh to clear."
+            )

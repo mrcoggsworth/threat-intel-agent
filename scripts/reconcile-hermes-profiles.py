@@ -130,18 +130,27 @@ def render_bytes(
     except UnicodeDecodeError:
         return source.read_bytes()
     source_profile = inputs.repo / ".hermes" / "profiles" / profile
+    current_user = os.environ.get("USER", "cptcoggsworth")
     replacements = (
         (str(source_profile), str(destination)),
         (
             f"/home/$USER/code/threat-intel-agent/.hermes/profiles/{profile}",
             str(destination),
         ),
+        (
+            f"/home/{{ USER }}/code/threat-intel-agent/.hermes/profiles/{profile}",
+            str(destination),
+        ),
         (f".hermes/profiles/{profile}/", f"{destination.as_posix()}/"),
         ("/home/$USER/code/threat-intel-agent/", f"{inputs.repo.as_posix()}/"),
+        ("/home/{{ USER }}/code/threat-intel-agent/", f"{inputs.repo.as_posix()}/"),
         ("https://hermes.cti.scogin.dev", inputs.private_service_url),
         ("https://matrix-1.taild27e3c.ts.net:9443", inputs.analyst_service_url),
         ("__SET_AND_PIN_MODEL__", inputs.model),
         ("__SET_AND_PIN_PROVIDER__", inputs.provider),
+        ("{{ MODEL }}", inputs.model),
+        ("{{ PROVIDER }}", inputs.provider),
+        ("{{ USER }}", current_user),
         ("__INCIDENT_SUMMARY__", inputs.incident_summary),
         (
             "__REQUIRED_APPROVED_RELEASE__",
@@ -212,6 +221,40 @@ def load_jobs(
         command = job.get("command")
         if command is not None:
             job["command"] = str(destination / "scripts" / Path(str(command)).name)
+
+        if job.get("wakeAgent") is False or job.get("no_agent") is True:
+            job["no_agent"] = True
+            job["script"] = Path(
+                str(command or job.get("script") or "health-watchdog.sh")
+            ).name
+            job["prompt"] = None
+            job["model"] = None
+            job["provider"] = None
+        else:
+            job["no_agent"] = False
+            if not job.get("model") or job.get("model") in (
+                "{{ MODEL }}",
+                "__SET_AND_PIN_MODEL__",
+            ):
+                job["model"] = inputs.model
+            if not job.get("provider") or job.get("provider") in (
+                "{{ PROVIDER }}",
+                "__SET_AND_PIN_PROVIDER__",
+            ):
+                job["provider"] = inputs.provider
+
+        sched = job.get("schedule")
+        if isinstance(sched, str):
+            job["schedule"] = {
+                "kind": "cron",
+                "expr": sched,
+                "display": sched,
+            }
+            job["schedule_display"] = sched
+        job.setdefault("name", job["id"])
+        job.setdefault("deliver", "local")
+        job.setdefault("enabled", True)
+        job.setdefault("state", "scheduled")
         resolved.append(job)
     return resolved
 
@@ -339,6 +382,9 @@ def reconcile_profile(inputs: Inputs, profile: str) -> dict[str, Any]:
             if path.is_file()
             and relative_path(path, destination_root) not in source_relatives
             and not relative_path(path, destination_root).startswith(f"{METADATA_DIR}/")
+            and not relative_path(path, destination_root).startswith(
+                OPERATOR_TOOL_PREFIXES
+            )
         )
         for path in unknown:
             report_assets.append(
@@ -372,6 +418,9 @@ def reconcile_profile(inputs: Inputs, profile: str) -> dict[str, Any]:
             if path.is_file()
             and relative_path(path, destination_root) not in source_relatives
             and not relative_path(path, destination_root).startswith(f"{METADATA_DIR}/")
+            and not relative_path(path, destination_root).startswith(
+                OPERATOR_TOOL_PREFIXES
+            )
         )
         for path in unknown:
             rel = relative_path(path, destination_root)

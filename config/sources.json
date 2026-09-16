@@ -188,6 +188,7 @@
     "name": "ThreatFox Recent Indicators (Abuse.ch)",
     "type": "json",
     "url": "https://threatfox-api.abuse.ch/api/v1/",
+    "max_response_bytes": 52428800,
     "request": {
       "method": "POST",
       "body": {"query": "get_iocs", "days": 7},

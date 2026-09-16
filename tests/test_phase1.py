@@ -59,7 +59,11 @@ def test_current_source_registry_is_valid_and_backward_compatible() -> None:
         == (
             52_428_800
             if source.source_id
-            in {"google-project-zero", "nist-national-vulnerability-database-nvd"}
+            in {
+                "google-project-zero",
+                "nist-national-vulnerability-database-nvd",
+                "threatfox-recent-indicators-abuse-ch",
+            }
             else 10_485_760
         )
         for source in registry.sources

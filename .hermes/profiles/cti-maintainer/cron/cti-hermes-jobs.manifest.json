@@ -34,11 +34,12 @@
     "profile": "cti-maintainer",
     "schedule": "*/5 * * * *",
     "description": "Script-only health checks; no model invocation",
+    "script": "health-watchdog.sh",
     "command": "/home/$USER/code/threat-intel-agent/.hermes/profiles/cti-maintainer/scripts/health-watchdog.sh",
     "workdir": "/home/$USER/code/threat-intel-agent/",
     "toolsets": [],
-    "preflight": "always",
     "wakeAgent": false,
+    "no_agent": true,
     "preflight": "always",
     "success_output": "SILENT"
   }

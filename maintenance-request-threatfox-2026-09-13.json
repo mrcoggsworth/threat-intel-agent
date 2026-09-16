@@ -1,0 +1,51 @@
+{
+  "request_type": "maintenance_request",
+  "scope": "public_cti_feed_quality",
+  "status": "open",
+  "severity": "high",
+  "classification": ["persistent", "configuration", "content quality"],
+  "event_id": "2a3fdc91-e1b8-477a-8607-3ff7f7a0c439",
+  "prior_event_id": "4656147d-06bc-46d7-b010-d0c842938da6",
+  "run_id": "5caec866-d2eb-51b1-905f-ecc8a66da107",
+  "prior_run_id": "b97c27ae-bcf6-59b0-adac-07bd434c0ec6",
+  "source_id": "threatfox-recent-indicators-abuse-ch",
+  "source_url": "https://threatfox-api.abuse.ch/api/v1/",
+  "evidence": {
+    "latest_status": "failed",
+    "latest_http_status": null,
+    "latest_item_count": 0,
+    "latest_retry_count": 0,
+    "latest_cache_state": "miss",
+    "latest_error_classification": "oversized_response",
+    "latest_error_detail": "response exceeds 10485760 bytes",
+    "prior_status": "completed",
+    "prior_item_count": 11267,
+    "prior_http_status": 200,
+    "prior_last_successful_retrieval": "2026-09-11T12:06:49.272951Z",
+    "consecutive_failures": 3,
+    "latest_run_coverage": "37/38 sources; 5943 new documents; partial evidence preserved",
+    "run_application_version": "0.1.0",
+    "run_configuration_hash": "d7d8a6330ab0fb7449170d91b1556558f35edca4b4de45d102907abe28f2e864",
+    "checked_in_registry_sha256": "725d5ef7481edf1251f3de5455e4abac52b59d3e557c26ea87f7a6a546bf554d",
+    "checked_in_registry_max_response_bytes": 52428800,
+    "run_recorded_max_response_bytes": 10485760,
+    "prior_incident_artifact": "docs/incidents/2026-09-13-threatfox-oversized-response.md",
+    "latest_incident_artifact": "docs/incidents/2026-09-13-threatfox-oversized-response-0303.md"
+  },
+  "likely_component": ["ingestion.http_client", "ThreatFox source adapter/configuration"],
+  "reproduction": {
+    "method": "Run the configured ThreatFox POST collection with body {query: get_iocs, days: 7} under the 10485760-byte bounded-response guard.",
+    "observed_result": "Deterministic oversized_response failure before HTTP status/item persistence.",
+    "saved_artifacts": [
+      "docs/incidents/2026-09-13-threatfox-oversized-response-0303.md",
+      "docs/incidents/2026-09-13-threatfox-oversized-response.md",
+      "/tmp/latest-run.json",
+      "/tmp/prev-run.json"
+    ]
+  },
+  "risk": "ThreatFox coverage is unavailable and the daily run is marked failed; automatic retries would reproduce the bounded-ingestion failure. No internal exposure is inferred.",
+  "requested_outcome": "Test bounded pagination, an alternate endpoint, or a provider-side filter in an offline fixture; add an oversized-response regression fixture; reconcile the active run limit with config/sources.json before any limit change. Preserve partial-run and source-error evidence.",
+  "next_action": "Maintainer review; do not automatically retry or raise the safety limit without fixture validation.",
+  "created_locally": true,
+  "service_api_mutation": false
+}

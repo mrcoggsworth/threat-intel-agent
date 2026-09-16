@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from hermes_cti.cli.main import app
@@ -21,7 +20,10 @@ def test_validate_bundle_success(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["analyst", "validate-bundle", str(bundle_path)])
     assert result.exit_code == 0, result.output
-    assert "[SUCCESS] ReportBundle passed all schema and publication gates!" in result.output
+    assert (
+        "[SUCCESS] ReportBundle passed all schema and publication gates!"
+        in result.output
+    )
     assert "Headline:" in result.output
 
 

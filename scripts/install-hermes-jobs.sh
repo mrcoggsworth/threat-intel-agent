@@ -10,6 +10,8 @@ repo=${HERMES_REPOSITORY:?HERMES_REPOSITORY is required}
 profile=${HERMES_PROFILE:?HERMES_PROFILE is required (cti-analyst or cti-maintainer)}
 cron_bin=${HERMES_CRON_BIN:-hermes}
 manifest=${HERMES_MANIFEST:-${HERMES_PROMPT_DIR:-$repo/.hermes/profiles/$profile/prompts}/../cron/cti-hermes-jobs.manifest.json}
+model=${HERMES_MODEL:-gpt-5.6-luna}
+provider=${HERMES_PROVIDER:-openai-codex}
 
 case "$profile" in
     cti-analyst|cti-maintainer) ;;
@@ -36,8 +38,11 @@ add_job() {
     [ -f "$prompt_path" ] || { echo "cron prompt file is missing: $prompt_path" >&2; exit 2; }
     prompt_text="$(cat "$prompt_path")"
     remove_named_job "$name"
+    opts=""
+    if [ -n "$model" ]; then opts="$opts --model $model"; fi
+    if [ -n "$provider" ]; then opts="$opts --provider $provider"; fi
     "$cron_bin" --profile "$profile_name" cron create "$schedule" "$prompt_text" \
-        --name "$name" --workdir "$repo"
+        --name "$name" --workdir "$repo" $opts
 }
 
 if [ "$profile" = "cti-analyst" ]; then
@@ -53,6 +58,7 @@ else
     add_job "cti-maintainer-recovery" "*/15 * * * *" recovery.md "$profile"
     watchdog_path="$prompt_dir/../scripts/health-watchdog.sh"
     [ -f "$watchdog_path" ] || { echo "health watchdog is missing: $watchdog_path" >&2; exit 2; }
+    interval="${HERMES_HEALTH_INTERVAL:-"*/5 * * * *"}"
     remove_named_job "cti-maintainer-health-watchdog"
     "$cron_bin" --profile "$profile" cron create "$interval" \
         --name cti-maintainer-health-watchdog --script health-watchdog.sh \

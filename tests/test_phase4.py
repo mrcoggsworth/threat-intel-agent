@@ -41,8 +41,8 @@ from hermes_cti.db.models import (
 from hermes_cti.db.models import (
     SourceDocument as SourceDocumentRecord,
 )
-from hermes_cti.db.query_plans import verify_query_plans
 from hermes_cti.db.pipeline import DailyPipeline
+from hermes_cti.db.query_plans import verify_query_plans
 from hermes_cti.db.repositories import PersistenceRepository, RunRepository
 from hermes_cti.db.scheduler import DailyScheduler
 from hermes_cti.db.session import Database
@@ -1192,4 +1192,3 @@ async def test_daily_pipeline_idempotency_replay_does_not_crash(
     assert result2.acquired_lock is True
     assert result2.run_status is RunStatus.COMPLETED
     assert result2.ingestion_run_id == result1.ingestion_run_id
-

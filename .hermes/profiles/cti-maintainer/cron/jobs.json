@@ -37,8 +37,9 @@
     "command": "/home/$USER/code/threat-intel-agent/.hermes/profiles/cti-maintainer/scripts/health-watchdog.sh",
     "workdir": "/home/$USER/code/threat-intel-agent/",
     "toolsets": [],
-    "preflight": "always",
     "wakeAgent": false,
+    "no_agent": true,
+    "script": "health-watchdog.sh",
     "preflight": "always",
     "success_output": "SILENT"
   }
