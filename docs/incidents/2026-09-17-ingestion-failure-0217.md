@@ -41,6 +41,12 @@ Cause confidence is **high** for an upstream/source-policy mismatch isolated to 
 - Latest encrypted backup metadata identifies `/backups/hermes-20260916T205359Z.dump.enc`, completed `2026-09-16T20:54:01Z`, 26,683,360 bytes, SHA-256 `57a583ad7b07c587ff2f09fbaa894744dfd5e1bbf85065ce4035374d04b58191`. Restore verification was not attempted.
 - Certificate revalidation for `matrix-1.taild27e3c.ts.net:9444` succeeded: Let's Encrypt issuer `YE1`, valid through `2026-11-16T14:30:36Z`.
 
+## Subsequent monitor and gate verification (02:48Z)
+
+- The same failed run remained actionable in the authoritative monitor evidence at `2026-09-17T02:47:18.589204+00` (event `0a48e858-150f-4c0d-a328-9f094abc8109`, endpoint `http://web:8000/api/v1/ops/run-status`, HTTP `200`, correlation `0929b855-4c67-4622-86c4-371bf42762f7`, run `7fbdf1bb-6c5f-5187-b6c9-51c949a211a6`). Scheduler heartbeat was `2026-09-17T02:47:07Z`.
+- The recovery gate was re-evaluated at `2026-09-17T02:48:00.526832+00` with the 1,800-second cooldown and shared lock. It recorded a secret-free `suppressed` event for the monitor event above with reason `recovery cooldown is active`; lock read-back verified `absent`. No retry, restart, deployment, migration, or destructive recovery was performed.
+- Read-only verification confirmed Compose configuration succeeds when protected production environment variables are loaded, PostgreSQL accepts connections, and the running web/scheduler/monitor/postgres containers remain healthy with zero restarts. The direct host port 8000 is not published; internal health/readiness checks are served through the container network and monitor evidence.
+
 ## Data integrity, rollback, and prevention
 
 - **Data integrity:** preserved. No volumes, backups, migration history, failed evidence, partial source data, or public CTI conclusions were altered. The failed source record and partial run remain visible.
