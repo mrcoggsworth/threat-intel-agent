@@ -28,7 +28,9 @@ Create protected file-backed Compose secrets with the normal user:
 
 This creates separate admin and analyst tokens. The analyst token is mounted
 only into the web service and must be installed at the Hermes profile path
-configured by `HERMES_ANALYST_SERVICE_TOKEN_FILE`.
+configured by `HERMES_ANALYST_SERVICE_TOKEN_FILE`. Unauthenticated
+`/api/v1/analyst/*` requests return HTTP 404 by design (fail-closed auth), so a
+404 there is an auth/secret signal, not missing route registration.
 
 By default the helper stores them under
 `~/.local/state/cti-hermes/secrets/`. Set `HERMES_SECRET_DIR` if you want a
