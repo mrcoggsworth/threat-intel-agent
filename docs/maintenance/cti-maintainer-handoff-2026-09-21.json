@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0",
+  "handoff_type": "cti-maintainer",
+  "created_at": "2026-09-21",
+  "priority": "blocking_nightly_publication",
+  "source_review": "docs/analyst-reviews/run-a5a5c92f-review-2026-09-21.json",
+  "run_id": "a5a5c92f-bf1d-500f-9e5f-19fd8d6d0430",
+  "requests": [
+    {
+      "id": "CTI-MAINT-20260921-EXTRACTION-001",
+      "component": "src/hermes_cti/db/pipeline.py / daily extraction persistence",
+      "evidence_ids": ["a5a5c92f-bf1d-500f-9e5f-19fd8d6d0430"],
+      "reproduction": {
+        "request": "GET /api/v1/analyst/runs/a5a5c92f-bf1d-500f-9e5f-19fd8d6d0430 with X-Analyst-Token",
+        "response_fields": {"status": "completed", "new_documents": 15544, "new_findings": 0, "successful_sources": 38, "failed_sources": 0},
+        "code_path": "pipeline.py:134-144 returns when persisted_documents is empty; extraction loop is pipeline.py:145-169"
+      },
+      "risk": "successful nightly collection produces no current-run findings, making analyst candidate and publication gates permanently unpassable",
+      "requested_outcome": "ensure every newly persisted document is extracted exactly once, including idempotent/retried completed-run paths; persist nonzero findings when extraction yields them; add a regression test asserting documents and findings coexist in a completed daily run"
+    },
+    {
+      "id": "CTI-MAINT-20260921-ENRICHMENT-002",
+      "component": "CVE enrichment provider wiring and corpus persistence",
+      "evidence_ids": ["ed5d5059-eaec-57a8-aa48-485bbc3a3c35", "137aa5a1-a695-5723-b330-308541c69c5f"],
+      "reproduction": {
+        "request": "GET /api/v1/analyst/corpus/cves?cve_id=CVE-2026-35273 with X-Analyst-Token",
+        "response_fields": {"cvss_score": null, "epss_score": null, "known_exploited": null, "exploitation_state": "unknown", "provider_result_ids": []},
+        "independent_public_checks": {
+          "CISA_KEV": "HTTP 200; matching CVE present; knownRansomwareCampaignUse=Known",
+          "FIRST_EPSS": "HTTP 200; EPSS=0.954730000 on 2026-09-21",
+          "NVD": "HTTP 200; one vulnerability returned"
+        }
+      },
+      "risk": "CVSS/EPSS/KEV and exploitation-state gates fail despite authoritative public provider data being available",
+      "requested_outcome": "repair provider invocation, normalization, provenance/provider-result persistence, and corpus upsert; retain null/unavailable semantics on provider failure; add mocked tests for CISA KEV, FIRST EPSS, and NVD mapping"
+    },
+    {
+      "id": "CTI-MAINT-20260921-URLHAUS-003",
+      "component": "URLhaus JSON normalization/parser",
+      "evidence_ids": ["a5a5c92f-bf1d-500f-9e5f-19fd8d6d0430", "01136fd7-391d-5ea7-85ab-dbb8b29c5414"],
+      "reproduction": {
+        "registry": "config/sources.json:182-185",
+        "source_url": "https://urlhaus-api.abuse.ch/v1/urls/recent/",
+        "observed_source_document": "01136fd7-391d-5ea7-85ab-dbb8b29c5414",
+        "observed_normalized_fragment": "reporter: geenensp larted: true tags: ['32-bit', 'arm', 'elf', 'mirai', 'Mozi']",
+        "expected_field": "last_seen",
+        "scope": "repeated across targeted URLhaus documents in current corpus evidence"
+      },
+      "risk": "normalized public evidence is corrupted and may cause inaccurate parser output, quality metrics, or downstream IOC context",
+      "requested_outcome": "correct the normalization mapping to preserve last_seen exactly, add a fixture from the URLhaus payload, assert no larted token can be emitted, and backfill only through an approved non-destructive migration/reprocessing procedure"
+    }
+  ],
+  "analyst_owned_actions_completed": [
+    "Used the profile credential path and X-Analyst-Token without printing the secret",
+    "Recorded fail-closed 404 authentication behavior as an auth signal",
+    "Confirmed the report submission state contract and did not replay a published bundle",
+    "Corrected the URLhaus defect narrative and retained evidence in a durable repository artifact",
+    "Reclassified the detection gap: behavioral Sigma/SPL/KQL supportable; YARA blocked specifically by missing file bytes/sample evidence",
+    "Did not submit or publish a report because gates did not pass"
+  ],
+  "limitations": [
+    "No maintenance-request endpoint is exposed by the authenticated analyst OpenAPI; this file is the durable handoff",
+    "No direct PostgreSQL writes were performed",
+    "No internal exposure or deployment state was assessed",
+    "URLhaus direct unauthenticated request returned HTTP 401; stored analyst corpus evidence was used for the normalization defect"
+  ]
+}

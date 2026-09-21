@@ -1,0 +1,166 @@
+{
+  "schema_version": "1.0",
+  "reviewed_at": "2026-09-21",
+  "run_id": "a5a5c92f-bf1d-500f-9e5f-19fd8d6d0430",
+  "status": "blocked_no_publishable_bundle",
+  "service": {
+    "base_url": "https://matrix-1.taild27e3c.ts.net:9443",
+    "credential_path": "/home/cptcoggsworth/.hermes/profiles/cti-analyst/credentials/service-token",
+    "header": "X-Analyst-Token",
+    "unauthenticated_probe": {
+      "request": "GET /api/v1/analyst/runs/latest without X-Analyst-Token",
+      "response": "404 {\"detail\":\"not found\"}",
+      "interpretation": "fail-closed authentication signal, not proof that the route is absent"
+    },
+    "authenticated_probe": {
+      "request": "GET /api/v1/analyst/runs/latest with X-Analyst-Token loaded from credential_path",
+      "response_status": 200,
+      "token_value_recorded": false
+    },
+    "health": {
+      "request": "GET /api/v1/analyst/status with X-Analyst-Token",
+      "response": "status=ready, database=ok, application_version=0.1.0, scheduler_heartbeat=2026-09-21T16:05:09Z"
+    }
+  },
+  "run_facts": {
+    "status": "completed",
+    "scheduled_for": "2026-09-21T02:00:00Z",
+    "completed_at": "2026-09-21T02:00:10.884044Z",
+    "total_sources": 38,
+    "successful_sources": 38,
+    "failed_sources": 0,
+    "new_documents": 15544,
+    "changed_documents": 0,
+    "new_findings": 0,
+    "api_evidence_request": "GET /api/v1/analyst/evidence?run_id=a5a5c92f-bf1d-500f-9e5f-19fd8d6d0430&limit=2000&max_chars=100000",
+    "api_evidence_response": "documents=2000 (bounded page), claims=0, indicators=40000; targeted Mandiant page: documents=45, claims=24, indicators=993"
+  },
+  "candidate_gates": [
+    {
+      "candidate": "ShinyHunters/UNC6240 Oracle PeopleSoft CVE-2026-35273",
+      "result": "failed",
+      "failing_fields": {
+        "corpus.cvss_score": null,
+        "corpus.epss_score": null,
+        "corpus.known_exploited": null,
+        "corpus.exploitation_state": "unknown",
+        "corpus.provenance.provider_result_ids": [],
+        "historical_iocs.public_visibility": false,
+        "run.new_findings": 0,
+        "validated_report_artifact_bundle": "absent"
+      },
+      "evidence": [
+        "ed5d5059-eaec-57a8-aa48-485bbc3a3c35",
+        "137aa5a1-a695-5723-b330-308541c69c5f",
+        "0f996fe8-6637-5b9d-9549-06b4c9578384",
+        "161956c8-c438-5119-8d32-1d3605c19b0d"
+      ],
+      "primary_source": "https://cloud.google.com/blog/topics/threat-intelligence/shinyhunters-targets-education-sector-oracle-exploit/"
+    },
+    {
+      "candidate": "PhantomRaven information stealer",
+      "result": "failed",
+      "failing_fields": {
+        "source_evidence.technical_details": "absent in ingested abbreviated item",
+        "source_evidence.iocs": "absent",
+        "source_evidence.telemetry": "absent",
+        "validated_report_artifact_bundle": "absent",
+        "run.new_findings": 0
+      }
+    },
+    {
+      "candidate": "indexed-btree malicious npm package",
+      "result": "failed",
+      "failing_fields": {
+        "package.version": "absent",
+        "package.hash": "absent",
+        "package.source_or_code": "absent",
+        "execution_telemetry": "incomplete",
+        "validated_report_artifact_bundle": "absent",
+        "run.new_findings": 0
+      }
+    },
+    {
+      "candidate": "OpenAI Codex sandbox escape",
+      "result": "failed",
+      "failing_fields": {
+        "reproduction_details": "incomplete",
+        "affected_versions": "absent",
+        "validated_detection_observables": "absent",
+        "validated_report_artifact_bundle": "absent",
+        "run.new_findings": 0
+      }
+    },
+    {
+      "candidate": "September 2026 Patch Tuesday cluster",
+      "result": "failed",
+      "failing_fields": {
+        "per_cve_technical_detail": "absent for a defensible consolidated report",
+        "per_cve_artifact_evidence": "absent",
+        "validated_report_artifact_bundle": "absent",
+        "run.new_findings": 0
+      }
+    },
+    {
+      "candidate": "Sality botnet disruption",
+      "result": "failed",
+      "failing_fields": {
+        "operational_evidence": "insufficient in current source item",
+        "validated_report_artifact_bundle": "absent",
+        "run.new_findings": 0
+      }
+    }
+  ],
+  "item_findings": {
+    "2_extraction": {
+      "determination": "confirmed upstream blocking symptom; exact claimed completed-run branch not present in current checkout",
+      "fresh_evidence": "API run reports 15544 new documents and 0 new findings; evidence endpoint reports claims=0 for the bounded page",
+      "code_observation": "src/hermes_cti/db/pipeline.py:134-144 returns before extraction when persisted_documents is empty; extraction loop is at lines 145-169",
+      "impact": "current run has document ingestion but no deterministic findings for analyst gates"
+    },
+    "3_enrichment": {
+      "determination": "confirmed corpus enrichment gap; public providers reachable independently",
+      "corpus_response": "CVE-2026-35273 returned cvss_score=null, epss_score=null, known_exploited=null, exploitation_state=unknown, provider_result_ids=[]",
+      "public_provider_checks": {
+        "CISA_KEV": "HTTP 200; CVE-2026-35273 present; knownRansomwareCampaignUse=Known; dueDate=2026-06-15",
+        "FIRST_EPSS": "HTTP 200; EPSS=0.954730000; percentile=0.998690000; date=2026-09-21",
+        "NVD": "HTTP 200; one vulnerability returned",
+        "URLhaus": "HTTP 401 without provider authorization"
+      },
+      "determination_of_provider_path": "no analyst enrichment endpoint is exposed in authenticated OpenAPI; direct public CISA/EPSS/NVD paths are reachable, but their values are not persisted in the corpus record"
+    },
+    "4_authentication": {
+      "determination": "analyst-side handling corrected for this review",
+      "runtime_path_used": "/home/cptcoggsworth/.hermes/profiles/cti-analyst/credentials/service-token",
+      "header_used": "X-Analyst-Token",
+      "missing_header_response": "404 {\"detail\":\"not found\"}",
+      "valid_header_response": "200 on /status and /runs/latest",
+      "secret_handling": "token value was not printed or persisted"
+    },
+    "5_submission_contract": {
+      "determination": "not the cause in this run; no report submission occurred",
+      "contract": "publish=true requires bundle.state != published; publish=false requires bundle.state=draft",
+      "code_reference": "src/hermes_cti/analyst/routes.py:391-401",
+      "required_retry_behavior": "construct a non-published bundle for publish=true; never replay a persisted published bundle verbatim"
+    },
+    "6_urlhaus_parser": {
+      "determination": "confirmed; durable corrected narrative recorded",
+      "registry_source": "config/sources.json:182-185; URL=https://urlhaus-api.abuse.ch/v1/urls/recent/",
+      "observed_normalized_token": "larted:",
+      "correct_field_name": "last_seen",
+      "fresh_evidence": "targeted URLhaus evidence from run contains repeated normalized text with larted: true/false; direct unauthenticated URLhaus request returned HTTP 401",
+      "risk": "field corruption reduces source fidelity and can affect parser-derived indicators and quality metrics"
+    },
+    "7_detection_gap": {
+      "determination": "YARA unavailable, but prior classification was too broad",
+      "missing_field_for_YARA": "file bytes or a sample artifact/hash-backed byte/string corpus",
+      "available_for_behavioral_detection": "Mandiant evidence contains endpoint paths, domain azurenetfiles.net, MeshCentral process/tool names, filenames, SSH/SMB behavior, and command-history observables",
+      "corrected_classification": "Sigma/SPL/KQL could be authored from behavioral evidence; YARA cannot be responsibly authored without bytes. No validated artifact object was produced in the run, so publication remains blocked."
+    }
+  },
+  "publication": {
+    "publishable_bundle_exists": false,
+    "reason": "new_findings=0, corpus enrichment fields null/unknown with no provider result IDs, historical IOC public_visibility=false, and no validated artifact bundle was persisted",
+    "publication_action": "none; previous publication preserved"
+  }
+}
