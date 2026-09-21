@@ -393,7 +393,11 @@ class PersistenceRepository:
 
         manifest = collection.manifest
         run = await self.create_or_get_run(session, manifest)
-        if run.status == RunStatus.COMPLETED.value and run.completed_at is not None:
+        if (
+            run.status == RunStatus.COMPLETED.value
+            and run.completed_at is not None
+            and run.new_findings > 0
+        ):
             return run, ()
         for source_config in registry.sources:
             await self.upsert_source(session, source_config)
@@ -738,7 +742,7 @@ class PersistenceRepository:
         result: ExtractionResult,
         ingestion_run_id: UUID,
         observed_at: datetime,
-    ) -> None:
+    ) -> int:
         observed = _utc(observed_at)
         for observation in result.observations:
             indicator_id = uuid5(
@@ -861,6 +865,7 @@ class PersistenceRepository:
                 )
                 .on_conflict_do_nothing(index_elements=[EntityEvidence.id])
             )
+        return len(result.observations) + len(result.cve_candidates)
 
 
 async def stale_run_cutoff(

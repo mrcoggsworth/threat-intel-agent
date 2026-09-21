@@ -131,10 +131,7 @@ class DailyPipeline:
                     ) = await self.repository.persist_collection_with_documents(
                         session, registry, collection
                     )
-                    if (
-                        run.status == RunStatus.COMPLETED.value
-                        and run.completed_at is not None
-                    ) or not persisted_documents:
+                    if not persisted_documents:
                         return DailyRunResult(
                             acquired_lock=True,
                             ingestion_run_id=run.id,
@@ -145,6 +142,7 @@ class DailyPipeline:
                             failed_sources=run.failed_sources,
                             error_summary=run.error_summary,
                         )
+                    new_findings = 0
                     for document, persisted_document in zip(
                         collection.source_documents, persisted_documents, strict=True
                     ):
@@ -162,12 +160,13 @@ class DailyPipeline:
                             raise ValueError(
                                 "completed collection requires a run timestamp"
                             )
-                        await self.repository.persist_extraction(
+                        new_findings += await self.repository.persist_extraction(
                             session,
                             extraction,
                             run.id,
                             observed_at,
                         )
+                    run.new_findings = new_findings
                 return DailyRunResult(
                     acquired_lock=True,
                     ingestion_run_id=run.id,

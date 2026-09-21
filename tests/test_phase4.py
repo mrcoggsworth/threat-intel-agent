@@ -1187,6 +1187,11 @@ async def test_daily_pipeline_idempotency_replay_does_not_crash(
     assert result1.acquired_lock is True
     assert result1.run_status is RunStatus.COMPLETED
 
+    async with database.session() as session:
+        persisted_run = await RunRepository().by_id(session, result1.ingestion_run_id)
+    assert persisted_run is not None
+    assert persisted_run.new_findings == 2
+
     # Second run with same scheduled instant replays completed run without zip() crash
     result2 = await pipeline.run_once(registry, scheduled_for=scheduled)
     assert result2.acquired_lock is True

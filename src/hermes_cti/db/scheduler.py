@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -12,6 +13,7 @@ from hermes_cti.db.pipeline import DailyPipeline, DailyRunResult
 from hermes_cti.models.contracts import SourceRegistry
 
 Sleep = Callable[[float], Awaitable[None]]
+logger = logging.getLogger(__name__)
 
 
 class DailyScheduler:
@@ -69,13 +71,28 @@ class DailyScheduler:
     async def run_forever(self) -> None:
         """Keep scheduling independent of web workers or host cron."""
 
-        # Stable idempotency makes restart catch-up safe.
-        await self.run_once(self._clock())
-
         while True:
+            try:
+                result = await self.run_once(self._clock())
+                logger.info(
+                    "scheduled collection finished: run_id=%s status=%s "
+                    "successful_sources=%d failed_sources=%d",
+                    result.ingestion_run_id,
+                    (
+                        result.run_status.value
+                        if result.run_status
+                        else "lock_not_acquired"
+                    ),
+                    result.successful_sources,
+                    result.failed_sources,
+                )
+            except Exception:
+                logger.exception("scheduled collection attempt failed")
+                await self._sleep(60.0)
+                continue
+
             now = self._clock()
             next_run = self.next_scheduled_for(now)
             await self._sleep(
                 max(1.0, (next_run - now.astimezone(UTC)).total_seconds())
             )
-            await self.run_once(self._clock())

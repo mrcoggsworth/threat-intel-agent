@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 import typer
 
@@ -22,6 +23,10 @@ def run_worker() -> None:
 def run_scheduler() -> None:
     """Run the independent timezone-aware daily scheduler process."""
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     settings = load_settings()
     registry = load_source_registry()
     database = Database(settings)
