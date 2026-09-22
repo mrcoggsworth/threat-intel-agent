@@ -44,16 +44,29 @@ def _load_token(explicit_token_path: Path | None = None) -> str | None:
     if env_token and env_token.strip():
         return env_token.strip()
 
-    search_paths = [explicit_token_path] if explicit_token_path else list(TOKEN_PATHS)
+    env_token_file = os.environ.get("HERMES_ANALYST_SERVICE_TOKEN_FILE")
+    if env_token_file and (token := _read_token_file(Path(env_token_file))):
+        return token
+
+    search_paths = [explicit_token_path] if explicit_token_path else []
+    hermes_home = os.environ.get("HERMES_HOME")
+    if hermes_home:
+        search_paths.append(Path(hermes_home) / "credentials/service-token")
+    search_paths.extend(TOKEN_PATHS)
     for path in search_paths:
-        if path and path.is_file():
-            try:
-                content = path.read_text(encoding="utf-8").strip()
-                if content:
-                    return content
-            except OSError:
-                continue
+        if token := _read_token_file(path):
+            return token
     return None
+
+
+def _read_token_file(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+    try:
+        content = path.read_text(encoding="utf-8").strip()
+        return content or None
+    except OSError:
+        return None
 
 
 def _load_db_url() -> str | None:

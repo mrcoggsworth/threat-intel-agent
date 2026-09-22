@@ -7,10 +7,20 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
+from hermes_cti.cli.analyst_commands import _load_token
 from hermes_cti.cli.main import app
 from tests.test_phase7 import _fixture
 
 runner = CliRunner()
+
+
+def test_load_token_from_service_token_file_env(tmp_path: Path, monkeypatch) -> None:
+    token_path = tmp_path / "service-token"
+    token_path.write_text("profile-token\n", encoding="utf-8")
+    monkeypatch.delenv("HERMES_ANALYST_TOKEN", raising=False)
+    monkeypatch.setenv("HERMES_ANALYST_SERVICE_TOKEN_FILE", str(token_path))
+
+    assert _load_token() == "profile-token"
 
 
 def test_validate_bundle_success(tmp_path: Path) -> None:
