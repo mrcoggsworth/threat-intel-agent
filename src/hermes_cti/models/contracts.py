@@ -1075,6 +1075,14 @@ class EnrichmentRunResult(ContractModel):
     normalized_result: dict[str, JSONValue] = Field(default_factory=dict)
     conflicts: dict[str, tuple[JSONValue, ...]] = Field(default_factory=dict)
     priority: PriorityScore | None = None
+    skipped_providers: tuple[str, ...] = Field(
+        default=(),
+        description=(
+            "Providers not dispatched because they do not serve this request's "
+            "query kind, or are disabled. Reported so a narrowed dispatch is "
+            "never silent."
+        ),
+    )
 
 
 class EnrichmentResult(ContractModel):

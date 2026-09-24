@@ -34,15 +34,28 @@ class ProviderSchemaError(ValueError):
     """Provider payload is valid JSON but not the approved shape."""
 
 
+class ProviderQueryKindError(ValueError):
+    """Provider does not serve the requested query kind.
+
+    Distinct from :class:`ProviderSchemaError`: this is raised before any HTTP
+    request is made, so no payload was ever retrieved and no provider quota was
+    consumed. Callers must not report it as schema drift.
+    """
+
+
 class EnrichmentProvider(Protocol):
     name: str
     enabled: bool
+    query_kinds: frozenset[str]
 
     async def enrich(self, request: ProviderRequest) -> ProviderResponse: ...
 
     def health(self, now: datetime | None = None) -> ProviderHealth: ...
 
     async def aclose(self) -> None: ...
+
+
+QUERY_KIND_CVE = "cve"
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,9 +115,15 @@ class BaseProvider:
         config: ProviderRuntimeConfig | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
         api_key: Any = None,
+        query_kinds: frozenset[str] | None = None,
     ) -> None:
         self.name = name
         self.enabled = enabled
+        # Query kinds this provider can serve. Defaults to the CVE-oriented
+        # kind; indicator-oriented providers pass their own set.
+        self.query_kinds = (
+            query_kinds if query_kinds is not None else frozenset({QUERY_KIND_CVE})
+        )
         self._config = config or ProviderRuntimeConfig()
         if api_key is not None and hasattr(api_key, "get_secret_value"):
             self._api_key = api_key.get_secret_value()
@@ -185,6 +204,18 @@ class BaseProvider:
                     metadata=metadata,
                     payload=fetch.body,
                     retryable=False,
+                )
+            except ProviderQueryKindError as exc:
+                # Raised by a provider's kind guard before any HTTP request, so
+                # no payload drifted and no quota was consumed. Reporting this
+                # as schema_drift previously masked a dispatch defect as three
+                # broken parsers.
+                return self._failure(
+                    request,
+                    now,
+                    ProviderErrorClassification.INVALID_REQUEST,
+                    str(exc),
+                    False,
                 )
             except ProviderSchemaError as exc:
                 return self._failure(
@@ -585,14 +616,17 @@ class VirusTotalProvider(BaseProvider):
     }
 
     def __init__(self, url: str, **kwargs: Any) -> None:
-        super().__init__("virustotal", **kwargs)
+        super().__init__("virustotal", query_kinds=self._kinds, **kwargs)
         self.url = url.rstrip("/")
 
     async def _retrieve(
         self, request: ProviderRequest
     ) -> tuple[dict[str, Any], FetchResult]:
         if request.query_kind not in self._kinds:
-            raise ProviderSchemaError("VirusTotal requires an approved indicator kind")
+            raise ProviderQueryKindError(
+                "VirusTotal does not serve query kind "
+                f"{request.query_kind!r}; approved kinds are indicator-only"
+            )
         vt_kind = self._kind_map.get(request.query_kind, request.query_kind)
         vt_gui_kind = self._gui_kind_map.get(request.query_kind, request.query_kind)
         if request.query_kind == "url":
@@ -668,14 +702,17 @@ class OTXProvider(BaseProvider):
     }
 
     def __init__(self, url: str, **kwargs: Any) -> None:
-        super().__init__("otx", **kwargs)
+        super().__init__("otx", query_kinds=self._kinds, **kwargs)
         self.url = url.rstrip("/")
 
     async def _retrieve(
         self, request: ProviderRequest
     ) -> tuple[dict[str, Any], FetchResult]:
         if request.query_kind not in self._kinds:
-            raise ProviderSchemaError("OTX requires an approved indicator kind")
+            raise ProviderQueryKindError(
+                "OTX does not serve query kind "
+                f"{request.query_kind!r}; approved kinds are indicator-only"
+            )
         otx_kind = self._kind_map.get(request.query_kind, request.query_kind)
         target = quote(request.query_key, safe="")
         try:
@@ -722,15 +759,20 @@ class OTXProvider(BaseProvider):
 class AbuseIPDBProvider(BaseProvider):
     """Optional AbuseIPDB client for IP indicators only."""
 
+    _ABUSEIPDB_KINDS = frozenset({"ipv4", "ipv6"})
+
     def __init__(self, url: str, **kwargs: Any) -> None:
-        super().__init__("abuseipdb", **kwargs)
+        super().__init__("abuseipdb", query_kinds=self._ABUSEIPDB_KINDS, **kwargs)
         self.url = url.rstrip("/")
 
     async def _retrieve(
         self, request: ProviderRequest
     ) -> tuple[dict[str, Any], FetchResult]:
-        if request.query_kind not in {"ipv4", "ipv6"}:
-            raise ProviderSchemaError("AbuseIPDB requires an IP indicator kind")
+        if request.query_kind not in self._ABUSEIPDB_KINDS:
+            raise ProviderQueryKindError(
+                "AbuseIPDB does not serve query kind "
+                f"{request.query_kind!r}; approved kinds are ipv4 and ipv6 only"
+            )
         payload, fetch = await self._fetch_json(
             f"{self.url}/check",
             headers={"Key": self._api_key or "", "Accept": "application/json"},

@@ -321,6 +321,10 @@ class FakeProvider:
     def __init__(self, name: str, values: list[ProviderResponse]) -> None:
         self.name = name
         self.enabled = True
+        # Stands in for a CVE-serving provider. The service dispatches only
+        # providers whose query_kinds contain the request's query kind, so a
+        # fake without this declaration would never be invoked.
+        self.query_kinds = frozenset({"cve"})
         self.values = values
         self.calls = 0
 

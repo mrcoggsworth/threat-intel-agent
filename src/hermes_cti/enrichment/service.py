@@ -45,8 +45,22 @@ class EnrichmentService:
         *,
         score_inputs: ScoreInputs | None = None,
     ) -> EnrichmentRunResult:
+        # Dispatch only providers that can serve this request's query kind.
+        # Providers declare their capability; without this filter a CVE request
+        # reached indicator-only providers (VirusTotal, OTX, AbuseIPDB) that
+        # rejected it in a guard, producing misleading per-provider failures for
+        # work that could never succeed.
+        applicable = [
+            provider
+            for provider in self.providers
+            if request.query_kind in getattr(provider, "query_kinds", frozenset())
+        ]
+        skipped = tuple(
+            provider.name for provider in self.providers if provider not in applicable
+        )
+
         responses: list[ProviderResponse] = []
-        for provider in self.providers:
+        for provider in applicable:
             lookup = self.cache.get(
                 provider.name, request.query_key, now=request.requested_at
             )
@@ -86,6 +100,7 @@ class EnrichmentService:
             normalized_result=normalized,
             conflicts=conflicts,
             priority=priority,
+            skipped_providers=skipped,
         )
 
     async def enrich_cve(
