@@ -30,7 +30,7 @@ scheduler:
 enrichment:
   enabled: true
   pipeline_enabled: true
-  max_cves_per_run: 5
+  max_cves_per_run: 500
   cache_ttl_seconds: 86400
   stale_if_error_seconds: 604800
   timeout_seconds: 20
