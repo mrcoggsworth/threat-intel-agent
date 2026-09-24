@@ -45,12 +45,12 @@ def _env(name: str, default: str) -> str:
     return os.environ.get(name, default)
 
 
-def _request(
-    url: str, token: str | None = None, host: str | None = None
+def _request_headers(
+    url: str, headers: dict[str, str], host: str | None = None
 ) -> tuple[int, dict[str, Any] | None]:
     request = urllib.request.Request(url)
-    if token:
-        request.add_header("X-Admin-Token", token)
+    for name, value in headers.items():
+        request.add_header(name, value)
     if host:
         request.add_header("Host", host)
     context: ssl.SSLContext | None = None
@@ -74,6 +74,13 @@ def _request(
         return exc.code, None
     except (OSError, ValueError):
         return 0, None
+
+
+def _request(
+    url: str, token: str | None = None, host: str | None = None
+) -> tuple[int, dict[str, Any] | None]:
+    headers = {"X-Admin-Token": token} if token else {}
+    return _request_headers(url, headers, host)
 
 
 def _age(value: object) -> float | None:
@@ -105,6 +112,134 @@ def _signal(
         correlation_id=correlation_id,
         detail=detail,
     )
+
+
+def _collect_freshness_signals(
+    signals: list[MonitorSignal],
+    failures: list[str],
+    public_base: str,
+    private_base: str,
+    private_host: str | None,
+    admin_token: str,
+    correlation_id: str,
+) -> None:
+    """Publication freshness, distinct from ingestion freshness.
+
+    Ingestion freshness (full_success_freshness above) says collection is
+    current. These signals say whether the collection-to-publication pipeline
+    is actually completing: a fresh report in the public projection, or an
+    explicit blocked/deferred reason in the durable candidate ledger for the
+    latest completed run. Analyst-token reads stay secret-free: values never
+    enter signals or failure labels.
+    """
+    max_age = float(_env("HERMES_PUBLICATION_MAX_AGE_SECONDS", "345600"))
+    analyst_token = ""
+    token_path = Path(
+        _env("HERMES_ANALYST_TOKEN_FILE", "/run/secrets/hermes_analyst_token")
+    )
+    try:
+        analyst_token = (
+            token_path.read_text(encoding="utf-8").strip()
+            if token_path.is_file()
+            else ""
+        )
+    except OSError:
+        analyst_token = ""
+
+    newest_age: float | None = None
+    newest_id: str | None = None
+    newest_code, newest_payload = _request(
+        f"{public_base}/api/v1/public/reports?page=1&page_size=1&sort=newest",
+        host=private_host,
+    )
+    items = (newest_payload or {}).get("items") if newest_code == 200 else None
+    if isinstance(items, list) and items:
+        first = items[0] if isinstance(items[0], dict) else {}
+        newest_age = _age(first.get("last_updated_at"))
+        raw_id = first.get("public_id")
+        newest_id = raw_id if isinstance(raw_id, str) else None
+
+    run_id: str | None = None
+    run_endpoint = f"{private_base}/api/v1/ops/run-status"
+    run_code, run_payload = _request(run_endpoint, admin_token, private_host)
+    if run_code == 200 and isinstance(run_payload, dict):
+        full_success = run_payload.get("latest_full_success")
+        if isinstance(full_success, dict):
+            raw_run = full_success.get("run_id")
+            run_id = raw_run if isinstance(raw_run, str) else None
+
+    ledger_state: str | None = None
+    ledger_detail: str | None = None
+    if analyst_token and run_id:
+        ledger_code, ledger_payload = _request_headers(
+            f"{private_base}/api/v1/analyst/candidates?run_id={run_id}",
+            {"X-Analyst-Token": analyst_token},
+            private_host,
+        )
+        if ledger_code == 200 and isinstance(ledger_payload, dict):
+            counts = ledger_payload.get("counts") or {}
+            total = int(ledger_payload.get("total") or 0)
+            published = int(counts.get("published") or 0)
+            blocked = int(counts.get("blocked") or 0)
+            failed = int(counts.get("failed") or 0)
+            retry = int(ledger_payload.get("retry_eligible") or 0)
+            if total == 0:
+                ledger_state = "empty"
+                ledger_detail = "no candidate ledger rows for latest completed run"
+            elif published > 0:
+                ledger_state = "published"
+            elif blocked + failed >= total and retry == 0:
+                ledger_state = "blocked"
+                ledger_detail = (
+                    f"all {total} candidates blocked/failed with retry_eligible=0"
+                )
+            else:
+                ledger_state = "pending"
+                ledger_detail = (
+                    f"total={total} published={published} blocked={blocked} "
+                    f"failed={failed} retry_eligible={retry}"
+                )
+        elif ledger_code == 404:
+            ledger_state = "unreachable"
+
+    # Combined publication verdict: fresh public report OR explicit ledger
+    # blocked reason; stale with no explanation is the incident.
+    detail = (
+        f"newest={newest_id or 'unknown'} age={_format_age(newest_age)} "
+        f"ledger={ledger_state or 'unknown'} run={run_id or 'unknown'}"
+    )
+    if newest_age is not None and newest_age <= max_age:
+        return
+    if ledger_state == "blocked":
+        signals.append(
+            _signal(
+                "publication_freshness",
+                "degraded",
+                endpoint=run_endpoint,
+                observed_status=200,
+                run_id=run_id,
+                correlation_id=correlation_id,
+                detail=f"publication blocked with reason: {ledger_detail}; {detail}",
+            )
+        )
+        return
+    if ledger_state in {"empty", "unreachable", "pending"} or ledger_state is None:
+        failures.append("publication stale without explicit reason")
+        signals.append(
+            _signal(
+                "publication_freshness",
+                "stale_data",
+                endpoint=run_endpoint,
+                observed_status=newest_code,
+                run_id=run_id,
+                correlation_id=correlation_id,
+                detail=detail,
+            )
+        )
+
+
+def _format_age(age: float | None) -> str:
+    return "unknown" if age is None else f"{int(age)}s"
 
 
 def collect_snapshot() -> dict[str, Any]:
@@ -297,6 +432,16 @@ def collect_snapshot() -> dict[str, Any]:
                     correlation_id=correlation_id,
                 )
             )
+
+    _collect_freshness_signals(
+        signals,
+        failures,
+        public_base,
+        private_base,
+        private_host,
+        token,
+        correlation_id,
+    )
 
     states = {signal.state for signal in signals}
     if not failures:

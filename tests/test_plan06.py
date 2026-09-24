@@ -232,6 +232,10 @@ def test_monitor_recovery_and_cli_exit_codes_are_cross_profile_safe(
         del token, host
         if url.endswith("/health/live") or url.endswith("/health/ready"):
             return 200, {}
+        if "/api/v1/public/reports" in url:
+            return 200, {
+                "items": [{"public_id": "PUB-2026-999", "last_updated_at": current}]
+            }
         return 200, {
             "latest_attempt": {"run_id": "run-fixture", **mode},
             "latest_full_success": {"run_id": "full-fixture", "completed_at": current},
