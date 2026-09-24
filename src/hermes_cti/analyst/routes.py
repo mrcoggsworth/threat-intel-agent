@@ -13,6 +13,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import desc, select
 from sqlalchemy.dialects.postgresql import insert
 
+from hermes_cti.analyst.candidate_ledger import (
+    CandidateLedgerRepository,
+    candidate_identity,
+)
 from hermes_cti.analyst.contracts import (
     AnalystClaim,
     AnalystDocument,
@@ -25,6 +29,8 @@ from hermes_cti.analyst.contracts import (
     AnalystSourceRun,
     AnalystStatus,
     AnalystSubmissionResponse,
+    CandidateLedgerSummary,
+    CandidateRecord,
     CorpusQuery,
     CorpusResource,
 )
@@ -373,6 +379,42 @@ async def submit_proposal(
         relationship_id=relationship.id,
         review_state=validated.review_state.value,
     )
+
+
+@router.put("/candidates/{candidate_id}", response_model=CandidateRecord)
+async def upsert_candidate(
+    candidate_id: UUID,
+    record: CandidateRecord,
+    database: Database = Depends(get_database),
+) -> CandidateRecord:
+    """Record one publication candidate's state (idempotent by natural key).
+
+    The analyst profile calls this before and after each candidate's gates so
+    an interrupted execution resumes from durable state; candidate identity is
+    derived from (run_id, event_identity) and cannot be spoofed by the caller.
+    """
+    expected = candidate_identity(record.run_id, record.event_identity)
+    if candidate_id != expected or record.candidate_id != expected:
+        raise HTTPException(
+            status_code=422,
+            detail="candidate_id must equal candidate_identity(run_id, event_identity)",
+        )
+    async with database.transaction() as session:
+        run = await session.get(IngestionRun, record.run_id)
+        if run is None:
+            raise HTTPException(status_code=422, detail="unknown ingestion run")
+        await CandidateLedgerRepository().upsert(session, record)
+    return record
+
+
+@router.get("/candidates", response_model=CandidateLedgerSummary)
+async def candidate_summary(
+    run_id: UUID = Query(...),
+    database: Database = Depends(get_database),
+) -> CandidateLedgerSummary:
+    """Per-run ledger counts for the daily terminal response."""
+    async with database.session() as session:
+        return await CandidateLedgerRepository().summary(session, run_id)
 
 
 @router.post("/reports/validate", response_model=ValidationManifest)

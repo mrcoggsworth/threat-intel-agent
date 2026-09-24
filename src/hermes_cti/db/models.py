@@ -913,6 +913,74 @@ class Detection(TimestampMixin, Base):
     state: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
+class PublicationCandidate(TimestampMixin, Base):
+    """Independently gated publication candidate tracked across analyst runs.
+
+    The daily analyst execution records every qualifying event here so one
+    blocked candidate cannot stall (or re-open) the others, and an
+    interrupted run resumes without duplicating publication work. Identity is
+    (run_id, event_identity); state carries the per-candidate gates.
+    """
+
+    __tablename__ = "publication_candidate"
+    __table_args__ = (
+        UniqueConstraint(
+            "run_id",
+            "event_identity",
+            name="uq_publication_candidate_run_event",
+        ),
+        CheckConstraint(
+            "lifecycle IN ("
+            "'identified', 'researching', 'blocked', 'validated', "
+            "'submitted', 'published', 'failed')",
+            name="ck_publication_candidate_lifecycle",
+        ),
+        CheckConstraint(
+            "attempts >= 0",
+            name="ck_publication_candidate_attempts",
+        ),
+        Index("ix_publication_candidate_run_lifecycle", "run_id", "lifecycle"),
+    )
+
+    candidate_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True
+    )
+    run_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("ingestion_run.id"), nullable=False
+    )
+    event_identity: Mapped[str] = mapped_column(String(255), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    lifecycle: Mapped[str] = mapped_column(String(32), nullable=False)
+    evidence_ids: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
+    source_urls: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
+    enrichment_state: Mapped[str] = mapped_column(
+        String(64), default="unknown", nullable=False
+    )
+    validation_state: Mapped[str] = mapped_column(
+        String(64), default="not_run", nullable=False
+    )
+    publication_state: Mapped[str] = mapped_column(
+        String(64), default="not_published", nullable=False
+    )
+    failure_reason: Mapped[str | None] = mapped_column(String(1024))
+    published_public_id: Mapped[str | None] = mapped_column(String(64))
+    retry_eligible: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False
+    )
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    report_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("report.id")
+    )
+    report_version_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("report_version.id")
+    )
+
+
 class Publication(TimestampMixin, Base):
     __tablename__ = "publication"
 

@@ -141,6 +141,59 @@ class AnalystProposalResponse(ContractModel):
     published: bool = False
 
 
+CANDIDATE_LIFECYCLE_STATES = (
+    "identified",
+    "researching",
+    "blocked",
+    "validated",
+    "submitted",
+    "published",
+    "failed",
+)
+
+
+class CandidateRecord(ContractModel):
+    """One independently gated publication candidate in the daily ledger."""
+
+    candidate_id: UUID
+    run_id: UUID
+    event_identity: str = Field(..., min_length=1, max_length=255)
+    event_type: str = Field(..., min_length=1, max_length=64)
+    rank: int = Field(..., ge=1)
+    lifecycle: str = Field(..., min_length=1, max_length=32)
+    evidence_ids: tuple[UUID, ...] = ()
+    source_urls: tuple[str, ...] = ()
+    enrichment_state: str = Field(default="unknown", max_length=64)
+    validation_state: str = Field(default="not_run", max_length=64)
+    publication_state: str = Field(default="not_published", max_length=64)
+    published_public_id: str | None = Field(default=None, max_length=64)
+    failure_reason: str | None = Field(default=None, max_length=1024)
+    retry_eligible: bool = True
+    attempts: int = Field(default=0, ge=0)
+    report_id: UUID | None = None
+    report_version_id: UUID | None = None
+
+    @field_validator("lifecycle")
+    @classmethod
+    def _known_lifecycle(cls, value: str) -> str:
+        if value not in CANDIDATE_LIFECYCLE_STATES:
+            raise ValueError(
+                "lifecycle must be one of "
+                + ", ".join(sorted(CANDIDATE_LIFECYCLE_STATES))
+            )
+        return value
+
+
+class CandidateLedgerSummary(ContractModel):
+    """Per-run publication-ledger accounting for the daily terminal response."""
+
+    run_id: UUID
+    total: int = 0
+    counts: dict[str, int] = Field(default_factory=dict)
+    retry_eligible: int = 0
+    published_ids: tuple[str, ...] = ()
+
+
 class CorpusResource(StrEnum):
     """Private corpus resource names exposed by the analyst API."""
 

@@ -27,6 +27,8 @@ EXPECTED_ANALYST_PATHS = {
     "/api/v1/analyst/reports",
     "/api/v1/analyst/reports/validate",
     "/api/v1/analyst/corpus/{resource}",
+    "/api/v1/analyst/candidates",
+    "/api/v1/analyst/candidates/{candidate_id}",
 }
 
 
