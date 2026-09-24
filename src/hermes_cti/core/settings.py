@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     admin_token: SecretStr | None = None
     analyst_token: SecretStr | None = None
     enrichment_enabled: bool = True
+    enrichment_pipeline_enabled: bool = False
+    enrichment_max_cves_per_run: int = 500
     enrichment_cache_ttl_seconds: int = 86_400
     enrichment_stale_if_error_seconds: int = 604_800
     provider_timeout_seconds: float = 20.0
@@ -137,6 +139,8 @@ def _yaml_values(path: Path) -> dict[str, Any]:
         "schedule_hour": scheduler.get("hour", 2),
         "daily_run_stale_after_seconds": scheduler.get("stale_after_seconds", 86_400),
         "enrichment_enabled": enrichment.get("enabled", True),
+        "enrichment_pipeline_enabled": enrichment.get("pipeline_enabled", False),
+        "enrichment_max_cves_per_run": enrichment.get("max_cves_per_run", 500),
         "enrichment_cache_ttl_seconds": enrichment.get("cache_ttl_seconds", 86_400),
         "enrichment_stale_if_error_seconds": enrichment.get(
             "stale_if_error_seconds", 604_800
