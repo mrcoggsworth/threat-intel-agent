@@ -183,3 +183,18 @@ def test_build_providers_configures_nvd_min_interval() -> None:
     providers = build_providers(settings)
     nvd = next(provider for provider in providers if provider.name == "nvd")
     assert nvd._config.min_interval_seconds == pytest.approx(6.0)
+
+
+@pytest.mark.asyncio
+async def test_success_leaves_no_lingering_cooldown() -> None:
+    """Health reporting must not show a gate the provider already cleared."""
+    state: dict[str, int] = {"allow": 1}
+    provider = make_provider(state)
+    try:
+        ok = await provider.enrich(make_request())
+        assert ok.status is EnrichmentStatus.SUCCESS
+        health = provider.health(NOW)
+        assert health.rate_limited_until is None
+        assert provider._rate_limited_until is None
+    finally:
+        await provider.aclose()
