@@ -13,12 +13,14 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Final
 from urllib.parse import urlencode
+from xml.etree import ElementTree
 
 import httpx
 
 from hermes_cti.models.contracts import (
     BodyEncoding,
     HTTPMethod,
+    ParserAdapter,
     RetryPolicy,
     SourceRequest,
 )
@@ -75,6 +77,10 @@ class FetchResult:
     body: bytes
     headers: tuple[tuple[str, str], ...]
     retry_count: int
+    # Advisory notes recorded when a response was accepted under a documented
+    # degradation rather than a clean policy match. Each entry is a
+    # ``(classification, detail)`` pair; never contains response bodies.
+    warnings: tuple[tuple[str, str], ...] = ()
 
     def header(self, name: str) -> str | None:
         """Return one case-insensitive response header."""
@@ -248,6 +254,72 @@ class AsyncHTTPClient:
                 return True
         return False
 
+    # Signatures that identify a well-formed XML feed document. Checked against
+    # the leading bytes of the body only.
+    _FEED_ROOT_SIGNATURES = (b"<rss", b"<feed")
+    _FEED_PROLOG_LIMIT = 4096
+    _FEED_ROOTS = {b"rss", b"feed"}
+
+    @classmethod
+    def _body_is_xml_feed(cls, body: bytes) -> bool:
+        """Return True when the body is unambiguously an XML feed document.
+
+        This is a positive-signature check, not an HTML sniffer: a document is
+        accepted only when its root element is exactly ``rss`` or ``feed``.
+        Anything else -- including HTML challenge/anti-bot pages, empty bodies,
+        JSON, and non-feed XML such as ``<html xmlns=...>`` -- returns False.
+        """
+
+        probe = body[: cls._FEED_PROLOG_LIMIT]
+        if not probe:
+            return False
+        lowered = probe.lower()
+        if b"<rss" not in lowered and b"<feed" not in lowered:
+            return False
+        if b"<!doctype" in lowered or b"<html" in lowered:
+            return False
+        try:
+            root = ElementTree.fromstring(body)
+        except (ElementTree.ParseError, ValueError, TypeError):
+            return False
+        tag = root.tag
+        if not isinstance(tag, str):
+            return False
+        if tag.startswith("{"):
+            tag = tag.split("}", 1)[1]
+        return tag.lower().encode("utf-8", "ignore") in cls._FEED_ROOTS
+
+    @classmethod
+    def _content_type_degradation(
+        cls,
+        response: httpx.Response,
+        contract: SourceRequest,
+        body: bytes | None = None,
+    ) -> str | None:
+        """Return a degradation note, or None when the response is unambiguous.
+
+        Applies only to feed parsers (RSS/ATOM) and only to responses whose body
+        is a positively identified XML feed. A non-feed body is not a
+        degradation: it stays a policy rejection so that anti-bot and challenge
+        pages keep their actionable ``content_type_error`` classification.
+
+        ``body`` is the already-buffered response body. When it is omitted the
+        check cannot run and the response is treated as unambiguous, which keeps
+        all non-feed adapters and unbuffered callers on the strict path.
+        """
+
+        parser = contract.parser_adapter
+        if parser not in {ParserAdapter.RSS, ParserAdapter.ATOM}:
+            return None
+        if body is None or not cls._body_is_xml_feed(body):
+            return None
+        declared = (response.headers.get("content-type") or "(absent)").strip()
+        return (
+            "content_type_degraded: source policy does not list the declared "
+            f"media type {declared!r}, but the body is a well-formed XML feed "
+            f"root valid for the {parser.value} adapter"
+        )
+
     @staticmethod
     def _decompress_gzip(body: bytes, max_response_bytes: int) -> bytes:
         """Decompress a gzip archive while preserving the response-size bound."""
@@ -329,6 +401,7 @@ class AsyncHTTPClient:
         )
         timeout = timeout_seconds or self.config.read_timeout_seconds
         for attempt in range(policy.max_retries + 1):
+            degradation_note: str | None = None
             try:
                 async with self._client.stream(
                     method,
@@ -383,31 +456,60 @@ class AsyncHTTPClient:
                         response.headers.get("content-type"),
                         contract.expected_content_types,
                     ):
-                        raise FetchError(
-                            "content_type_error",
-                            "response content type did not match source policy",
-                            attempt,
-                            status_code=response.status_code,
-                        )
-                    length = response.headers.get("content-length")
-                    if length is not None and int(length) > max_response_bytes:
-                        raise FetchError(
-                            "oversized_response",
-                            f"response exceeds {max_response_bytes} bytes",
-                            attempt,
-                        )
-                    chunks: list[bytes] = []
-                    total = 0
-                    async for chunk in response.aiter_bytes():
-                        total += len(chunk)
-                        if total > max_response_bytes:
+                        # The policy did not match. Read the body under the
+                        # response-size bound so the decision can consult a
+                        # positive feed signature, then either reject or accept
+                        # under a recorded degradation.
+                        length = response.headers.get("content-length")
+                        if length is not None and int(length) > max_response_bytes:
                             raise FetchError(
                                 "oversized_response",
                                 f"response exceeds {max_response_bytes} bytes",
                                 attempt,
                             )
-                        chunks.append(chunk)
-                    body = b"".join(chunks)
+                        chunks: list[bytes] = []
+                        total = 0
+                        async for chunk in response.aiter_bytes():
+                            total += len(chunk)
+                            if total > max_response_bytes:
+                                raise FetchError(
+                                    "oversized_response",
+                                    f"response exceeds {max_response_bytes} bytes",
+                                    attempt,
+                                )
+                            chunks.append(chunk)
+                        body = b"".join(chunks)
+                        degraded = self._content_type_degradation(
+                            response, contract, body
+                        )
+                        if degraded is None:
+                            raise FetchError(
+                                "content_type_error",
+                                "response content type did not match source policy",
+                                attempt,
+                                status_code=response.status_code,
+                            )
+                        degradation_note = degraded
+                    else:
+                        length = response.headers.get("content-length")
+                        if length is not None and int(length) > max_response_bytes:
+                            raise FetchError(
+                                "oversized_response",
+                                f"response exceeds {max_response_bytes} bytes",
+                                attempt,
+                            )
+                        chunks = []
+                        total = 0
+                        async for chunk in response.aiter_bytes():
+                            total += len(chunk)
+                            if total > max_response_bytes:
+                                raise FetchError(
+                                    "oversized_response",
+                                    f"response exceeds {max_response_bytes} bytes",
+                                    attempt,
+                                )
+                            chunks.append(chunk)
+                        body = b"".join(chunks)
                     content_type = (
                         response.headers.get("content-type", "")
                         .split(";", 1)[0]
@@ -425,6 +527,11 @@ class AsyncHTTPClient:
                         body,
                         tuple(response.headers.multi_items()),
                         attempt,
+                        (
+                            (("content_type_degraded", degradation_note),)
+                            if degradation_note
+                            else ()
+                        ),
                     )
             except FetchError:
                 raise

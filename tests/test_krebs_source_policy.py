@@ -186,12 +186,18 @@ def fetch_with_content_type(
 # ---------------------------------------------------------------------------
 
 
-def test_krebs_default_rss_policy_rejects_text_html_feed() -> None:
-    """Document the defect: the narrowed default RSS policy drops a valid feed.
+def test_undeclared_rss_source_accepts_mislabelled_feed_with_degradation() -> None:
+    """The signature-safe path accepts a mislabelled feed and records why.
 
-    The origin returns a well-formed RSS 2.0 document labelled ``text/html``.
-    The auto-derived RSS allowlist does not contain ``text/html``, so the fetch
-    is rejected before the body is parsed.
+    Historical context: before the source-scoped policy repair (and before the
+    signature check), this exact response shape produced the production
+    ``content_type_error`` failures documented in
+    ``docs/incidents/2026-09-17-ingestion-failure-*.md``.
+
+    The response is a well-formed XML feed root served under a media type the
+    source policy does not list, so the transport accepts it and records a
+    ``content_type_degraded`` warning instead of discarding real feed content.
+    The mismatch stays observable rather than being normalized away.
     """
 
     configured = krebs_source()
@@ -199,13 +205,23 @@ def test_krebs_default_rss_policy_rejects_text_html_feed() -> None:
     assert configured.request.expected_content_types == DEFAULT_RSS_CONTENT_TYPES
     assert "text/html" not in configured.request.expected_content_types
 
-    with pytest.raises(FetchError) as excinfo:
-        fetch_with_content_type(configured, KREBS_FEED_BODY, "text/html; charset=UTF-8")
+    fetch, raw = fetch_with_content_type(
+        configured, KREBS_FEED_BODY, "text/html; charset=UTF-8"
+    )
 
-    assert excinfo.value.classification == "content_type_error"
-    assert excinfo.value.detail == "response content type did not match source policy"
-    # The gate rejects deterministically and consumes no retry.
-    assert excinfo.value.retry_count == 0
+    assert fetch.status_code == 200
+    assert fetch.content_type == "text/html; charset=UTF-8"
+    assert len(fetch.warnings) == 1
+    classification, detail = fetch.warnings[0]
+    assert classification == "content_type_degraded"
+    assert "'text/html; charset=UTF-8'" in detail
+    assert "well-formed XML feed root" in detail
+
+    documents = normalize_feed(configured, fetch, raw)
+    assert len(documents) == 1
+    assert documents[0].title == "Krebs source policy canary"
+    # Provenance: the mislabelled type is retained on the derived document.
+    assert documents[0].content_type == "text/html; charset=UTF-8"
 
 
 # ---------------------------------------------------------------------------
@@ -332,11 +348,12 @@ def test_krebs_source_policy_still_rejects_non_feed_html() -> None:
 
 
 def test_text_html_acceptance_is_scoped_to_the_krebs_entry() -> None:
-    """``text/html`` acceptance is source-scoped and does not widen the default.
+    """The registry repair is source-scoped and does not widen the default.
 
     A different RSS source that does not declare the variant must keep the
-    narrowed default policy, proving the registry repair did not change global
-    ingestion behaviour.
+    narrowed default policy. The signature check accepts its well-formed feed
+    body under degradation, but the *policy* itself is unchanged, which is what
+    proves the repair did not alter global ingestion behaviour.
     """
 
     other = SourceConfig.model_validate(
@@ -351,10 +368,10 @@ def test_text_html_acceptance_is_scoped_to_the_krebs_entry() -> None:
     assert other.request.expected_content_types == DEFAULT_RSS_CONTENT_TYPES
     assert "text/html" not in other.request.expected_content_types
 
-    with pytest.raises(FetchError) as excinfo:
-        fetch_with_content_type(other, KREBS_FEED_BODY, "text/html; charset=UTF-8")
-
-    assert excinfo.value.classification == "content_type_error"
+    fetch, _ = fetch_with_content_type(
+        other, KREBS_FEED_BODY, "text/html; charset=UTF-8"
+    )
+    assert fetch.warnings[0][0] == "content_type_degraded"
 
 
 # ---------------------------------------------------------------------------
@@ -408,3 +425,100 @@ def test_krebs_live_origin_body_normalizes_under_declared_policy() -> None:
         documents = normalize_feed(configured, fetch, raw)
         assert len(documents) >= 1
         assert documents[0].source_id == KREBS_SOURCE_ID
+
+
+# ---------------------------------------------------------------------------
+# Signature check: the negative-control matrix
+#
+# These cases pin the exact boundary of the signature-safe path. The transport
+# must accept a response under degradation ONLY when the body is positively
+# identified as an XML feed root, and must keep the actionable
+# `content_type_error` classification everywhere else.
+# ---------------------------------------------------------------------------
+
+NON_FEED_BODIES = {
+    "anti_bot_html": ANTIBOT_HTML_BODY,
+    "html_doctype": (
+        b"<!DOCTYPE html><html><body><h1>Access denied</h1></body></html>"
+    ),
+    "empty_body": b"",
+    "json_body": b'{"error": "rate limited", "retry_after": 60}',
+    "plain_text": b"Service temporarily unavailable. Please try again later.",
+    "non_feed_xml": (
+        b'<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml">'
+        b"<body>challenge</body></html>"
+    ),
+    "truncated_xml": b'<?xml version="1.0"?><rss><channel><title>unclosed',
+    "gzip_binary": b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03binary",
+}
+
+
+@pytest.mark.parametrize("label", sorted(NON_FEED_BODIES))
+def test_non_feed_bodies_keep_content_type_error_classification(label: str) -> None:
+    """Non-feed bodies are rejected with ``content_type_error``, never accepted.
+
+    This is the guard proving the degradation path is a positive-signature
+    check and not a catch-all: every body here lacks a well-formed XML feed
+    root, so the policy rejection and its actionable classification survive.
+    """
+
+    configured = krebs_source()
+    body = NON_FEED_BODIES[label]
+
+    with pytest.raises(FetchError) as excinfo:
+        fetch_with_content_type(configured, body, "text/html; charset=utf-8")
+
+    assert excinfo.value.classification == "content_type_error"
+    assert excinfo.value.detail == "response content type did not match source policy"
+
+
+def test_signature_check_does_not_apply_to_non_feed_adapters() -> None:
+    """The signature check is scoped to RSS/ATOM, never JSON or HTML adapters.
+
+    Two independent guarantees are asserted:
+
+    1. A JSON adapter source served an XML feed body under ``text/html`` is
+       rejected with ``content_type_error`` -- the degradation path did not
+       engage for a non-feed parser.
+    2. An HTML adapter source legitimately declares ``text/html``, so it matches
+       policy and records no degradation warning.
+    """
+
+    json_source = SourceConfig.model_validate(
+        {
+            "name": "Non Feed json",
+            "type": SourceType.JSON,
+            "url": "https://example.test/data",
+            "category": "news",
+        }
+    )
+    with pytest.raises(FetchError) as excinfo:
+        fetch_with_content_type(
+            json_source, KREBS_FEED_BODY, "text/html; charset=UTF-8"
+        )
+    assert excinfo.value.classification == "content_type_error"
+
+    html_source = SourceConfig.model_validate(
+        {
+            "name": "Non Feed html",
+            "type": SourceType.HTML,
+            "url": "https://example.test/page",
+            "category": "news",
+        }
+    )
+    assert "text/html" in html_source.request.expected_content_types
+    fetch, _ = fetch_with_content_type(
+        html_source, KREBS_FEED_BODY, "text/html; charset=UTF-8"
+    )
+    # A policy match is never reported as a degradation.
+    assert fetch.warnings == ()
+
+
+def test_declared_policy_match_records_no_degradation_warning() -> None:
+    """A clean policy match is never reported as degraded."""
+
+    configured = krebs_source_with_policy()
+    fetch, _ = fetch_with_content_type(
+        configured, KREBS_FEED_BODY, "application/rss+xml; charset=UTF-8"
+    )
+    assert fetch.warnings == ()
