@@ -207,7 +207,13 @@
     "name": "Krebs on Security",
     "type": "rss",
     "url": "https://krebsonsecurity.com/feed/",
-    "category": "news"
+    "category": "news",
+    "request": {
+      "expected_content_types": [
+        "application/rss+xml",
+        "text/html"
+      ]
+    }
   },
   {
     "name": "BleepingComputer",
