@@ -16,6 +16,8 @@ Use these supported service operations:
 - POST /api/v1/analyst/proposals
 - POST /api/v1/analyst/reports/validate
 - POST /api/v1/analyst/reports
+- PUT /api/v1/analyst/candidates/{candidate_id}
+- GET /api/v1/analyst/candidates?run_id={run_id}
 
 Report submissions use JSON {"bundle": <ReportBundle>, "publish": true|false}.
 Use publish=true only after the evidence, artifact, hunt, remediation, and
@@ -58,6 +60,11 @@ Candidate Ledger & Independent Publication Contract:
   Each candidate carries: candidate_id (uuid5 of "candidate:<run_id>:<cve_or_event
   identity>"), event/CVE identity, evidence IDs, source URLs, enrichment state,
   validation state, publication state, failure reason, retry eligibility.
+- Persist every candidate state transition through
+  PUT /api/v1/analyst/candidates/{candidate_id} (body: the full CandidateRecord;
+  candidate_id must equal uuid5 of "candidate:<run_id>:<event_identity>") and
+  report terminal counts from GET /api/v1/analyst/candidates?run_id={run_id}.
+  Do not keep ledger state only in the execution transcript.
 - Rank candidates by KEV linkage, active exploitation, severity, enterprise
   impact, and evidence completeness. Process in bounded batches of at most six
   candidates per execution, highest rank first; record remaining candidates as
