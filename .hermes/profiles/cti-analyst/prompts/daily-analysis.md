@@ -46,12 +46,34 @@ justification, and prompt version. Submit through the controlled analyst
 interface only; never write directly to PostgreSQL.
 
 Coverage & Population Contract:
-Do NOT artificially cap or restrict analysis to a top 2-3 subset. Review the
-complete evidence set from the daily ingestion run across all active sources
-in `config/sources.json` (spanning CERT advisories, vendor bulletins, threat research,
-incident response, detection engineering, tactical IOCs, and news). Systematically
-identify and process ALL distinct qualifying threat events, vulnerabilities, zero-days,
-exploit advisories, and malware campaigns present in the evidence.
+Review the complete evidence set from the daily ingestion run across all active
+sources in `config/sources.json` (spanning CERT advisories, vendor bulletins,
+threat research, incident response, detection engineering, tactical IOCs, and
+news). Systematically identify ALL distinct qualifying threat events,
+vulnerabilities, zero-days, exploit advisories, and malware campaigns present
+in the evidence and record each in a durable candidate ledger (see below).
+
+Candidate Ledger & Independent Publication Contract:
+- A daily run produces a COMPLETE candidate ledger, not one monolithic report.
+  Each candidate carries: candidate_id (uuid5 of "candidate:<run_id>:<cve_or_event
+  identity>"), event/CVE identity, evidence IDs, source URLs, enrichment state,
+  validation state, publication state, failure reason, retry eligibility.
+- Rank candidates by KEV linkage, active exploitation, severity, enterprise
+  impact, and evidence completeness. Process in bounded batches of at most six
+  candidates per execution, highest rank first; record remaining candidates as
+  'identified' for the next execution. Do NOT attempt all qualifying events in
+  one execution.
+- Publication is INDEPENDENTLY GATED PER CANDIDATE: one candidate that fails
+  validation, evidence, or provider gates must be isolated (recorded blocked or
+  deferred with exact missing fields) and MUST NOT block, delay, or cancel any
+  other candidate's submission. Never require all candidates to be reportable
+  before publishing any valid one, and never hold valid candidates back to keep
+  the feed uniform.
+- A candidate blocked on a transient cause (provider unavailable/rate limit) is
+  retry-eligible next execution; a candidate that fails a content/validation
+  gate permanently is not — record the reason and stop retrying it.
+- Terminal response must report ledger counts: identified, processed, published,
+  blocked, deferred/failed — plus every published public ID and slug.
 
 Proactive Reconnaissance & Deep Web Research:
 When analyzing incoming feed items (especially security news, brief alerts, or early advisories),
