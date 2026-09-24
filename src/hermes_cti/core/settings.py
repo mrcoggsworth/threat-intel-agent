@@ -69,6 +69,9 @@ class Settings(BaseSettings):
     provider_max_retries: int = 2
     provider_max_response_bytes: int = 20_971_520
     provider_concurrency: int = 2
+    # NVD's unauthenticated tier allows ~5 requests per 30s; 6s spacing keeps
+    # a full-corpus pass inside quota without needing a key.
+    nvd_min_interval_seconds: float = 6.0
     cisa_kev_url: str = (
         "https://www.cisa.gov/sites/default/files/feeds/"
         "known_exploited_vulnerabilities.json"
@@ -149,6 +152,7 @@ def _yaml_values(path: Path) -> dict[str, Any]:
         "provider_max_retries": enrichment.get("max_retries", 2),
         "provider_max_response_bytes": enrichment.get("max_response_bytes", 20_971_520),
         "provider_concurrency": enrichment.get("concurrency", 2),
+        "nvd_min_interval_seconds": enrichment.get("nvd_min_interval_seconds", 6.0),
         "cisa_kev_url": enrichment.get(
             "cisa_kev_url",
             "https://www.cisa.gov/sites/default/files/feeds/"

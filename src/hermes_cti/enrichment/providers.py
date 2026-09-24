@@ -6,7 +6,7 @@ import asyncio
 import base64
 import json
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any, Protocol
 from urllib.parse import quote, urlencode
@@ -185,6 +185,20 @@ class BaseProvider:
                 retryable=False,
                 error=ProviderErrorClassification.DISABLED,
                 detail="provider disabled by configuration",
+            )
+        # A provider that returned 429 records a cooldown window; without this
+        # gate the next request fired immediately and burned quota that was
+        # already refused (observed: NVD failed 358/489 CVEs on an unthrottled
+        # run). Rejections from the cooldown must not re-arm it or count as new
+        # failures, or a provider could never recover.
+        if self._rate_limited_until is not None and now < self._rate_limited_until:
+            return self._response(
+                request,
+                now,
+                EnrichmentStatus.UNAVAILABLE,
+                retryable=True,
+                error=ProviderErrorClassification.RATE_LIMIT,
+                detail="provider in rate-limit cooldown; request not dispatched",
             )
         async with self._semaphore:
             await self._wait_rate_limit()
@@ -819,6 +833,9 @@ def build_providers(
         ),
         transport=transport,
     )
+    nvd_config = replace(
+        common["config"], min_interval_seconds=float(settings.nvd_min_interval_seconds)
+    )
     core_enabled = bool(settings.enrichment_enabled)
     providers: list[EnrichmentProvider] = [
         CISAKEVProvider(str(settings.cisa_kev_url), enabled=core_enabled, **common),
@@ -827,7 +844,8 @@ def build_providers(
             str(settings.nvd_url),
             enabled=core_enabled,
             api_key=_secret(settings, "nvd_api_key"),
-            **common,
+            config=nvd_config,
+            transport=transport,
         ),
     ]
     providers.append(
