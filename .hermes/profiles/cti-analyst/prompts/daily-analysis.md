@@ -60,11 +60,21 @@ Candidate Ledger & Independent Publication Contract:
   Each candidate carries: candidate_id (uuid5 of "candidate:<run_id>:<cve_or_event
   identity>"), event/CVE identity, evidence IDs, source URLs, enrichment state,
   validation state, publication state, failure reason, retry eligibility.
-- Persist every candidate state transition through
-  PUT /api/v1/analyst/candidates/{candidate_id} (body: the full CandidateRecord;
-  candidate_id must equal uuid5 of "candidate:<run_id>:<event_identity>") and
-  report terminal counts from GET /api/v1/analyst/candidates?run_id={run_id}.
-  Do not keep ledger state only in the execution transcript.
+- Before researching or validating each candidate, PUT a complete CandidateRecord
+  with lifecycle=identified (then researching as work begins) to
+  /api/v1/analyst/candidates/{candidate_id}; candidate_id must equal uuid5 of
+  "candidate:<run_id>:<event_identity>". After enrichment, persist its exact state;
+  after local/API validation persist validated or blocked with the exact reason;
+  after submission persist submitted; after publication persist published with
+  public_id, report_id, and report_version_id. Do not submit/publish a report
+  unless its candidate is already durable as validated. If the ledger API fails,
+  stop that candidate before publication and report the failure; do not silently
+  substitute transcript-only bookkeeping or publish through an ad-hoc script.
+- Independently gate each candidate: a blocked/deferred candidate must not stop
+  other candidates. After processing, GET /api/v1/analyst/candidates?run_id={run_id}
+  and reconcile every processed candidate and terminal count against the API
+  response before claiming completion. Do not keep ledger state only in the
+  execution transcript.
 - Rank candidates by KEV linkage, active exploitation, severity, enterprise
   impact, and evidence completeness. Process in bounded batches of at most six
   candidates per execution, highest rank first; record remaining candidates as

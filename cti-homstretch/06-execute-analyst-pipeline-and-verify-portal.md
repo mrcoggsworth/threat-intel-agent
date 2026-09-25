@@ -5,91 +5,79 @@ You are a Cyber Threat Intelligence (CTI) analyst and full-stack integration eng
 
 ---
 
-## Background & Diagnosis
-- In Task 05, the CTI database was populated with raw source documents, extracted indicators, and evidence claims.
-- The `cti-analyst` profile ([`~/.hermes/profiles/cti-analyst/`](file:///home/cptcoggsworth/.hermes/profiles/cti-analyst)) is designed to:
-  1. Call `GET /api/v1/analyst/status` and `GET /api/v1/analyst/evidence`.
-  2. Perform threat analysis, MITRE ATT&CK mapping, and historical correlation using its equipped skills ([`cti-analysis`](file:///home/cptcoggsworth/.hermes/profiles/cti-analyst/skills/cti-analysis), [`sigma-rule-generator`](file:///home/cptcoggsworth/.hermes/profiles/cti-analyst/skills/sigma-rule-generator), [`yara-author`](file:///home/cptcoggsworth/.hermes/profiles/cti-analyst/skills/yara-author), [`threat-hunting`](file:///home/cptcoggsworth/.hermes/profiles/cti-analyst/skills/threat-hunting), [`remediation`](file:///home/cptcoggsworth/.hermes/profiles/cti-analyst/skills/remediation)).
-  3. Submit relationship proposals to `POST /api/v1/analyst/proposals`.
-  4. Submit and publish structured report bundles to `POST /api/v1/analyst/reports`.
-- Once published, the web application ([`hermes_cti.portal`](file:///home/cptcoggsworth/code/threat-intel-agent/src/hermes_cti/portal/routes.py)) renders the reports at `/reports`, `/reports/{slug}`, and `/api/v1/public/reports`.
+## Current operator procedure
 
----
+Do not hard-code a cron job ID from an old runbook. Resolve it immediately before
+use, check doctor/status, then inspect durable execution state after launch:
 
-## Instructions
+```bash
+hermes --profile cti-analyst cron list
+hermes --profile cti-analyst cron doctor
+hermes --profile cti-analyst cron status
+# Use the current ID printed by cron list:
+hermes --profile cti-analyst cron run <current_job_id>
+hermes --profile cti-analyst cron runs <current_job_id> --limit 5
+```
 
-1. **Verify Evidence Availability on Analyst API:**
-   ```bash
-   ANALYST_TOKEN=$(cat /home/cptcoggsworth/.local/state/cti-hermes/secrets/analyst-token)
-   curl -s -H "X-Analyst-Token: $ANALYST_TOKEN" http://127.0.0.1:18000/api/v1/analyst/evidence | jq '{ingestion_run_id, doc_count: (.documents | length), indicator_count: (.indicators | length)}'
-   ```
-   Confirm that documents and indicators are present in the response payload.
+A launcher exit or `running` row is not completion evidence. Wait for `completed`
+or `failed`, then inspect the execution response/transcript and read back ledger
+and publication effects independently. Never remove an execution lock unless the
+supported recovery process establishes that it is stale and owned by this job.
 
-2. **Trigger the `cti-analyst` Daily Analysis Job:**
-   Trigger the job `eb74b402c90d` (`cti-analyst-daily-analysis`):
-   ```bash
-   hermes --profile cti-analyst cron run eb74b402c90d
-   ```
-   Or trigger a single cron evaluation pass:
-   ```bash
-   hermes --profile cti-analyst cron tick
-   ```
+### Authentication and health
 
-3. **Monitor the Agent Run:**
-   Follow the agent execution log:
-   ```bash
-   tail -f ~/.hermes/profiles/cti-analyst/logs/agent.log
-   ```
-   Confirm that the agent reads evidence, maps techniques, generates detections, and posts to `/api/v1/analyst/reports`.
+The runtime credential path is supplied by
+`HERMES_ANALYST_SERVICE_TOKEN_FILE`; do not copy or print its contents. The
+profile's supported health command reads the configured token file without
+exposing it:
 
-4. **Verify Database Records:**
-   Query PostgreSQL to ensure published reports, report versions, and detections are written:
-   ```bash
-   docker exec cti-hermes-postgres-1 psql -U hermes -d hermes -c "
-   SELECT 'report' AS table_name, count(*) FROM report
-   UNION ALL SELECT 'report_version', count(*) FROM report_version
-   UNION ALL SELECT 'publication', count(*) FROM publication
-   UNION ALL SELECT 'detection', count(*) FROM detection
-   UNION ALL SELECT 'hunt', count(*) FROM hunt
-   UNION ALL SELECT 'remediation', count(*) FROM remediation;
-   "
-   ```
+```bash
+hermes-cti analyst health \
+  --api-url "https://matrix-1.taild27e3c.ts.net:9443" \
+  --token-file "$HERMES_ANALYST_SERVICE_TOKEN_FILE" \
+  --cron-dir "$HOME/.hermes/profiles/cti-analyst/cron"
+```
 
----
+`/api/v1/analyst/*` deliberately returns HTTP 404 for missing or invalid
+`X-Analyst-Token` credentials. Treat an unauthenticated 404 as fail-closed auth,
+not proof that the route is absent; verify with the supported authenticated
+health command. Do not weaken that behavior. Public projections do not require
+the analyst token.
 
-## Verification Steps & Expected Outputs
+### Collection, candidates, and publication are separate stages
 
-1. Verify Public Reports JSON Endpoint:
-   ```bash
-   curl -s http://127.0.0.1:18000/api/v1/public/reports | jq .
-   ```
-   **Expected Output:** JSON object containing `items` with at least one published report bundle, summaries, confidence scores, and severities.
+Collection success means sources were attempted and the ingestion run completed;
+it does not mean a report was reviewed or published. Read the completed run and
+its evidence through the analyst API before analysis. Record each qualifying
+event as a CandidateRecord via `PUT /api/v1/analyst/candidates/{candidate_id}`
+*before* report validation/submission, persist each lifecycle transition and
+exact block reason, and query `GET /api/v1/analyst/candidates?run_id=<run_id>`
+to reconcile terminal counts. Process candidates independently (maximum six per
+execution); a blocked candidate must not block a valid sibling. Do not publish
+through an ad-hoc script or claim a ledger transition that the API did not confirm.
 
-2. Verify HTML Portal Page:
-   ```bash
-   curl -s http://127.0.0.1:18000/reports | grep -i "report"
-   ```
-   **Expected Output:** HTML content containing formatted report cards.
+For each candidate, run local bundle validation, authenticated API validation,
+then publication only after validation passes; persist report identifiers and
+published state in the ledger afterward. Repeating a submission must remain
+idempotent. Verify public report IDs using `/api/v1/public/reports`, and verify
+the portal detail page using the report slug. Treat ingestion freshness and
+publication freshness as different signals.
 
-3. Verify Caddy HTTPS Analyst Endpoint (Port 9443):
-   ```bash
-   curl -sk https://matrix-1.taild27e3c.ts.net:9443/reports | grep -i "report"
-   curl -sk https://matrix-1.taild27e3c.ts.net:9443/api/v1/public/reports | jq .
-   ```
-   **Expected Output:** Same published report content served securely over HTTPS.
+### Verification and rollback boundaries
 
-4. Inspect Report Details & Detection Rules:
-   Fetch the slug of a published report and query its detections and hunt guidance:
-   ```bash
-   SLUG=$(curl -s http://127.0.0.1:18000/api/v1/public/reports | jq -r '.items[0].slug')
-   curl -s "http://127.0.0.1:18000/api/v1/public/reports/$SLUG" | jq '{title: .title, state: .state, detections: (.detections | length)}'
-   ```
-   **Expected Output:** `{"title": "...", "state": "published", "detections": >0}`
-
----
-
-## Acceptance Criteria
-- [ ] `cti-analyst` executes its workflow without authentication or endpoint errors.
-- [ ] PostgreSQL contains rows in `report`, `report_version`, `publication`, and `detection`.
-- [ ] Public API endpoint `/api/v1/public/reports` returns published reports.
-- [ ] Portal UI (`/reports`) renders published threat reports and detection rules.
+- Read current job ID with `cron list`; poll `cron runs <current_job_id> --limit 5`
+  until a durable terminal state.
+- Check candidate API summary and read public feed/detail independently; do not
+  infer either from a successful HTTP submission alone.
+- Use the service's `HERMES_ANALYST_SERVICE_TOKEN_FILE` path; never place token
+  content in shell history, logs, artifacts, or reports.
+- Do not write directly to PostgreSQL from analyst workflows. Do not rewrite a
+  published version; corrections require a new validated version using the
+  supported supersedes workflow.
+- Profile prompt changes must be made in the repository template and reconciled
+  with `scripts/install-hermes-profiles.sh`; review its dry-run output first.
+  Reconciliation backs up changed managed files and preserves protected runtime
+  state. Roll back only the changed managed file from that backup, then verify
+  prompt/template parity. Never restore secrets, sessions, or logs from staging.
+- Application deployment, if needed, is through `./scripts/update-app.sh` only;
+  do not bypass a collection lock or active scheduler.

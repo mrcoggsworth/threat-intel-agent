@@ -55,6 +55,18 @@ def test_reconciler_materializes_jobs_and_resolves_runtime_values(
             for job in jobs
             if job.get("provider")
         )
+        if profile == "cti-analyst":
+            daily = next(
+                job for job in jobs if job["id"] == "cti-analyst-daily-analysis"
+            )
+            daily_prompt = daily["prompt"]
+            assert "PUT /api/v1/analyst/candidates/{candidate_id}" in daily_prompt
+            assert "GET /api/v1/analyst/candidates?run_id={run_id}" in daily_prompt
+            assert (
+                "unless its candidate is already durable as validated" in daily_prompt
+            )
+            assert "stop that candidate before publication" in daily_prompt
+            assert daily_prompt == (root / "prompts/daily-analysis.md").read_text()
         watchdog = (
             next(job for job in jobs if job["id"].endswith("health-watchdog"))
             if profile == "cti-maintainer"

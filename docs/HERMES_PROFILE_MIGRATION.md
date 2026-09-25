@@ -286,3 +286,57 @@ The complete prior profile is copied to a timestamped
 normal reconciliation by restoring only managed files from the timestamped
 backup and rerunning verification. Never restore protected runtime state from
 repository staging assets.
+
+## Daily analyst collection-to-publication operations
+
+Ingestion and publication are separate clocks and separate acceptance checks. A
+completed collection proves source processing; it does not prove candidate
+review or report publication. Check both the run endpoint and public feed, and
+report their freshness separately.
+
+Resolve the current cron job ID immediately before use rather than copying one
+from a historical receipt:
+
+```sh
+hermes --profile cti-analyst cron list
+hermes --profile cti-analyst cron doctor
+hermes --profile cti-analyst cron status
+hermes --profile cti-analyst cron run <current_job_id>
+hermes --profile cti-analyst cron runs <current_job_id> --limit 5
+```
+
+The final command must show a durable terminal state (`completed` or `failed`);
+a launcher exit is not proof. Inspect the execution transcript and verify
+side-effects independently.
+
+The analyst API token is read from the path configured by
+`HERMES_ANALYST_SERVICE_TOKEN_FILE`; never print it or embed it in shell history.
+The API intentionally returns HTTP 404 for missing or invalid `X-Analyst-Token`
+on `/api/v1/analyst/*` (fail-closed behavior). An unauthenticated 404 does not
+prove a route is absent. Use the supported diagnostic without echoing secrets:
+
+```sh
+hermes-cti analyst health \
+  --api-url "https://matrix-1.taild27e3c.ts.net:9443" \
+  --token-file "$HERMES_ANALYST_SERVICE_TOKEN_FILE" \
+  --cron-dir "$HOME/.hermes/profiles/cti-analyst/cron"
+```
+
+For every qualifying event, persist a complete CandidateRecord before report
+validation/submission using `PUT /api/v1/analyst/candidates/{candidate_id}`.
+Persist the lifecycle through identified/researching, validated or blocked,
+submitted, and published/failed, including exact reasons and report identifiers.
+A blocked candidate must not prevent a valid sibling from publishing; process at
+most six ranked candidates per execution. Afterward, reconcile the run using
+`GET /api/v1/analyst/candidates?run_id=<run_id>` and independently verify report
+IDs in `/api/v1/public/reports` and detail pages by slug. Never claim success from
+a publish response alone or from transcript-only ledger state.
+
+Published versions and provenance are immutable. Corrections require a new,
+validated version with a supersedes relationship; do not update an existing
+version in place. Prompt changes belong in `.hermes/profiles/cti-analyst/` and
+must be reconciled through the supported installer after reviewing its dry-run.
+The reconciler backs up changed managed assets and preserves protected runtime
+state; roll back only the changed managed file from the backup, not secrets,
+sessions, logs, or other protected state. Deploy application changes only with
+`./scripts/update-app.sh`; do not bypass active collection locks or schedulers.
